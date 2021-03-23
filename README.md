@@ -23,11 +23,10 @@ Installation
 git clone https://github.com/jul6art/macos-utils.git
 ```
 
-USAGE
------
+Documentation
+------------
 
-// @TODO
-
+* generate a [custom macOs App](/data/doc/APPIFY.md) (I.E. to fix some sourceTree init php version error)
 
 License
 -------
