@@ -19,7 +19,7 @@ Requirements
 Installation
 ------------
 
-```console
+```shell
 git clone https://github.com/jul6art/macos-utils.git
 ```
 
