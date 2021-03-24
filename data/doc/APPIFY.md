@@ -16,7 +16,7 @@ Custom macOs App
 
 Install Appify
 
-```console
+```shell
 git clone git@gist.github.com:674099.git appify
 cd appify
 ```
@@ -24,7 +24,7 @@ cd appify
 Copy the [data/sources/custom_macos_app.sh](https://github.com/jul6art/macos-utils/blob/master/data/sources/custom_macos_app.sh) file and rename it to your needs
 and then
 
-```console
+```shell
 sh appify PATH/TO/custom_macos_app.sh "Your app name"
 mv /PATH/TO/GENERATED/APP /Applications/
 ```
@@ -37,6 +37,6 @@ To change your custom app icon, follow [these instructions](https://9to5mac.com/
 License
 -------
 
-The Push Bundle is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The MacOS Utils is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 
 &copy; 2021 [dev in the hood](https://devinthehood.com)
