@@ -34,3 +34,7 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+
+# Build artefacts
+data/sources/awake/build/
+*.icns.tmp
