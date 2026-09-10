@@ -1,0 +1,55 @@
+name: New utility
+description: Propose a utility for the collection
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The collection is deliberately small. A utility earns its place when it
+        solves something macOS makes genuinely awkward — `appify.sh` exists
+        because an app launched from the Finder does not inherit your shell
+        environment, which is why SourceTree picks the wrong PHP.
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      description: It will live under `data/sources/<name>/` and be documented in `data/doc/<NAME>.md`.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: The macOS problem it solves
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: How it works
+      description: Shell, Swift, or both? What does it install, and where?
+    validations:
+      required: true
+  - type: textarea
+    id: footprint
+    attributes:
+      label: What it touches on the machine
+      description: |
+        Paths written, preference domains, login items, network access — and how
+        a user removes all of it again. A utility that installs something it
+        cannot uninstall will not be accepted.
+    validations:
+      required: true
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: The house rules it holds up against
+      description: See [CONTRIBUTING.md](https://github.com/jul6art/macos-utils/blob/master/.github/CONTRIBUTING.md).
+      options:
+        - label: It ships as source, with no committed binary
+          required: true
+        - label: A reader can read it end to end before trusting it
+          required: true
+        - label: It needs no `sudo`, and no `curl | sh` anywhere
+          required: true
+        - label: It comes with a doc under `data/doc/` following the existing layout
+          required: true
