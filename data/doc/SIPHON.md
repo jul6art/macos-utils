@@ -45,6 +45,7 @@ Sources
 | [DownloadJob.swift](/data/sources/siphon/DownloadJob.swift) | One link, one `yt-dlp` process: output, progress, cancel |
 | [YtDlp.swift](/data/sources/siphon/YtDlp.swift) | Locating the tools, the exact arguments, parsing the output |
 | [Info.plist](/data/sources/siphon/Info.plist) | Bundle metadata, folder access messages |
+| [icon/AppIcon.swift](/data/sources/siphon/icon/AppIcon.swift) | Draws the app icon — see *The icon* |
 | [build.sh](/data/sources/siphon/build.sh) | Builds `Siphon.app` without Xcode |
 
 Everything Siphon passes to yt-dlp is in `YtDlp.arguments` — read that function
@@ -231,6 +232,15 @@ tccutil reset All com.devinthehood.siphon    # forget the folder access, if gran
 
 Your downloaded files stay where they are. Leftover `*.part` files are only
 there if a download was stopped — delete them by hand.
+
+The icon
+--------
+
+Siphon's icon — a sound wave whose middle bar becomes a download arrow — is
+drawn by [icon/AppIcon.swift](/data/sources/siphon/icon/AppIcon.swift), exactly
+like [Awake's](/data/doc/AWAKE.md#the-icon): `build.sh` renders it at build time,
+so the repository holds code, not an image. To use your own, drop an
+`AppIcon.icns` next to the sources and rebuild; it wins over the drawn one.
 
 Gatekeeper
 ----------

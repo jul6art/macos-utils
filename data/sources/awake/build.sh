@@ -55,8 +55,17 @@ echo "==> Assembling the bundle";
 cp "${SRC_DIR}/Info.plist" "${APP_DIR}/Contents/Info.plist";
 printf 'APPL????' > "${APP_DIR}/Contents/PkgInfo";
 
+echo "==> Icon";
 if [ -f "${SRC_DIR}/AppIcon.icns" ]; then
+	# Your own icon, dropped next to the sources, wins over the default one.
 	cp "${SRC_DIR}/AppIcon.icns" "${RESOURCES_DIR}/AppIcon.icns";
+else
+	# The default icon is drawn by code (icon/AppIcon.swift), so the repository
+	# holds no image file: render the sizes macOS wants, then pack them.
+	swiftc -O -o "${BUILD_DIR}/render-icon" "${SRC_DIR}/icon/AppIcon.swift";
+	"${BUILD_DIR}/render-icon" "${BUILD_DIR}/AppIcon.iconset";
+	iconutil -c icns "${BUILD_DIR}/AppIcon.iconset" -o "${RESOURCES_DIR}/AppIcon.icns";
+	rm -rf "${BUILD_DIR}/render-icon" "${BUILD_DIR}/AppIcon.iconset";
 fi;
 
 echo "==> Ad-hoc signing";

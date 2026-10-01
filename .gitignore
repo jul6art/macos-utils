@@ -12,8 +12,9 @@
 .AppleDouble
 .LSOverride
 
-# Icon must end with two \r
-Icon
+# Icon must end with two \r — real carriage returns, not the letters: a bare
+# "Icon" also ignores any "icon/" folder, since git matches case-insensitively on macOS
+Icon
 
 # Thumbnails
 ._*
@@ -38,4 +39,6 @@ Temporary Items
 # Build artefacts
 data/sources/awake/build/
 data/sources/siphon/build/
+# A personal icon dropped next to the sources; the default one is drawn by icon/AppIcon.swift
+data/sources/*/AppIcon.icns
 *.icns.tmp

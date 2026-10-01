@@ -35,6 +35,7 @@ Sources
 | [SleepPreventer.swift](/data/sources/awake/SleepPreventer.swift) | `IOPMAssertionCreateWithName` wrapper |
 | [LaunchAtLogin.swift](/data/sources/awake/LaunchAtLogin.swift) | `SMAppService` login item toggle |
 | [Info.plist](/data/sources/awake/Info.plist) | Bundle metadata, `LSUIElement` |
+| [icon/AppIcon.swift](/data/sources/awake/icon/AppIcon.swift) | Draws the app icon — see *The icon* |
 | [build.sh](/data/sources/awake/build.sh) | Builds `Awake.app` without Xcode |
 
 Installation
@@ -141,17 +142,40 @@ The second command is the honest one — macOS names the culprit itself:
  displaysleep  1 (display sleep prevented by Awake)
 ```
 
-Adding an icon
---------------
+The icon
+--------
 
-Drop an `AppIcon.icns` next to the sources and rebuild — `build.sh` copies it
-into `Contents/Resources` and `Info.plist` already points at it:
+Awake's icon — a steaming cup of coffee in a night sky — is not an image file.
+It is drawn by [icon/AppIcon.swift](/data/sources/awake/icon/AppIcon.swift) with
+CoreGraphics: `build.sh` compiles that script, renders the ten sizes macOS asks
+for (16 to 1024 pixels, each from the vectors so the small ones stay sharp),
+and packs them with `iconutil`. The repository holds the drawing as code you can
+read, not a binary nobody can audit.
+
+To see it without building the app:
+
+```shell
+cd data/sources/awake
+swiftc -o /tmp/render-icon icon/AppIcon.swift
+/tmp/render-icon /tmp/AppIcon.iconset
+open /tmp/AppIcon.iconset/icon_512x512@2x.png
+```
+
+**Using your own.** Drop an `AppIcon.icns` next to the sources and rebuild —
+`build.sh` copies it instead of drawing the default one, and `Info.plist`
+already points at it:
 
 ```shell
 mkdir AppIcon.iconset
 sips -z 512 512 icon.png --out AppIcon.iconset/icon_512x512.png
 iconutil -c icns AppIcon.iconset -o data/sources/awake/AppIcon.icns
 ```
+
+Keep that file out of your commits: a contributed icon is a change to
+`icon/AppIcon.swift`.
+
+The Finder caches icons. If the old one lingers after `--install`, run
+`touch /Applications/Awake.app`, or log out and back in.
 
 Gatekeeper
 ----------
