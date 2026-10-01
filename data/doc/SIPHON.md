@@ -95,8 +95,8 @@ Usage
 
 **Adding links** — three ways, any number of links at once:
 
-* paste into the field and press **Télécharger** (or Return)
-* **Coller** takes the clipboard as it is
+* paste into the field and press **Download** (or Return)
+* **Paste** takes the clipboard as it is
 * drag a link from the browser onto the window
 
 Any text works: Siphon picks out every `http(s)://` address in it and skips the
@@ -108,24 +108,24 @@ ones already waiting or downloading.
 | --- | --- | --- |
 | **MP3** | MP3 320 kbps | `--extract-audio --audio-format mp3 --audio-quality 320K` |
 | **M4A** | the original AAC stream, not re-encoded | `--format "ba[ext=m4a]/ba" --extract-audio --audio-format m4a` |
-| **Vidéo MP4** | video and sound in one MP4 | `--format-sort <quality> --merge-output-format mp4` |
+| **MP4 video** | video and sound in one MP4 | `--format-sort <quality> --merge-output-format mp4` |
 
 All three get `--embed-thumbnail --embed-metadata`: cover art, title and artist
 are inside the file.
 
-**Qualité** (MP4 only):
+**Quality** (MP4 only):
 
 | Choice | Format sort | Plays in QuickTime |
 | --- | --- | --- |
 | 720p | `vcodec:h264,res:720,acodec:aac` | yes |
 | 1080p *(default)* | `vcodec:h264,res:1080,acodec:aac` | yes |
-| Maximale (4K…) | `res,vcodec:av01,acodec:aac` | AV1: on recent Macs only |
+| Best (4K…) | `res,vcodec:av01,acodec:aac` | AV1: on recent Macs only |
 
 Up to 1080p H.264 is preferred, because it plays and imports everywhere. Past
-1080p YouTube only serves VP9 and AV1, so *Maximale* takes the highest resolution
+1080p YouTube only serves VP9 and AV1, so *Best* takes the highest resolution
 and prefers AV1 — VP9 in an MP4 does not play in QuickTime at all.
 
-**Playlist entière** — for a link to a video that belongs to a playlist (the
+**Whole playlist** — for a link to a video that belongs to a playlist (the
 `&list=` kind). Off, only that video is downloaded. On, the whole playlist goes
 into a subfolder named after it, files numbered in playlist order:
 
@@ -150,7 +150,7 @@ not finished yet.
 
 **The footer** shows which of yt-dlp, ffmpeg and deno were found, with yt-dlp's
 version. If yt-dlp or ffmpeg is missing, a banner says what to install, and
-**Vérifier à nouveau** picks it up without relaunching — links added meanwhile
+**Check again** picks it up without relaunching — links added meanwhile
 just wait.
 
 **Quitting** while something downloads asks first, then stops the downloads:
@@ -208,7 +208,7 @@ What it touches on the machine
 | Downloaded files | the folder chosen in the window — `~/Downloads` by default — and nowhere else |
 | Unfinished downloads | `*.part` files in that same folder |
 | Settings | preference domain `com.devinthehood.siphon`: `siphon.format`, `siphon.videoQuality`, `siphon.wholePlaylist`, `siphon.destination` |
-| Folder access | the macOS prompt *"Siphon souhaite accéder au dossier…"* the first time you save to Downloads, Desktop or Documents |
+| Folder access | the macOS prompt asking whether *Siphon* may access the folder, the first time you save to Downloads, Desktop or Documents |
 
 No login item, no `LaunchAgents` entry, nothing running once the window is
 closed — closing it quits the app.
@@ -258,12 +258,12 @@ Troubleshooting
 
 | Symptom | Fix |
 | --- | --- |
-| Banner *"yt-dlp introuvable"* or *"ffmpeg introuvable"* | `brew install yt-dlp ffmpeg`, then **Vérifier à nouveau** |
+| Banner *"yt-dlp not found"* or *"ffmpeg not found"* | `brew install yt-dlp ffmpeg`, then **Check again** |
 | Footer shows deno ✗, YouTube formats missing | `brew install deno` (Homebrew's yt-dlp normally brings it) |
 | YouTube fails with `HTTP Error 403`, `Sign in to confirm you're not a bot`, or *"Requested format is not available"* | YouTube changed something: `brew upgrade yt-dlp` — fixes usually ship within days |
 | `CERTIFICATE_VERIFY_FAILED` | a firewall on your network intercepts HTTPS (common on company networks). yt-dlp uses its own certificate bundle, not the macOS keychain, so it refuses the substitute certificate. Try another network, or ask whoever runs that firewall |
-| A *Maximale* MP4 does not play in QuickTime | it is AV1 and this Mac cannot decode it: use 1080p, or play it in IINA or VLC |
-| A playlist link only downloaded one video | **Playlist entière** was off |
+| A *Best* MP4 does not play in QuickTime | it is AV1 and this Mac cannot decode it: use 1080p, or play it in IINA or VLC |
+| A playlist link only downloaded one video | **Whole playlist** was off |
 | Dropping a file from the Finder does nothing | by design — only web links are accepted |
 | `swiftc: command not found` | `xcode-select --install` |
 | `external macro implementation type 'SwiftUIMacros.StateMacro' could not be found` | a source uses `@State`: since the macOS 27 SDK it is a macro whose plugin ships with Xcode only. Siphon keeps view state in an `ObservableObject` for that reason — keep it that way, or build with Xcode |

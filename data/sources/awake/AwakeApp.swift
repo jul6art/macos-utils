@@ -28,19 +28,19 @@ struct AwakeMenu: View {
                 Spacer()
             }
 
-            Toggle("Empêcher la mise en veille", isOn: Binding(
+            Toggle("Prevent sleep", isOn: Binding(
                 get: { model.isPreventingSleep },
                 set: { model.setPreventingSleep($0) }
             ))
 
-            Toggle("Garder l'écran allumé", isOn: Binding(
+            Toggle("Keep the display on", isOn: Binding(
                 get: { model.keepDisplayAwake },
                 set: { model.setKeepDisplayAwake($0) }
             ))
             .disabled(!model.isPreventingSleep)
 
             if model.isPreventingSleep {
-                Picker("Durée", selection: Binding(
+                Picker("Duration", selection: Binding(
                     get: { model.duration },
                     set: { model.setDuration($0) }
                 )) {
@@ -50,13 +50,13 @@ struct AwakeMenu: View {
                 }
 
                 if let remaining = model.remainingText {
-                    Text("Actif · \(remaining)")
+                    Text("Active · \(remaining) left")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 if !model.keepDisplayAwake {
-                    Text("L'écran s'éteindra quand même.")
+                    Text("The display will still turn off.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -64,12 +64,12 @@ struct AwakeMenu: View {
 
             Divider()
 
-            Toggle("Lancer au démarrage", isOn: Binding(
+            Toggle("Launch at login", isOn: Binding(
                 get: { model.launchAtLogin },
                 set: { model.setLaunchAtLogin($0) }
             ))
 
-            Button("Quitter") {
+            Button("Quit") {
                 NSApplication.shared.terminate(nil)
             }
             .keyboardShortcut("q")

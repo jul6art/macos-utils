@@ -86,11 +86,11 @@ Usage
 
 Click the ☕ icon:
 
-* **Empêcher la mise en veille** — toggles the power assertion
-* **Garder l'écran allumé** — see *How it works*; on by default
-* **Durée** — 30 minutes / 1 heure / 2 heures / Illimité
-* **Lancer au démarrage** — registers the app as a login item
-* **Quitter** — releases the assertion and exits
+* **Prevent sleep** — toggles the power assertion
+* **Keep the display on** — see *How it works*; on by default
+* **Duration** — 30 minutes / 1 hour / 2 hours / Unlimited
+* **Launch at login** — registers the app as a login item
+* **Quit** — releases the assertion and exits
 
 The icon is a ☕ (`cup.and.saucer.fill`) while sleep is prevented and a 💤
 (`moon.zzz`) when it is not — two distinct glyphs on purpose, a filled versus
@@ -106,8 +106,8 @@ a relaunch silently dropped the assertion while the menu bar icon stayed put.
 How it works
 ------------
 
-Awake takes an IOKit power assertion. **Which one depends on "Garder l'écran
-allumé", and the difference matters a lot.**
+Awake takes an IOKit power assertion. **Which one depends on "Keep the display
+on", and the difference matters a lot.**
 
 | Toggle | Assertion | Equivalent | Effect |
 | --- | --- | --- | --- |
@@ -195,9 +195,9 @@ Troubleshooting
 | --- | --- |
 | `swiftc: command not found` | `xcode-select --install` |
 | No icon in the menu bar | the menu bar is full — quit another item, or check the app is running with `pgrep Awake` |
-| "Lancer au démarrage" reverts to off | `SMAppService` needs a signed bundle in `/Applications`; build with `--install` |
+| "Launch at login" reverts to off | `SMAppService` needs a signed bundle in `/Applications`; build with `--install` |
 | The Mac still sleeps | lid closed or manual sleep — Awake only blocks *idle* sleep |
-| The screen turns off / locks anyway | "Garder l'écran allumé" is off — that mode only keeps the *machine* running |
+| The screen turns off / locks anyway | "Keep the display on" is off — that mode only keeps the *machine* running |
 | The Mac sleeps *while Awake looks active* | check the assertion is really held, see below |
 
 ### The Mac slept anyway
@@ -212,8 +212,8 @@ pmset -g | grep -E '^ sleep|displaysleep'
 ```
 
 If Awake owns a `PreventUserIdleSystemSleep` but your *screen* is what keeps
-going dark, that is the wrong assertion for what you want — turn "Garder l'écran
-allumé" on and it becomes `PreventUserIdleDisplaySleep`. If Awake appears
+going dark, that is the wrong assertion for what you want — turn "Keep the
+display on" on and it becomes `PreventUserIdleDisplaySleep`. If Awake appears
 nowhere, the app is running but its toggle is off.
 
 **2. How aggressive are your sleep settings?**

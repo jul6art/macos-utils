@@ -34,7 +34,7 @@ shellcheck data/sources/*.sh data/sources/*/*.sh
 - [ ] `shellcheck` is clean
 - [ ] Every script keeps `set -euo pipefail` and quotes its expansions
 - [ ] I ran the utility on a throwaway target and it did what the doc says
-- [ ] For Awake: `build.sh` succeeds from a clean `build/` directory
+- [ ] For Awake and Siphon: `build.sh` succeeds from a clean `build/` directory
 
 <details>
 <summary>Output</summary>

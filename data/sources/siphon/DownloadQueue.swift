@@ -89,7 +89,7 @@ final class DownloadQueue: ObservableObject {
         jobs.removeAll(where: \.isOver)
     }
 
-    /// For the "Vérifier à nouveau" button, once yt-dlp or ffmpeg has been installed.
+    /// For the "Check again" button, once yt-dlp or ffmpeg has been installed.
     func refreshTools() {
         tools = Tools.locate()
         loadVersion()

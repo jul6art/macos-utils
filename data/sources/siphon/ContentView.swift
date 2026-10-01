@@ -55,16 +55,16 @@ struct ContentView: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 8) {
-                TextField("Colle un ou plusieurs liens (YouTube, SoundCloud, Vimeo…)", text: $state.text, axis: .vertical)
+                TextField("Paste one or more links (YouTube, SoundCloud, Vimeo…)", text: $state.text, axis: .vertical)
                     .lineLimit(1...4)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(submit)
                     .onChange(of: state.text) { _ in state.notice = nil }
 
-                Button("Coller", action: pasteAndSubmit)
-                    .help("Ajoute les liens du presse-papiers")
+                Button("Paste", action: pasteAndSubmit)
+                    .help("Adds the links on the clipboard")
 
-                Button("Télécharger", action: submit)
+                Button("Download", action: submit)
                     .keyboardShortcut(.defaultAction)
                     .disabled(state.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -86,20 +86,20 @@ struct ContentView: View {
                 .help(queue.format.help)
 
                 if queue.format == .mp4 {
-                    Picker("Qualité", selection: $queue.videoQuality) {
+                    Picker("Quality", selection: $queue.videoQuality) {
                         ForEach(VideoQuality.allCases) { quality in
                             Text(quality.title).tag(quality)
                         }
                     }
                     .fixedSize()
                     .help(queue.videoQuality == .best
-                        ? "Au-delà de 1080p, YouTube ne fournit que de l'AV1 ou du VP9 : QuickTime peut ne pas les lire."
-                        : "H.264 : lisible partout, QuickTime compris")
+                        ? "Past 1080p, YouTube only serves AV1 or VP9: QuickTime may not play them."
+                        : "H.264: plays everywhere, QuickTime included")
                 }
 
-                Toggle("Playlist entière", isOn: $queue.wholePlaylist)
-                    .help("Pour un lien vers une vidéo d'une playlist. Décoché : seule la vidéo est téléchargée. "
-                        + "Coché : toute la playlist, dans un sous-dossier à son nom.")
+                Toggle("Whole playlist", isOn: $queue.wholePlaylist)
+                    .help("For a link to a video that belongs to a playlist. Off: only that video is downloaded. "
+                        + "On: the whole playlist, in a subfolder named after it.")
 
                 Spacer()
             }
@@ -113,13 +113,13 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
                     .help(queue.destination.path)
                 Spacer()
-                Button("Choisir…", action: chooseFolder)
+                Button("Choose…", action: chooseFolder)
                 Button {
                     NSWorkspace.shared.open(queue.destination)
                 } label: {
                     Image(systemName: "arrow.up.forward.app")
                 }
-                .help("Ouvrir le dossier dans le Finder")
+                .help("Open the folder in the Finder")
             }
         }
     }
@@ -129,13 +129,13 @@ struct ContentView: View {
         if queue.add(state.text) > 0 {
             state.text = ""
         } else {
-            state.notice = "Aucun nouveau lien reconnu : colle une adresse qui commence par http(s)://"
+            state.notice = "No new link found: paste an address that starts with http(s)://"
         }
     }
 
     private func pasteAndSubmit() {
         guard let text = NSPasteboard.general.string(forType: .string) else {
-            state.notice = "Le presse-papiers ne contient pas de texte."
+            state.notice = "The clipboard holds no text."
             return
         }
         state.text = text
@@ -149,7 +149,7 @@ struct ContentView: View {
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
         panel.directoryURL = queue.destination
-        panel.prompt = "Choisir"
+        panel.prompt = "Choose"
         if panel.runModal() == .OK, let url = panel.url {
             queue.destination = url
         }
@@ -169,7 +169,7 @@ struct ContentView: View {
                 Image(systemName: "arrow.down.circle")
                     .font(.system(size: 40))
                     .foregroundStyle(.tertiary)
-                Text("Colle un lien, ou glisse-le ici depuis ton navigateur")
+                Text("Paste a link, or drag it here from your browser")
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -191,10 +191,10 @@ struct ContentView: View {
             ToolStatus(name: "ffmpeg", isPresent: queue.tools.ffmpeg != nil)
             ToolStatus(name: "deno", isPresent: queue.tools.deno != nil)
                 .help(queue.tools.deno == nil
-                    ? "Sans deno, YouTube refuse une partie des formats : brew install deno"
-                    : "Moteur JavaScript utilisé par yt-dlp pour YouTube")
+                    ? "Without deno, YouTube withholds part of the formats: brew install deno"
+                    : "The JavaScript runtime yt-dlp uses for YouTube")
             Spacer()
-            Button("Effacer les terminés") {
+            Button("Clear finished") {
                 queue.clearFinished()
             }
             .disabled(!queue.jobs.contains(where: \.isOver))
@@ -259,13 +259,13 @@ struct JobRow: View {
                 } label: {
                     Image(systemName: "stop.circle")
                 }
-                .help("Arrêter")
+                .help("Stop")
                 .disabled(job.isCancelling)
             case .finished:
                 Button(action: reveal) {
                     Image(systemName: "magnifyingglass")
                 }
-                .help("Afficher dans le Finder")
+                .help("Show in Finder")
                 removeButton
             case .failed, .cancelled:
                 Button {
@@ -273,7 +273,7 @@ struct JobRow: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
-                .help("Réessayer")
+                .help("Retry")
                 removeButton
             }
         }
@@ -286,7 +286,7 @@ struct JobRow: View {
         } label: {
             Image(systemName: "xmark")
         }
-        .help("Retirer de la liste (le fichier reste sur le disque)")
+        .help("Remove from the list (the file stays on disk)")
     }
 
     private func reveal() {
@@ -301,25 +301,25 @@ struct JobRow: View {
     private var status: String {
         let position = job.position.map { " · \($0)" } ?? ""
         if job.isCancelling {
-            return "Arrêt…"
+            return "Stopping…"
         }
         switch job.state {
         case .queued:
-            return "En attente"
+            return "Waiting"
         case .starting:
-            return "Lecture du lien…"
+            return "Reading the link…"
         case .downloading:
-            let percent = job.fraction.map { "\(Int(($0 * 100).rounded()))\u{00A0}%" }
-            let parts = ["Téléchargement", percent, job.detail].compactMap { $0 }
+            let percent = job.fraction.map { "\(Int(($0 * 100).rounded()))%" }
+            let parts = ["Downloading", percent, job.detail].compactMap { $0 }
             return parts.joined(separator: " · ") + position
         case .processing:
-            return "Conversion…" + position
+            return "Converting…" + position
         case .finished:
-            return job.files.count > 1 ? "Terminé · \(job.files.count) fichiers" : "Terminé"
+            return job.files.count > 1 ? "Done · \(job.files.count) files" : "Done"
         case .failed(let message):
             return message
         case .cancelled:
-            return "Arrêté"
+            return "Stopped"
         }
     }
 
@@ -376,7 +376,7 @@ struct MissingToolsBanner: View {
             queue.tools.ytdlp == nil ? "yt-dlp" : nil,
             queue.tools.ffmpeg == nil ? "ffmpeg" : nil,
         ].compactMap { $0 }
-        return names.joined(separator: " et ")
+        return names.joined(separator: " and ")
     }
 
     var body: some View {
@@ -385,20 +385,20 @@ struct MissingToolsBanner: View {
                 .foregroundStyle(.orange)
                 .font(.title2)
             VStack(alignment: .leading, spacing: 4) {
-                Text("\(missing) introuvable")
+                Text("\(missing) not found")
                     .bold()
-                Text("Installe-le avec Homebrew, puis clique sur « Vérifier à nouveau » :")
+                Text("Install it with Homebrew, then click “Check again”:")
                     .font(.caption)
                 Text(command)
                     .font(.system(.caption, design: .monospaced))
                     .textSelection(.enabled)
             }
             Spacer()
-            Button("Copier") {
+            Button("Copy") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(command, forType: .string)
             }
-            Button("Vérifier à nouveau") {
+            Button("Check again") {
                 queue.refreshTools()
             }
         }

@@ -20,6 +20,7 @@ body:
       options:
         - Custom macOS App (appify.sh / custom_macos_app.sh)
         - Awake
+        - Siphon
         - the documentation
     validations:
       required: true

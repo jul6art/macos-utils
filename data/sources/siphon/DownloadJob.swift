@@ -79,7 +79,7 @@ final class DownloadJob: ObservableObject, Identifiable {
         do {
             try process.run()
         } catch {
-            state = .failed("Impossible de lancer yt-dlp : \(error.localizedDescription)")
+            state = .failed("Could not launch yt-dlp: \(error.localizedDescription)")
             return false
         }
 
@@ -155,7 +155,7 @@ final class DownloadJob: ObservableObject, Identifiable {
                 title = progress.title
             }
             fraction = progress.fraction
-            let parts = [progress.speed, progress.eta.map { "reste \($0)" }].compactMap { $0 }
+            let parts = [progress.speed, progress.eta.map { "\($0) left" }].compactMap { $0 }
             detail = parts.isEmpty ? nil : parts.joined(separator: " · ")
             if let index = progress.playlistIndex, let count = progress.playlistCount {
                 position = "\(index)/\(count)"
@@ -205,7 +205,7 @@ final class DownloadJob: ObservableObject, Identifiable {
             state = .finished
             fraction = 1
         } else {
-            state = .failed(lastError.map(YtDlp.explain) ?? "yt-dlp s'est arrêté (code \(status)).")
+            state = .failed(lastError.map(YtDlp.explain) ?? "yt-dlp stopped (exit code \(status)).")
         }
         detail = nil
         isCancelling = false

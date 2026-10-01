@@ -26,11 +26,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard queue.activeCount > 0 else { return .terminateNow }
 
         let alert = NSAlert()
-        alert.messageText = "Des téléchargements sont en cours"
-        alert.informativeText = "Quitter les interrompt. Les fichiers partiels (.part) restent "
-            + "dans le dossier : relancer le même lien reprend là où il s'était arrêté."
-        alert.addButton(withTitle: "Quitter")
-        alert.addButton(withTitle: "Annuler")
+        alert.messageText = "Downloads are in progress"
+        alert.informativeText = "Quitting stops them. Partial files (.part) stay in the folder: "
+            + "adding the same link again resumes where it stopped."
+        alert.addButton(withTitle: "Quit")
+        alert.addButton(withTitle: "Cancel")
         return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
     }
 

@@ -23,11 +23,11 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>NSDownloadsFolderUsageDescription</key>
-	<string>Siphon enregistre les fichiers téléchargés dans ce dossier.</string>
+	<string>Siphon saves the files it downloads in this folder.</string>
 	<key>NSDesktopFolderUsageDescription</key>
-	<string>Siphon enregistre les fichiers téléchargés dans ce dossier.</string>
+	<string>Siphon saves the files it downloads in this folder.</string>
 	<key>NSDocumentsFolderUsageDescription</key>
-	<string>Siphon enregistre les fichiers téléchargés dans ce dossier.</string>
+	<string>Siphon saves the files it downloads in this folder.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 jul6art — MIT</string>
 </dict>

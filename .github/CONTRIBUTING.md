@@ -73,22 +73,25 @@ undocumented script from a stranger — and they would be right not to.
 
 ## Testing a change
 
-There is no CI here, and no test suite: these are shell scripts and a small
-Swift application. So the validation is manual, and it is on you to do it:
+There is no CI here, and no test suite: these are shell scripts and two small
+Swift applications. So the validation is manual, and it is on you to do it:
 
 ```bash
 shellcheck data/sources/*.sh data/sources/*/*.sh   # clean
 sh data/sources/appify.sh ~/Desktop/probe.sh "Probe"   # on a throwaway script
 sh data/sources/awake/build.sh                    # builds without --install
+sh data/sources/siphon/build.sh                   # builds without --install
 ```
 
 Say in the pull request which macOS version and which architecture you tested
 on. A script that only ever ran on Apple silicon should say so rather than imply
 both.
 
-For Awake, requirements are **macOS 13+** and the Command Line Tools
-(`xcode-select --install`); check that `build.sh` still succeeds from a clean
-`build/` directory.
+For Awake and Siphon, requirements are **macOS 13+** and the Command Line Tools
+(`xcode-select --install`); check that each `build.sh` still succeeds from a
+clean `build/` directory. Siphon also needs yt-dlp and ffmpeg (`brew install
+yt-dlp ffmpeg`) to be tried for real: a build that compiles but was never fed a
+link is not tested.
 
 ## Pull requests
 

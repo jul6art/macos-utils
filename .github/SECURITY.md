@@ -23,12 +23,16 @@ Only the tip of `master` is maintained. There are no releases to backport to.
 ## What is in scope
 
 * **A script that does more than its documentation says.** `appify.sh`,
-  `custom_macos_app.sh` and `awake/build.sh` are meant to be readable end to
-  end; anything in them that touches a path, a preference or a login item the
-  doc does not mention is a defect worth reporting.
+  `custom_macos_app.sh`, `awake/build.sh` and `siphon/build.sh` are meant to be
+  readable end to end; anything in them that touches a path, a preference or a
+  login item the doc does not mention is a defect worth reporting.
 * **Injection through an argument.** These scripts take a script path and an
   application name and build paths from them. A name or path that escapes its
   quoting and executes is exactly the class of bug to report.
+* **Siphon handing over a link as anything but a link.** Every pasted URL
+  reaches yt-dlp after `--`, and every file must land inside the folder chosen in
+  the window. A link that yt-dlp reads as an option, or a download written
+  anywhere else, is in scope.
 * **A script writing outside its declared scope** — installing into
   `/Applications`, a `LaunchAgents` entry or a preference domain that the doc
   never announced, or leaving a world-writable file behind.

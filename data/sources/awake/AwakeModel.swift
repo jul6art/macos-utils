@@ -12,9 +12,9 @@ enum AwakeDuration: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .thirtyMinutes: return "30 minutes"
-        case .oneHour: return "1 heure"
-        case .twoHours: return "2 heures"
-        case .unlimited: return "Illimité"
+        case .oneHour: return "1 hour"
+        case .twoHours: return "2 hours"
+        case .unlimited: return "Unlimited"
         }
     }
 

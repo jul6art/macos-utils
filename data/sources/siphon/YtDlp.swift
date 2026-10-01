@@ -13,15 +13,15 @@ enum OutputFormat: String, CaseIterable, Identifiable {
         switch self {
         case .mp3: return "MP3"
         case .m4a: return "M4A"
-        case .mp4: return "Vidéo MP4"
+        case .mp4: return "MP4 video"
         }
     }
 
     var help: String {
         switch self {
-        case .mp3: return "Audio MP3 320 kbps, avec pochette et tags"
-        case .m4a: return "Audio AAC d'origine, sans réencodage, avec pochette et tags"
-        case .mp4: return "Vidéo MP4 avec le son"
+        case .mp3: return "MP3 audio at 320 kbps, with cover art and tags"
+        case .m4a: return "The original AAC audio, not re-encoded, with cover art and tags"
+        case .mp4: return "MP4 video with its sound"
         }
     }
 }
@@ -37,7 +37,7 @@ enum VideoQuality: String, CaseIterable, Identifiable {
         switch self {
         case .p720: return "720p"
         case .p1080: return "1080p"
-        case .best: return "Maximale (4K…)"
+        case .best: return "Best (4K…)"
         }
     }
 
@@ -247,10 +247,10 @@ enum YtDlp {
     /// yt-dlp's errors are precise but terse; two of them deserve a hint in plain words.
     static func explain(_ message: String) -> String {
         if message.contains("CERTIFICATE_VERIFY_FAILED") {
-            return message + " — un proxy intercepte probablement le HTTPS (réseau d'entreprise)."
+            return message + " — a proxy is probably intercepting HTTPS (company network)."
         }
         if message.contains("ffmpeg not found") || message.contains("ffprobe and ffmpeg not found") {
-            return message + " — installe ffmpeg : brew install ffmpeg"
+            return message + " — install ffmpeg: brew install ffmpeg"
         }
         return message
     }
