@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>Siphon</string>
+	<key>CFBundleDisplayName</key>
+	<string>Siphon</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.devinthehood.siphon</string>
+	<key>CFBundleExecutable</key>
+	<string>Siphon</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Siphon enregistre les fichiers téléchargés dans ce dossier.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Siphon enregistre les fichiers téléchargés dans ce dossier.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Siphon enregistre les fichiers téléchargés dans ce dossier.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 jul6art — MIT</string>
+</dict>
+</plist>

@@ -17,8 +17,9 @@ installer, no notarized DMG to trust.
 Requirements
 ------------
 
-* **macOS** (13+ for Awake)
+* **macOS** (13+ for Awake and Siphon)
 * **Command Line Tools** for the compiled utilities — `xcode-select --install`
+* **yt-dlp** and **ffmpeg** for Siphon — `brew install yt-dlp ffmpeg`
 
 Installation
 ------------
@@ -37,6 +38,7 @@ Utilities
 | --- | --- | --- |
 | **Custom macOS App** | Wraps any shell script into a real `.app` — the fix for GUI apps that miss your shell environment (i.e. SourceTree failing on the wrong PHP version) | [APPIFY.md](/data/doc/APPIFY.md) |
 | **Awake** | Native menu bar app that keeps the Mac and its screen awake, with durations and launch-at-login | [AWAKE.md](/data/doc/AWAKE.md) |
+| **Siphon** | Native window on top of yt-dlp: paste a link, get an MP3, M4A or MP4 with its cover art and tags | [SIPHON.md](/data/doc/SIPHON.md) |
 
 ### Custom macOS App
 
@@ -57,6 +59,15 @@ sh data/sources/awake/build.sh --install
 
 → [full documentation](data/doc/AWAKE.md)
 
+### Siphon
+
+```shell
+brew install yt-dlp ffmpeg
+sh data/sources/siphon/build.sh --install
+```
+
+→ [full documentation](data/doc/SIPHON.md)
+
 Layout
 ------
 
@@ -64,12 +75,14 @@ Layout
 data/
 ├── doc/
 │   ├── APPIFY.md                   # custom macOS app, step by step
-│   └── AWAKE.md                    # Awake, build & install
+│   ├── AWAKE.md                    # Awake, build & install
+│   └── SIPHON.md                   # Siphon, build & install
 └── sources/
     ├── appify.sh                   # shell script → .app wrapper
     ├── custom_macos_app.sh         # payload template to adapt
     ├── custom_sourcetree.app.zip   # finished example
-    └── awake/                      # Swift sources + Info.plist + build.sh
+    ├── awake/                      # Swift sources + Info.plist + build.sh
+    └── siphon/                     # Swift sources + Info.plist + build.sh
 ```
 
 Contributing
