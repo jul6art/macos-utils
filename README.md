@@ -38,7 +38,7 @@ Utilities
 | --- | --- | --- |
 | **Custom macOS App** | Wraps any shell script into a real `.app` — the fix for GUI apps that miss your shell environment (i.e. SourceTree failing on the wrong PHP version) | [APPIFY.md](/data/doc/APPIFY.md) |
 | **Awake** | Native menu bar app that keeps the Mac and its screen awake, with durations and launch-at-login | [AWAKE.md](/data/doc/AWAKE.md) |
-| **Siphon** | Native window on top of yt-dlp: paste a link, get an MP3, M4A or MP4 with its cover art and tags | [SIPHON.md](/data/doc/SIPHON.md) |
+| **Siphon** | Native window on top of yt-dlp: paste a link, get an MP3, M4A or MP4 — whole or just a passage — with its cover art and tags | [SIPHON.md](/data/doc/SIPHON.md) |
 
 ### Custom macOS App
 

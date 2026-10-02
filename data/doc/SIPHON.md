@@ -13,8 +13,8 @@ Siphon
 ------
 
 A small native window on top of [yt-dlp](https://github.com/yt-dlp/yt-dlp): paste
-a link, pick MP3, M4A or MP4, and the file lands in your folder — with its cover
-art and tags.
+a link, pick MP3, M4A or MP4 — the whole thing or just a passage — and the file
+lands in your folder, with its cover art and tags.
 
 yt-dlp does the work and stays the one Homebrew keeps up to date. Siphon only
 builds the command line, runs it, and shows what it says. No bundled copy of
@@ -39,8 +39,8 @@ Sources
 
 | File | Role |
 | --- | --- |
-| [SiphonApp.swift](/data/sources/siphon/SiphonApp.swift) | Single-window scene, quit confirmation while downloads run |
-| [ContentView.swift](/data/sources/siphon/ContentView.swift) | The window: input, settings, queue, tool status |
+| [SiphonApp.swift](/data/sources/siphon/SiphonApp.swift) | Single-window scene, Settings window, quit confirmation while downloads run |
+| [ContentView.swift](/data/sources/siphon/ContentView.swift) | The window: input, settings, queue, tool status — and the Settings window |
 | [DownloadQueue.swift](/data/sources/siphon/DownloadQueue.swift) | Queue, two downloads at a time, saved settings |
 | [DownloadJob.swift](/data/sources/siphon/DownloadJob.swift) | One link, one `yt-dlp` process: output, progress, cancel |
 | [YtDlp.swift](/data/sources/siphon/YtDlp.swift) | Locating the tools, the exact arguments, parsing the output |
@@ -100,7 +100,7 @@ Usage
 * drag a link from the browser onto the window
 
 Any text works: Siphon picks out every `http(s)://` address in it and skips the
-ones already waiting or downloading.
+ones already waiting or downloading with the same *From / to* times.
 
 **Format** — applies to the links added *after* you change it:
 
@@ -136,6 +136,28 @@ into a subfolder named after it, files numbered in playlist order:
     └── 1 - Me at the zoo.mp3
 ```
 
+**From / to** — keeps only a passage, in any of the three formats. Type a start,
+an end, or both, as `9:45`, `1:02:03` or a number of seconds (`585`); an empty
+field means from the very start, or to the very end. Both empty: the whole file.
+
+| Typed | Kept | File name |
+| --- | --- | --- |
+| `9:45` → `12:03` | 9:45 to 12:03 | `Title (9m45s-12m03s).mp4` |
+| `9:45` → *(empty)* | 9:45 to the end | `Title (9m45s-end).mp4` |
+| *(empty)* → `12:03` | the start to 12:03 | `Title (0m00s-12m03s).mp4` |
+
+The times go with the links added next, then the fields empty themselves: they
+belong to one video, and the link after it starts whole. Paste several links at
+once to cut them all the same way — with **Whole playlist** on, every video of
+the playlist is cut. The times are in the name, so a passage never overwrites the
+whole file nor another passage of the same video, and the queue shows them next to
+the format (`1080p · 9:45–12:03`).
+
+Only that passage is downloaded, and it is cut where you said, to the frame:
+ffmpeg re-encodes it rather than copying, so a clip takes longer than its length
+suggests — much longer on *Best (4K…)*, which also comes out as H.264 — and an
+M4A clip is no longer the untouched AAC stream.
+
 **The queue** — two downloads run at a time, the rest wait. Each row shows the
 title, the progress, the speed and the time left, then:
 
@@ -147,6 +169,30 @@ title, the progress, the speed and the time left, then:
 
 Removing a row never deletes the file. The Dock icon shows how many links are
 not finished yet.
+
+**Refused downloads** — now and then the site refuses the stream (HTTP 403):
+YouTube does it more often to clips, which ffmpeg reads straight from its servers.
+Siphon does not show it: it tries again 2 seconds later, then 5 seconds after
+that, each time reading the link afresh, while the row stays in progress and
+keeps its place in the queue. Only the last refusal — the third, by default —
+shows *Refused by YouTube (HTTP 403), 3 times in a row*, or the site's name for
+another site. Any other error shows at once: trying again would not change it.
+
+**Settings** (*Siphon → Settings…*, ⌘,) — how many attempts in all, from 1 to 10:
+
+| Attempts | Waits between them | Longest before the error shows |
+| --- | --- | --- |
+| 1 | — | the refusal shows at once |
+| 3 *(default)* | 2 s, 5 s | 7 s |
+| 5 | 2 s, 5 s, 10 s, 20 s | 37 s |
+| 10 | 2 s, 5 s, 10 s, 20 s, then 30 s each | 3 min 7 s |
+
+The waits do not count the attempts themselves: each one starts the download over,
+and for a clip that means the whole re-encoding again. Three is the default
+because a passing refusal rarely comes twice in a row, while three in a row is
+usually a real block — an outdated yt-dlp, or an address YouTube has flagged —
+that more attempts would only report later. Raise it on an unreliable
+connection. A change applies to the downloads that have not started yet.
 
 **The footer** shows which of yt-dlp, ffmpeg and deno were found, with yt-dlp's
 version. If yt-dlp or ffmpeg is missing, a banner says what to install, and
@@ -184,6 +230,20 @@ yt-dlp --ignore-config --newline --no-colors --no-mtime \
   progress lines.
 * **`--`** — whatever was pasted is never read as an option.
 
+With **From / to** filled in, the name gets the times (`"%(title)s (9m45s-12m03s).%(ext)s"`)
+and two options come before `--embed-thumbnail`:
+
+```shell
+  --download-sections "*585-723" --force-keyframes-at-cuts
+```
+
+`--download-sections` hands the download to ffmpeg, which reads only that range
+of the stream; an open end is `inf`. Copying it as is would start on the keyframe
+— or, for audio, the block — before the start, seconds too early:
+`--force-keyframes-at-cuts` re-encodes it instead. ffmpeg then prints its own
+progress (`size=… time=00:01:12.40 …`) rather than yt-dlp's, and Siphon measures
+that `time=` against the length of the passage for the progress bar.
+
 ### The PATH problem, again
 
 An app launched from the Finder gets launchd's `PATH` —
@@ -198,7 +258,16 @@ only be found through `PATH`. Without it, YouTube extraction warns
 
 ⏹ sends **SIGINT**, what Ctrl-C does in a terminal: yt-dlp winds down on its own
 and keeps its `.part` file, so adding the same link again resumes where it
-stopped. A process still running three seconds later gets a SIGTERM.
+stopped. A process still running three seconds later gets a SIGTERM. Between two
+attempts after a refusal nothing runs, so ⏹ just drops the next attempt.
+
+### Telling a refusal from the rest
+
+The 403 does not always look the same: yt-dlp's own downloader writes
+`ERROR: unable to download video data: HTTP Error 403: Forbidden`, while for a
+clip yt-dlp only reports `ERROR: ffmpeg exited with code 8`. That 8 is ffmpeg's
+`AVERROR_HTTP_FORBIDDEN` cut down to the 8 bits of an exit status. Siphon retries
+on either, and on nothing else.
 
 What it touches on the machine
 ------------------------------
@@ -207,7 +276,7 @@ What it touches on the machine
 | --- | --- |
 | Downloaded files | the folder chosen in the window — `~/Downloads` by default — and nowhere else |
 | Unfinished downloads | `*.part` files in that same folder |
-| Settings | preference domain `com.devinthehood.siphon`: `siphon.format`, `siphon.videoQuality`, `siphon.wholePlaylist`, `siphon.destination` |
+| Settings | preference domain `com.devinthehood.siphon`: `siphon.format`, `siphon.videoQuality`, `siphon.wholePlaylist`, `siphon.destination`, `siphon.attempts` |
 | Folder access | the macOS prompt asking whether *Siphon* may access the folder, the first time you save to Downloads, Desktop or Documents |
 
 No login item, no `LaunchAgents` entry, nothing running once the window is
@@ -260,10 +329,14 @@ Troubleshooting
 | --- | --- |
 | Banner *"yt-dlp not found"* or *"ffmpeg not found"* | `brew install yt-dlp ffmpeg`, then **Check again** |
 | Footer shows deno ✗, YouTube formats missing | `brew install deno` (Homebrew's yt-dlp normally brings it) |
-| YouTube fails with `HTTP Error 403`, `Sign in to confirm you're not a bot`, or *"Requested format is not available"* | YouTube changed something: `brew upgrade yt-dlp` — fixes usually ship within days |
+| *"Refused by YouTube (HTTP 403), 3 times in a row"* | Siphon already tried as many times as *Settings* says: try again in a few minutes. If it lasts, YouTube changed something — `brew upgrade yt-dlp` |
+| YouTube fails with `Sign in to confirm you're not a bot` or *"Requested format is not available"* | YouTube changed something: `brew upgrade yt-dlp` — fixes usually ship within days |
 | `CERTIFICATE_VERIFY_FAILED` | a firewall on your network intercepts HTTPS (common on company networks). yt-dlp uses its own certificate bundle, not the macOS keychain, so it refuses the substitute certificate. Try another network, or ask whoever runs that firewall |
 | A *Best* MP4 does not play in QuickTime | it is AV1 and this Mac cannot decode it: use 1080p, or play it in IINA or VLC |
 | A playlist link only downloaded one video | **Whole playlist** was off |
+| *"… is not a time"* or *"The end must come after the start"* | **From / to** takes `9:45`, `1:02:03` or seconds (`585`) — whole seconds, no `9:45.5` nor `9m45` |
+| A clip is slow to download | it is re-encoded to be cut to the frame: expected, more so in 4K |
+| A link with no times got cut | the times apply to the links added right after them — check the badge in the queue |
 | Dropping a file from the Finder does nothing | by design — only web links are accepted |
 | `swiftc: command not found` | `xcode-select --install` |
 | `external macro implementation type 'SwiftUIMacros.StateMacro' could not be found` | a source uses `@State`: since the macOS 27 SDK it is a macro whose plugin ships with Xcode only. Siphon keeps view state in an `ObservableObject` for that reason — keep it that way, or build with Xcode |

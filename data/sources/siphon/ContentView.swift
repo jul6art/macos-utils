@@ -7,6 +7,8 @@ import AppKit
 /// plain property wrapper.
 final class InputState: ObservableObject {
     @Published var text = ""
+    @Published var clipStart = ""
+    @Published var clipEnd = ""
     @Published var notice: String?
     @Published var isDropTargeted = false
 }
@@ -38,7 +40,7 @@ struct ContentView: View {
         .frame(minWidth: 580, minHeight: 400)
         .dropDestination(for: URL.self) { urls, _ in
             let links = urls.filter { !$0.isFileURL }.map(\.absoluteString)
-            return queue.add(links.joined(separator: "\n")) > 0
+            return !links.isEmpty && enqueue(links.joined(separator: "\n"))
         } isTargeted: { state.isDropTargeted = $0 }
         .overlay {
             if state.isDropTargeted {
@@ -105,6 +107,28 @@ struct ContentView: View {
             }
 
             HStack(spacing: 8) {
+                Image(systemName: "scissors")
+                    .foregroundStyle(.secondary)
+                Text("From")
+                TextField("start", text: $state.clipStart)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 72)
+                    .onSubmit(submit)
+                Text("to")
+                TextField("end", text: $state.clipEnd)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 72)
+                    .onSubmit(submit)
+                Text("e.g. 9:45 or 1:02:03 — empty: the whole file")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .help("Keeps only this part of the next links added. Cleared once they are in the queue.")
+            .onChange(of: state.clipStart) { _ in state.notice = nil }
+            .onChange(of: state.clipEnd) { _ in state.notice = nil }
+
+            HStack(spacing: 8) {
                 Image(systemName: "folder")
                     .foregroundStyle(.secondary)
                 Text(displayPath(queue.destination))
@@ -126,11 +150,29 @@ struct ContentView: View {
 
     private func submit() {
         guard !state.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        if queue.add(state.text) > 0 {
+        if enqueue(state.text) {
             state.text = ""
-        } else {
-            state.notice = "No new link found: paste an address that starts with http(s)://"
         }
+    }
+
+    /// Queues the links in `text`, cut to the times typed in the window if any.
+    /// When nothing is added, the notice says why.
+    private func enqueue(_ text: String) -> Bool {
+        let clip: Clip?
+        do {
+            clip = try Clip.parse(start: state.clipStart, end: state.clipEnd)
+        } catch {
+            state.notice = error.localizedDescription
+            return false
+        }
+        guard queue.add(text, clip: clip) > 0 else {
+            state.notice = "No new link found: paste an address that starts with http(s)://"
+            return false
+        }
+        // Times belong to the video they were typed for: the next link starts whole.
+        state.clipStart = ""
+        state.clipEnd = ""
+        return true
     }
 
     private func pasteAndSubmit() {
@@ -218,7 +260,7 @@ struct JobRow: View {
                     Text(job.displayTitle)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                    Text(job.options.format == .mp4 ? job.options.videoQuality.title : job.options.format.title)
+                    Text(badge)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 5)
@@ -298,6 +340,13 @@ struct JobRow: View {
         }
     }
 
+    /// "1080p", "MP3 · 9:45–12:03".
+    private var badge: String {
+        let options = job.options
+        let format = options.format == .mp4 ? options.videoQuality.title : options.format.title
+        return options.clip.map { format + " · " + $0.title } ?? format
+    }
+
     private var status: String {
         let position = job.position.map { " · \($0)" } ?? ""
         if job.isCancelling {
@@ -348,6 +397,35 @@ struct JobRow: View {
             return .orange
         }
         return .secondary
+    }
+}
+
+struct SettingsView: View {
+    @ObservedObject var queue: DownloadQueue
+
+    /// "2 s, 5 s" for three attempts: the waits between them, as DownloadJob does them.
+    private var waits: String {
+        let delays = DownloadJob.retryDelays
+        return (1..<max(queue.attempts, 2))
+            .map { "\(Int(delays[min($0, delays.count) - 1])) s" }
+            .joined(separator: ", ")
+    }
+
+    var body: some View {
+        Form {
+            Stepper(value: $queue.attempts, in: DownloadQueue.attemptRange) {
+                Text("Attempts when the site refuses: \(queue.attempts)")
+            }
+            Text((queue.attempts == 1
+                ? "A refusal (HTTP 403) shows at once."
+                : "After a refusal (HTTP 403), waits \(waits) between attempts, then shows it.")
+                + " Default: \(DownloadQueue.defaultAttempts).")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(20)
+        .frame(width: 420)
     }
 }
 

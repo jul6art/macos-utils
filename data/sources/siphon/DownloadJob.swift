@@ -27,11 +27,19 @@ final class DownloadJob: ObservableObject, Identifiable {
     @Published private(set) var files: [URL] = []
     @Published private(set) var isCancelling = false
 
+    /// Waited before the second attempt, the third… when the site refuses the download;
+    /// past the end of the list, the last one again.
+    static let retryDelays: [TimeInterval] = [2, 5, 10, 20, 30]
+
     private var process: Process?
+    private var tools: Tools?
     private var onExit: (() -> Void)?
     private var lastError: String?
     private var exitStatus: Int32?
     private var outputClosed = false
+    private var attempt = 1
+    private var maxAttempts = 1
+    private var pendingRetry: DispatchWorkItem?
 
     init(url: String, options: DownloadOptions, destination: URL) {
         self.url = url
@@ -54,10 +62,20 @@ final class DownloadJob: ObservableObject, Identifiable {
         title ?? files.last?.deletingPathExtension().lastPathComponent ?? url
     }
 
+    /// `attempts`: how many times in all to try when the site refuses the download.
     /// Returns false when yt-dlp could not even be launched; the job is then failed.
     @discardableResult
-    func start(with tools: Tools, onExit: @escaping () -> Void) -> Bool {
-        guard state == .queued, let ytdlp = tools.ytdlp else { return false }
+    func start(with tools: Tools, attempts: Int, onExit: @escaping () -> Void) -> Bool {
+        guard state == .queued, tools.ytdlp != nil else { return false }
+        self.tools = tools
+        maxAttempts = max(attempts, 1)
+        guard launch() else { return false }
+        self.onExit = onExit
+        return true
+    }
+
+    private func launch() -> Bool {
+        guard let tools, let ytdlp = tools.ytdlp else { return false }
 
         let process = Process()
         process.executableURL = ytdlp
@@ -74,7 +92,7 @@ final class DownloadJob: ObservableObject, Identifiable {
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe
-        Self.attach(pipe, process, to: self)
+        Self.attach(pipe, process, attempt: attempt, to: self)
 
         do {
             try process.run()
@@ -84,7 +102,8 @@ final class DownloadJob: ObservableObject, Identifiable {
         }
 
         self.process = process
-        self.onExit = onExit
+        exitStatus = nil
+        outputClosed = false
         state = .starting
         return true
     }
@@ -94,6 +113,14 @@ final class DownloadJob: ObservableObject, Identifiable {
         case .queued:
             state = .cancelled
         case .starting, .downloading, .processing:
+            if let pendingRetry {
+                // Between two attempts nothing runs: there is nothing to wind down.
+                pendingRetry.cancel()
+                self.pendingRetry = nil
+                state = .cancelled
+                finish()
+                return
+            }
             guard let process, !isCancelling else { return }
             isCancelling = true
             // SIGINT, the way Ctrl-C stops it in a terminal: yt-dlp winds down on its
@@ -113,8 +140,9 @@ final class DownloadJob: ObservableObject, Identifiable {
     /// Built outside the main actor on purpose: these closures run on Foundation's
     /// background threads, and a closure written inside a @MainActor method would
     /// inherit that isolation — and trap the moment it is called off the main thread.
-    /// Lines hop to the main queue one by one, which keeps them in order.
-    nonisolated private static func attach(_ pipe: Pipe, _ process: Process, to job: DownloadJob) {
+    /// Lines hop to the main queue one by one, which keeps them in order. Whatever an
+    /// earlier attempt still says once the next one is under way is ignored.
+    nonisolated private static func attach(_ pipe: Pipe, _ process: Process, attempt: Int, to job: DownloadJob) {
         let reader = LineReader()
 
         pipe.fileHandleForReading.readabilityHandler = { [weak job] handle in
@@ -126,7 +154,7 @@ final class DownloadJob: ObservableObject, Identifiable {
             }
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
-                    guard let job else { return }
+                    guard let job, job.attempt == attempt else { return }
                     lines.forEach { job.receive($0) }
                     if closed {
                         job.outputDidClose()
@@ -139,7 +167,8 @@ final class DownloadJob: ObservableObject, Identifiable {
             let status = process.terminationStatus
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
-                    job?.processDidExit(status)
+                    guard let job, job.attempt == attempt else { return }
+                    job.processDidExit(status)
                 }
             }
         }
@@ -160,6 +189,17 @@ final class DownloadJob: ObservableObject, Identifiable {
             if let index = progress.playlistIndex, let count = progress.playlistCount {
                 position = "\(index)/\(count)"
             }
+        case .ffmpegProgress(let seconds):
+            if !isCancelling {
+                state = .downloading
+            }
+            // ffmpeg only says how far into the clip it got: its length gives the share.
+            if let seconds, let length = options.clip?.length, length > 0 {
+                fraction = min(max(seconds / Double(length), 0), 1)
+            } else {
+                fraction = nil
+            }
+            detail = nil
         case .processing:
             if !isCancelling {
                 state = .processing
@@ -199,17 +239,52 @@ final class DownloadJob: ObservableObject, Identifiable {
         guard let status = exitStatus, process != nil else { return }
         process = nil
 
+        let refused = lastError.map(YtDlp.isRefused) ?? false
+        if refused && !isCancelling && attempt < maxAttempts {
+            retry(after: Self.retryDelays[min(attempt, Self.retryDelays.count) - 1])
+            return
+        }
+
         if isCancelling {
             state = .cancelled
         } else if status == 0 {
             state = .finished
             fraction = 1
+        } else if refused {
+            let times = attempt > 1 ? ", \(attempt) times in a row" : ""
+            state = .failed("Refused by \(YtDlp.siteName(of: url)) (HTTP 403)\(times). "
+                + "Try again later — if it lasts, brew upgrade yt-dlp.")
         } else {
             state = .failed(lastError.map(YtDlp.explain) ?? "yt-dlp stopped (exit code \(status)).")
         }
         detail = nil
         isCancelling = false
+        finish()
+    }
 
+    /// YouTube now and then refuses a stream (HTTP 403) — more often to ffmpeg, which
+    /// reads it directly for a clip. A new attempt reads the link again, gets fresh
+    /// addresses and usually goes through, so the row just stays in progress meanwhile.
+    /// The job keeps its place in the queue: no other download starts in between.
+    private func retry(after delay: TimeInterval) {
+        attempt += 1
+        lastError = nil
+        state = .starting
+        fraction = nil
+        detail = nil
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.pendingRetry = nil
+            if !self.launch() {
+                self.finish()
+            }
+        }
+        pendingRetry = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+
+    /// Hands the slot back to the queue, once and for all.
+    private func finish() {
         let onExit = self.onExit
         self.onExit = nil
         onExit?()

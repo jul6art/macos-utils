@@ -11,6 +11,11 @@ struct SiphonApp: App {
             ContentView(queue: appDelegate.queue)
         }
         .defaultSize(width: 680, height: 520)
+
+        // Siphon → Settings… (⌘,): what is set once, not for each link.
+        Settings {
+            SettingsView(queue: appDelegate.queue)
+        }
     }
 }
 
