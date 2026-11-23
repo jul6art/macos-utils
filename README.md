@@ -20,7 +20,6 @@ Requirements
 * **macOS** (13+ for Awake and Siphon)
 * **Command Line Tools** for the compiled utilities — `xcode-select --install`
 * **yt-dlp** and **ffmpeg** for Siphon — `brew install yt-dlp ffmpeg`
-* **python3** for Bounce Report — the Command Line Tools one is enough
 
 Installation
 ------------
@@ -40,7 +39,6 @@ Utilities
 | **Custom macOS App** | Wraps any shell script into a real `.app` — the fix for GUI apps that miss your shell environment (i.e. SourceTree failing on the wrong PHP version) | [APPIFY.md](/data/doc/APPIFY.md) |
 | **Awake** | Native menu bar app that keeps the Mac and its screen awake, with durations and launch-at-login | [AWAKE.md](/data/doc/AWAKE.md) |
 | **Siphon** | Native window on top of yt-dlp: paste a link, get an MP3, M4A or MP4 — whole or just a passage — with its cover art and tags | [SIPHON.md](/data/doc/SIPHON.md) |
-| **Bounce Report** | Turns a Mail.app mailbox of send failures — Symfony/Monolog alerts or standard bounces — into an Excel workbook of addresses and SMTP codes | [BOUNCE_REPORT.md](/data/doc/BOUNCE_REPORT.md) |
 
 ### Custom macOS App
 
@@ -70,14 +68,6 @@ sh data/sources/siphon/build.sh --install
 
 → [full documentation](data/doc/SIPHON.md)
 
-### Bounce Report
-
-```shell
-python3 data/sources/bounce-report/bounce_report.py --mailbox NO_REPLY
-```
-
-→ [full documentation](data/doc/BOUNCE_REPORT.md)
-
 Layout
 ------
 
@@ -86,14 +76,12 @@ data/
 ├── doc/
 │   ├── APPIFY.md                   # custom macOS app, step by step
 │   ├── AWAKE.md                    # Awake, build & install
-│   ├── BOUNCE_REPORT.md            # Bounce Report, usage & sheets
 │   └── SIPHON.md                   # Siphon, build & install
 └── sources/
     ├── appify.sh                   # shell script → .app wrapper
     ├── custom_macos_app.sh         # payload template to adapt
     ├── custom_sourcetree.app.zip   # finished example
     ├── awake/                      # Swift sources + Info.plist + build.sh + icon/
-    ├── bounce-report/              # bounce_report.py + its tests
     └── siphon/                     # Swift sources + Info.plist + build.sh + icon/
 ```
 
