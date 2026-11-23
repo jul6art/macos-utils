@@ -5,7 +5,8 @@ Reads the messages of one mailbox through Mail's scripting interface (or .eml fi
 they report and writes an .xlsx with one row per address and one row per failure. Two kinds of messages are read:
 
 * the alerts a Symfony application sends through Monolog when a notification mail fails
-  ("Error sending email notification "<subject>" to <address> with message <error>"), as HTML or as plain text;
+  ("Error sending email notification "<subject>" to <address> with message <error>"), or when its worker gives up on
+  a queued mail ("Mail "<subject>" to <addresses> not sent after <n> attempt(s): <error>"), as HTML or plain text;
 * standard delivery status notifications (RFC 3464 bounces, as Exchange, Postfix or Gmail send them).
 
 A message that reports no failure is listed on a sheet of its own, never dropped. Standard library only: the python3
@@ -72,6 +73,12 @@ NOTIFICATION = re.compile(
     r'Error sending email notification(?: "(?P<subject>.*?)")? to (?P<address>\S+) with message (?P<error>.*)',
     re.S,
 )
+# When the mails go through a Messenger queue, the queue retries a refused one, and the alert comes only once the
+# worker gives up: "Mail "<subject>" to <address>, <address> not sent after <n> attempt(s): <error>".
+GAVE_UP = re.compile(
+    r'Mail "(?P<subject>.*?)" to (?P<recipients>.*?) not sent after \d+ attempt\(s\): (?P<error>.*)',
+    re.S,
+)
 SMTP_REPLY = re.compile(
     r'Expected response code "(?P<expected>[\d/]+)" but got (?:code "(?P<code>\d{3})"|(?P<empty>empty code))'
     r'(?:, with message "(?P<reply>.*?)")?\.?$',
@@ -129,20 +136,28 @@ def monolog_failures(message: EmailMessage, sent: dt.datetime | None) -> list[Fa
     failures = []
     for text, time in records:
         notification = NOTIFICATION.search(text)
-        if notification is None:
-            continue  # another record of the same alert, not a mail that failed
-        error = notification['error'].strip()
-        expected, received, status = smtp_codes(error)
-        failures.append(Failure(
-            when=parse_time(time) or sent,
-            address=notification['address'],
-            subject=notification['subject'] or '',
-            expected=expected,
-            received=received,
-            status=status,
-            error=error,
-            reported_by=reported_by,
-        ))
+        if notification is not None:
+            mails = [(notification['address'], notification['subject'] or '', notification['error'])]
+        else:
+            gave_up = GAVE_UP.search(text)
+            if gave_up is None:
+                continue  # another record of the same alert, not a mail that failed
+            mails = [(address.strip(), gave_up['subject'], gave_up['error'])
+                     for address in gave_up['recipients'].split(',') if address.strip()]
+
+        for address, subject, error in mails:
+            error = error.strip()
+            expected, received, status = smtp_codes(error)
+            failures.append(Failure(
+                when=parse_time(time) or sent,
+                address=address,
+                subject=subject,
+                expected=expected,
+                received=received,
+                status=status,
+                error=error,
+                reported_by=reported_by,
+            ))
 
     return failures
 

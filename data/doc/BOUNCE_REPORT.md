@@ -21,8 +21,10 @@ It reads two kinds of messages:
 
 * **Monolog alerts from a Symfony application** — the
   `Error sending email notification "<subject>" to <address> with message <error>`
-  records, HTML or plain text, one record per mail or several when the handler
-  buffers them;
+  records, and, when the mails go through a Messenger queue that retries them,
+  the `Mail "<subject>" to <addresses> not sent after <n> attempt(s): <error>`
+  records of a worker that gave up (one row per address). HTML or plain text,
+  one record per mail or several when the handler buffers them;
 * **standard bounces** — RFC 3464 delivery status notifications, as Exchange,
   Postfix or Gmail send them.
 
