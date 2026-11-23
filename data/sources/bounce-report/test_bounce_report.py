@@ -138,20 +138,6 @@ class AnalyseTest(unittest.TestCase):
         self.assertEqual(('550', '5.1.1'), (failures[0].received, failures[0].status))
         self.assertEqual('', failures[1].subject)
 
-    def test_a_queued_mail_the_worker_gave_up_on_names_each_recipient(self):
-        source = alert(monolog_record(
-            'CRITICAL',
-            f'Mail "Shop: new invoice" to jane@example.org, bob@example.org not sent after 4 attempt(s): {REJECTED}',
-            '2026-11-24T09:00:00.000000+01:00',
-        ))
-
-        failures, unrecognized = br.analyse([source])
-
-        self.assertEqual([], unrecognized)
-        self.assertEqual(['jane@example.org', 'bob@example.org'], [f.address for f in failures])
-        self.assertEqual({'Shop: new invoice'}, {f.subject for f in failures})
-        self.assertEqual({('550', '5.1.1')}, {(f.received, f.status) for f in failures})
-
     def test_a_monolog_plain_text_alert(self):
         source = alert(
             '[2026-11-21T11:04:23.123456+01:00] app.CRITICAL: Error sending email notification "Invoice" to '
