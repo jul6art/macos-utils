@@ -7,7 +7,6 @@ MACOS-UTILS
 
 <p align="left">
     <a href="https://opensource.org/licenses/MIT" target="_blank"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License"></a>
-    <img src="https://img.shields.io/static/v1?label=stable&message=v1&color=0ea5e9" alt="Version">
 </p>
 
 A small collection of macOS utilities and the documentation to build and install
