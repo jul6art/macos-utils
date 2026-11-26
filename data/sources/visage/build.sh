@@ -7,8 +7,8 @@
 #   sh build.sh --install        # build, then move the app to /Applications
 #   sh build.sh --tests          # build the modules for testing, then run the tests
 #
-# Signing: ad hoc, so macOS asks again for system audio access after each build. For development,
-# VISAGE_SIGN_IDENTITY="<certificate name>" signs with a local certificate, and the access stays.
+# Signing: ad hoc, under a fixed identifier; macOS has kept the system audio access across rebuilds.
+# VISAGE_SIGN_IDENTITY="<certificate name>" signs with a certificate of yours instead.
 #
 set -euo pipefail
 
