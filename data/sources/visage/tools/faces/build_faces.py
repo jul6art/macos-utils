@@ -77,22 +77,22 @@ TEXTURES = {
 # stays as it is.
 IRIS = {"brown": (24 / 360, 0.7)}
 
-# MakeHuman's afro is all but black (its curls a dark red, at a tenth of full brightness): lit, it read as a
-# helmet. Lifted, its curls show; less saturated, they stay dark brown rather than red.
-HAIR = {"afro01": (1.6, 0.6)}
-
-
-def lift_hair(image, gain, keep):
-    """A hair texture `gain` times brighter, `keep` of its saturation, its transparency untouched."""
+def colour_like(image, colour, contrast=0.85):
+    """Hair or brows in `colour` (« #rrggbb »): each pixel keeps its brightness relative to the texture's
+    average (where it is opaque), softened by `contrast`, so that strands and curls still show; its
+    transparency is untouched. MakeHuman's hair comes in few colours, its brows all near black."""
     width, height = image.size
     pixels = numpy.empty(width * height * 4, dtype=numpy.float32)
     image.pixels.foreach_get(pixels)
     pixels = pixels.reshape(-1, 4)
-    rgb = numpy.clip(pixels[:, :3] * gain, 0, 1)
-    grey = rgb.mean(1, keepdims=True)
-    pixels[:, :3] = grey + (rgb - grey) * keep
+    luminance = pixels[:, :3] @ numpy.array([0.299, 0.587, 0.114], dtype=numpy.float32)
+    opaque = pixels[:, 3] > 0.5
+    average = max(float(luminance[opaque].mean()) if opaque.any() else 0.5, 1e-3)
+    target = numpy.array([int(colour[k:k + 2], 16) / 255 for k in (1, 3, 5)], dtype=numpy.float32)
+    # Capped: the texture's highlights, three times its average, turned a chestnut into copper.
+    relative = numpy.minimum(numpy.power(numpy.maximum(luminance / average, 0), contrast), 1.5)[:, None]
+    pixels[:, :3] = numpy.clip(target * relative, 0, 1)
     image.pixels.foreach_set(pixels.ravel())
-
 
 def recolour_iris(image, hue, keep):
     """The saturated pixels of an eye texture (the iris) to `hue`, `keep` of their saturation, same value."""
@@ -160,7 +160,7 @@ def crop(image, box, height):
 
 def write_textures(preset, data, output, skin_box):
     folders = {
-        "head": skin_folder(preset),
+        "head": os.path.join("skins", preset["skin"]) if "skin" in preset else skin_folder(preset),
         "eyes": os.path.join("eyes", "materials", preset["eyes"] + ".mhmat"),
         "eyebrows": os.path.join("eyebrows", preset["eyebrows"]),
         "eyelashes": os.path.join("eyelashes", preset["eyelashes"]),
@@ -180,8 +180,10 @@ def write_textures(preset, data, output, skin_box):
             image.scale(size, size)
         if part == "eyes" and preset["eyes"] in IRIS:
             recolour_iris(image, *IRIS[preset["eyes"]])
-        if part == "hair" and preset["hair"] in HAIR:
-            lift_hair(image, *HAIR[preset["hair"]])
+        if part == "hair" and "hairColour" in preset:
+            colour_like(image, preset["hairColour"])
+        if part == "eyebrows" and "browColour" in preset:
+            colour_like(image, preset["browColour"], contrast=0.6)
         target = os.path.join(output, f"{preset['id']}.{part}.{'png' if alpha else 'jpg'}")
         settings = bpy.context.scene.render.image_settings
         settings.file_format = "PNG" if alpha else "JPEG"
@@ -206,6 +208,8 @@ def phenotype(preset):
     macro["age"] = min(max(0.5 + (preset["age"] - 25) / 65 * 0.5, 0.0), 1.0)
     macro["weight"] = preset["weight"]
     macro["muscle"] = preset["muscle"]
+    # MakeHuman's « proportions »: 0.5 is the average body, 1 the idealised one.
+    macro["proportions"] = preset.get("proportions", 0.5)
     asian, caucasian, african = preset["race"]
     macro["race"] = {"asian": asian, "caucasian": caucasian, "african": african}
     return macro
@@ -213,6 +217,12 @@ def phenotype(preset):
 
 def build(preset, data, path):
     human = HumanService.create_human(detailed_helpers=False, macro_detail_dict=phenotype(preset))
+    # The face's own features: MakeHuman's modifiers (nose, lips, cheekbones, chin…), by their target's
+    # path under MPFB's targets, each with its weight, baked with the morphology.
+    for name, weight in preset.get("features", {}).items():
+        TargetService.load_target(
+            human, LocationService.get_mpfb_data(os.path.join("targets", name + ".target.gz")), weight=weight,
+            name="feature-" + name.replace("/", "-"))
     # The morphology (age, gender, origins) arrives as shape keys: baked into the base, so that only the
     # 52 ARKit shapes leave as morph targets.
     TargetService.bake_targets(human)
@@ -306,18 +316,40 @@ def tidy_hair(hair, human, eyes, cut):
     bm = bmesh.new()
     bm.from_mesh(hair.data)
     matrix = hair.matrix_world
-    doomed = []
+    doomed = set()
+    crossing = []
     for face in bm.faces:
         centre = matrix @ face.calc_center_median()
-        over_face = abs(centre.x) < 0.055 and centre.z < brows and tree.ray_cast(centre, backwards, 0.1)[0] is not None
-        behind_neck = centre.z < cut and centre.y > back
-        if over_face or behind_neck:
-            doomed.append(face)
+        if abs(centre.x) < 0.055 and centre.z < brows and tree.ray_cast(centre, backwards, 0.1)[0] is not None:
+            crossing.append(face)
+        elif centre.z < cut and centre.y > back:
+            doomed.add(face)
+    # A strand that crosses the face goes whole when it is a piece of its own: cut at the brows, it left a
+    # notch above the eye (Hélène's, Mei's fringes). Part of the cap, only what crosses goes.
+    for face in crossing:
+        if face in doomed:
+            continue
+        strand = island(face)
+        doomed.update(strand if len(strand) < len(bm.faces) * 0.2 else [face])
+    doomed = list(doomed)
     bmesh.ops.delete(bm, geom=doomed, context="FACES_ONLY")
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
     bm.to_mesh(hair.data)
     bm.free()
     print(f"TIDY {hair.name}: {len(doomed)} faces removed")
+
+
+def island(face):
+    """The faces joined to `face` by their edges: one strand or card of a hair mesh."""
+    seen = {face}
+    todo = [face]
+    while todo:
+        for edge in todo.pop().edges:
+            for other in edge.link_faces:
+                if other not in seen:
+                    seen.add(other)
+                    todo.append(other)
+    return seen
 
 
 def keep_seen(obj, occluders):
