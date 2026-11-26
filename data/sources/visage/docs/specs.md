@@ -311,6 +311,10 @@ autour de la bouche. Une face est gardée si, depuis son centre, un rayon vers l
 (jusqu'à 70° de côté, 35° en haut ou en bas) ne rencontre ni la tête ni les yeux. Environ 1 600 faces sur
 8 500 partent ainsi, l'arrière du crâne compris : on ne le voit jamais.
 
+**Les cheveux sont rangés à la fabrication.** Ils ne couvrent jamais le visage sous les sourcils : une
+mèche de la coupe `bob01` traversait celui de Mei de la tempe au menton. Et rien ne pend derrière un cou
+qui n'existe plus : la queue-de-cheval d'Inès se voyait sous son menton.
+
 **Chaque sommet est un point de lumière.** Le maillage de MakeHuman suit les traits du visage : ses
 boucles dessinent les paupières, les lèvres, les ailes du nez, et l'hologramme les montre. Échantillonner
 la surface uniformément a été essayé et écarté : le grain aléatoire noyait le modelé, et le visage se
@@ -326,8 +330,9 @@ visage à l'autre après le retrait des faces cachées. De 1,4 à 2 Mo par visag
 parce que chaque clone de `macos-utils` les télécharge, et moins de 40 000 points. Un test le vérifie
 (§ 11.2).
 
-**Chargeur glTF maison** (positions, normales, cibles de morphing denses ou creuses) : 160 lignes, sans
-bibliothèque. Ni index ni coordonnées de texture : des points n'en ont pas besoin.
+**Chargeur glTF maison** (positions, normales, triangles, cibles de morphing denses ou creuses) :
+moins de 200 lignes, sans bibliothèque. Pas de coordonnées de texture : des points n'en ont pas besoin.
+Les triangles ne servent qu'à la pré-passe de profondeur (§ 8.2).
 
 **Le choix du visage** : dans le menu et les réglages, les 10 visages et la tête en points de la charte.
 Le changement est immédiat ; le fondu et la grille de vignettes restent à faire (lot 6).
@@ -345,8 +350,12 @@ L'effet se construit en couches, chacune réglable :
 1. **Le projecteur** : un socle discret sous la tête, un faisceau de lumière en cône (dégradé additif) et
    des poussières qui flottent dans le faisceau. On peut le masquer.
 2. **La lumière de la tête** :
-   - une transparence additive ; l'intérieur de la tête est retiré à la fabrication (§ 8.1) et les points
-     tournés vers l'arrière s'éteignent ;
+   - une transparence additive, avec une pré-passe de profondeur : la peau et les globes oculaires,
+     dessinés d'abord dans le seul tampon de profondeur, cachent ce qui est derrière eux, sous tous les
+     angles (les cheveux de l'arrière, les dents derrière les lèvres closes, l'œil sous la paupière qui se
+     ferme). Les points y sont testés 1,5 mm en avant, pour que la peau ne cache pas ses propres points.
+     L'intérieur de la tête est en plus retiré à la fabrication (§ 8.1), et les points tournés vers
+     l'arrière s'éteignent ;
    - un contour lumineux (Fresnel) ;
    - une luminance tirée de la peau, pour que les yeux, les sourcils et les lèvres restent lisibles ;
    - les arêtes du maillage, à peine visibles.
@@ -504,8 +513,9 @@ reste du temps, comme sur les autres dépôts.
   fricatives, silences et explosions). On vérifie F1, F2, F0 et la détection des occlusions.
 - **Animation** : mapping et ressorts, de façon déterministe, avec une graine fixe.
 - **Visages et chargeur glTF** : chaque `.glb` de `Resources/Faces` porte ses parties et les 52 noms
-  ARKit, pèse moins de 3 Mo et donne moins de 40 000 points ; `jawOpen` abaisse la mâchoire sans
-  toucher le front, le regard ne tourne que les yeux.
+  ARKit, pèse moins de 3 Mo et donne moins de 40 000 points ; ses triangles occultants désignent des
+  points qui existent ; `jawOpen` abaisse la mâchoire sans toucher le front, le regard ne tourne que les
+  yeux.
 - **Tampon circulaire** : en concurrence, producteur contre consommateur.
 - **Mode fichier** : Visage lit un `.wav` au lieu d'une app. Il sert à la mise au point sans IA, aux
   démos, et au **rendu vidéo hors ligne** (`.mov` via AVAssetWriter), pour comparer deux versions image
@@ -563,8 +573,8 @@ reste du temps, comme sur les autres dépôts.
 - **Lot 4** fait : bouche, prosodie, repos (§ 7) ; jamais immobile plus d'une seconde (critère 3, testé).
 - **Lot 5** fait : chaîne Blender (Blender 5.3, MPFB 2.0.18, packs CC0 de MakeHuman), les 10 visages,
   choix du visage dans le menu et les réglages, planche des visages (`Visage --snapshot`) et vidéos
-  muettes (`--face <id> --mute`). Restent le test à l'aveugle (R6) avec l'utilisateur, puis le fondu et
-  la grille de vignettes (lot 6).
+  muettes (`--face <id> --mute`), pré-passe de profondeur, cheveux rangés. Restent le test à l'aveugle
+  (R6) avec l'utilisateur, puis le fondu et la grille de vignettes (lot 6).
 - **Lots 6 et 7** à venir : caméra, réglages complets, robustesse ; doc et publication.
 
 ## 14. Hors périmètre
