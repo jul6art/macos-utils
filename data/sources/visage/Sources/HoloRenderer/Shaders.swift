@@ -29,10 +29,13 @@ enum HoloShaders {
             float4 world = u.model * float4(p.position.xyz, 1.0);
             float3 n = normalize((u.model * float4(p.normal.xyz, 0.0)).xyz);
             float rim = 1.0 - saturate(n.z);
+            // Points turned away (the back of the head, the far side of an eyeball) fade out, as on a
+            // surface lit from the front: the cloud reads as a face, not as a tangle.
+            float facing = smoothstep(-0.35, 0.15, n.z);
             PointOut out;
             out.position = u.viewProjection * world;
-            out.size = max(p.position.w * u.pointScale * (0.75 + 1.1 * rim * rim), 0.0);
-            out.light = p.normal.w * (0.55 + 0.65 * rim) * (0.8 + 0.4 * u.glow);
+            out.size = max(p.position.w * u.pointScale * (0.75 + 1.1 * rim * rim) * (0.4 + 0.6 * facing), 0.0);
+            out.light = p.normal.w * (0.55 + 0.65 * rim * facing) * (0.8 + 0.4 * u.glow) * facing;
             return out;
         }
 

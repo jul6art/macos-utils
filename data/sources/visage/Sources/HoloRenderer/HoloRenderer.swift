@@ -24,8 +24,12 @@ public final class HoloRenderer: @unchecked Sendable {
     private let queue: MTLCommandQueue
     private let pointPipeline: MTLRenderPipelineState
     private let compositePipeline: MTLRenderPipelineState
-    private let pointBuffer: MTLBuffer
+    private var pointBuffer: MTLBuffer
     private var scene: MTLTexture?
+    /// The head drawn: the charter's point head, or a MakeHuman face. Swappable at any frame.
+    public var model: HeadModel {
+        didSet { reserve(points: model.pointCount) }
+    }
 
     private struct GPUPoint {
         var position: SIMD4<Float>
@@ -47,7 +51,8 @@ public final class HoloRenderer: @unchecked Sendable {
         var background: SIMD4<Float>
     }
 
-    public init?(pixelFormat: MTLPixelFormat = .bgra8Unorm) {
+    public init?(model: HeadModel = PointHeadModel(), pixelFormat: MTLPixelFormat = .bgra8Unorm) {
+        self.model = model
         guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue(),
             let library = try? device.makeLibrary(source: HoloShaders.source, options: nil)
         else { return nil }
@@ -76,11 +81,18 @@ public final class HoloRenderer: @unchecked Sendable {
         guard let pointPipeline = try? device.makeRenderPipelineState(descriptor: points),
             let compositePipeline = try? device.makeRenderPipelineState(descriptor: composite),
             let pointBuffer = device.makeBuffer(
-                length: MemoryLayout<GPUPoint>.stride * PointHead.points.count, options: .storageModeShared)
+                length: MemoryLayout<GPUPoint>.stride * max(model.pointCount, 1), options: .storageModeShared)
         else { return nil }
         self.pointPipeline = pointPipeline
         self.compositePipeline = compositePipeline
         self.pointBuffer = pointBuffer
+    }
+
+    private func reserve(points: Int) {
+        let length = MemoryLayout<GPUPoint>.stride * max(points, 1)
+        if pointBuffer.length < length, let buffer = device.makeBuffer(length: length, options: .storageModeShared) {
+            pointBuffer = buffer
+        }
     }
 
     // MARK: - Drawing
@@ -100,17 +112,19 @@ public final class HoloRenderer: @unchecked Sendable {
         }
         guard let scene else { return }
 
-        let shaped = PointHead.deform(pose, time: time)
+        let shaped = model.shape(pose, time: time)
+        let normals = model.normals
         let gpu = pointBuffer.contents().bindMemory(to: GPUPoint.self, capacity: shaped.count)
-        for (index, point) in PointHead.points.enumerated() {
-            gpu[index] = GPUPoint(position: shaped[index], normal: SIMD4(point.normal, point.brightness))
+        for index in 0..<min(shaped.count, normals.count) {
+            gpu[index] = GPUPoint(position: shaped[index], normal: normals[index])
         }
 
         var uniforms = Uniforms(
             viewProjection: Self.viewProjection(aspect: Float(width) / Float(height)),
             model: Self.model(head: pose.head), colour: SIMD4(settings.colour, 1),
             viewport: SIMD2(Float(width), Float(height)), time: Float(time), glow: pose.glow,
-            flicker: Self.flicker(time), pointScale: Float(height) * 0.0062, glitch: Self.glitch(time),
+            flicker: Self.flicker(time), pointScale: Float(height) * 0.0062 * model.pointScale,
+            glitch: Self.glitch(time),
             projector: settings.projector ? 1 : 0, background: settings.background)
 
         let light = MTLRenderPassDescriptor()
