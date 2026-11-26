@@ -87,3 +87,39 @@ struct ConversationTests {
         #expect(hold(&tracker, seconds: 2, person: false) == [.waiting])
     }
 }
+
+@Suite("Listening, with the microphone")
+struct ListeningTests {
+    private let frameTime = 1.0 / 60
+
+    @Test("the head nods at the person's pauses, never while they speak, nor while they are silent")
+    func nodsAtPauses() {
+        let animator = FaceAnimator(seed: 11)
+        var starts: [Double] = []
+        var last = animator.nodUntil
+        var time = 0.0
+        func run(_ heard: Bool, _ seconds: Double) {
+            for _ in 0..<Int((seconds / frameTime).rounded()) {
+                _ = animator.update(dt: frameTime, voice: nil, moment: .listening, heard: heard)
+                time += frameTime
+                if animator.nodUntil != last {
+                    starts.append(time)
+                    last = animator.nodUntil
+                }
+            }
+        }
+        run(false, 4)
+        run(true, 4)
+        #expect(starts.isEmpty)
+        for _ in 0..<6 {
+            run(true, 1.2)
+            run(false, 0.5)
+        }
+        #expect(starts.count >= 3)
+        // Each at a pause: 0.2 s into the silence, never while the voice is heard.
+        for start in starts {
+            let cycle = (start - 8).truncatingRemainder(dividingBy: 1.7)
+            #expect(cycle > 1.2 && cycle < 1.5)
+        }
+    }
+}

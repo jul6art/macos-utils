@@ -63,16 +63,17 @@ final class FaceDriver: NSObject, MTKViewDelegate {
                 frame = voice.frame(atHop: Int(ahead) / voice.hopFrames)
             }
         }
+        let heard = preview || !model.microphone ? nil : model.microphoneLevel.personVoiced
         let moment =
             preview
             ? ConversationMoment.waiting
             : conversation.update(
                 dt: dt, aiVoiced: frame.map { $0.sound != .silence } == true,
-                appListening: model.connection.appListening, personVoiced: nil)
+                appListening: model.connection.appListening, personVoiced: heard)
         let seen = model.camera ? model.cameraTracker.position : nil
         animator.lookAt = seen
         viewer += ((seen ?? .zero) - viewer) * Float(min(1, dt / 0.25))
-        let pose = animator.update(dt: dt, voice: frame, moment: moment)
+        let pose = animator.update(dt: dt, voice: frame, moment: moment, heard: heard)
         // Full rate while it speaks, half otherwise (spec, § 7.2: economy).
         view.preferredFramesPerSecond = moment == .speaking ? 60 : 30
 

@@ -84,6 +84,20 @@ final class AppModel {
 
     @ObservationIgnored let cameraTracker = CameraTracker()
 
+    /// The microphone option: the face nods at the person's pauses and thinks once their sentence ends
+    /// (spec, § 5, § 7.2). Opened only while the AI's app has its own microphone open.
+    var microphone: Bool {
+        didSet {
+            defaults.set(microphone, forKey: Key.microphone)
+            Task { await applyMicrophone() }
+        }
+    }
+    /// Whether macOS let Visage use the microphone, as last asked.
+    var microphoneAccess: MicrophoneLevel.Access?
+
+    @ObservationIgnored let microphoneLevel = MicrophoneLevel()
+    @ObservationIgnored private var microphoneClosing: Task<Void, Never>?
+
     /// Whether the face is on screen: the next launch puts it back as it was left.
     var faceShown: Bool {
         didSet { defaults.set(faceShown, forKey: Key.faceShown) }
@@ -120,6 +134,7 @@ final class AppModel {
         static let projector = "projector"
         static let glitches = "glitches"
         static let camera = "camera"
+        static let microphone = "microphone"
     }
 
     init() {
@@ -142,8 +157,10 @@ final class AppModel {
         projector = defaults.bool(forKey: Key.projector)
         glitches = defaults.bool(forKey: Key.glitches)
         camera = defaults.bool(forKey: Key.camera)
+        microphone = defaults.bool(forKey: Key.microphone)
         faceScale = min(max(defaults.double(forKey: Key.faceScale), 0.5), 2)
         connection = Connection(delayMilliseconds: defaults.integer(forKey: Key.delay))
+        connection.onListeningChange = { [weak self] listening in self?.followListening(listening) }
     }
 
     /// The first launch welcomes, in front: the AI, the face, where it shows, where to find Visage. The
@@ -151,6 +168,7 @@ final class AppModel {
     func launch() {
         faceWindow.apply(windowMode)
         if camera { Task { await applyCamera() } }
+        if microphone { Task { await applyMicrophone() } }
         faceWindow.resize(scale: faceScale)
         if !defaults.bool(forKey: Key.welcomed) {
             welcomeWindow.show()
@@ -204,6 +222,36 @@ final class AppModel {
         } else {
             cameraTracker.stop()
             cameraAccess = nil
+        }
+    }
+
+    private func applyMicrophone() async {
+        if microphone {
+            microphoneAccess = await MicrophoneLevel.requestAccess()
+            followListening(connection.appListening)
+        } else {
+            microphoneAccess = nil
+            followListening(false)
+        }
+    }
+
+    /// The microphone opens only while the AI's app has its own open, and closes a little after it: a voice
+    /// mode may close and reopen its own between turns.
+    private func followListening(_ listening: Bool) {
+        microphoneClosing?.cancel()
+        microphoneClosing = nil
+        guard microphone, microphoneAccess == .allowed else {
+            microphoneLevel.stop()
+            return
+        }
+        if listening {
+            microphoneLevel.start()
+        } else {
+            microphoneClosing = Task {
+                try? await Task.sleep(for: .seconds(3))
+                guard !Task.isCancelled else { return }
+                microphoneLevel.stop()
+            }
         }
     }
 
