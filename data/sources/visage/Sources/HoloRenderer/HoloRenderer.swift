@@ -76,6 +76,9 @@ public final class HoloRenderer: @unchecked Sendable {
         var rim: Float
         /// The texture's colour, darkened in the shade (the teeth inside the mouth).
         var tone: Float
+        /// 1: laid softly by the texture's transparency, over what is already drawn (brows, lashes); 0: cut
+        /// out at half of it, hiding what is behind.
+        var soft: Float
     }
     /// The head drawn: the charter's point head, or a MakeHuman face. Set, it shows at once; `fade(to:)`
     /// changes it gently.
@@ -237,12 +240,17 @@ public final class HoloRenderer: @unchecked Sendable {
             else { continue }
             let look: SurfaceLook =
                 switch surface.material {
-                case .skin: SurfaceLook(shine: 0.06, sharpness: 24, warmth: 0.5, opacity: 1, rim: 0.12, tone: 1)
-                case .eye: SurfaceLook(shine: 0.9, sharpness: 300, warmth: 0, opacity: 1, rim: 0, tone: 1)
+                case .skin:
+                    SurfaceLook(shine: 0.06, sharpness: 24, warmth: 0.5, opacity: 1, rim: 0.12, tone: 1, soft: 0)
+                case .eye: SurfaceLook(shine: 0.9, sharpness: 300, warmth: 0, opacity: 1, rim: 0, tone: 1, soft: 0)
                 // A broad, faint sheen: a sharp one made a plastic helmet of the darkest hair, in grey bands.
-                case .hair: SurfaceLook(shine: 0.012, sharpness: 6, warmth: 0.15, opacity: 1, rim: 0.02, tone: 1)
-                case .matte: SurfaceLook(shine: 0.02, sharpness: 10, warmth: 0.2, opacity: 1, rim: 0.04, tone: 1)
-                case .teeth: SurfaceLook(shine: 0.08, sharpness: 40, warmth: 0.1, opacity: 1, rim: 0, tone: 0.78)
+                case .hair:
+                    SurfaceLook(shine: 0.012, sharpness: 6, warmth: 0.15, opacity: 1, rim: 0.02, tone: 1, soft: 0)
+                case .matte:
+                    SurfaceLook(shine: 0.02, sharpness: 10, warmth: 0.2, opacity: 1, rim: 0.04, tone: 1, soft: 0)
+                case .teeth:
+                    SurfaceLook(shine: 0.08, sharpness: 40, warmth: 0.1, opacity: 1, rim: 0, tone: 0.78, soft: 0)
+                case .fine: SurfaceLook(shine: 0.01, sharpness: 8, warmth: 0.1, opacity: 1, rim: 0, tone: 1, soft: 1)
                 }
             let cull: MTLCullMode = surface.material == .skin || surface.material == .eye ? .back : .none
             draws.append(
@@ -362,10 +370,14 @@ public final class HoloRenderer: @unchecked Sendable {
                 encoder.setVertexBuffer(uvBuffer, offset: 0, index: 2)
                 encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
                 encoder.setFrontFacing(.counterClockwise)  // glTF's
-                for (pipeline, state) in [(surfaceDepthPipeline, hiding), (surfacePipeline, nearest)] {
+                // Then the fine hairs, laid over them: tested against their depth, never writing it.
+                for (pipeline, state, soft) in [
+                    (surfaceDepthPipeline, hiding, false), (surfacePipeline, nearest, false),
+                    (surfacePipeline, nearest, true),
+                ] {
                     encoder.setRenderPipelineState(pipeline)
                     encoder.setDepthStencilState(state)
-                    for draw in draws {
+                    for draw in draws where (draw.look.soft > 0) == soft {
                         var look = draw.look
                         look.opacity = uniforms.realism * weights.incoming
                         encoder.setCullMode(draw.cull)

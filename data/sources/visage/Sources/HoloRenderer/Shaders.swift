@@ -57,7 +57,7 @@ enum HoloShaders {
         // and the left, a fill from the right and a rim; tinted like the hologram while it is faint.
         // Invariant: the depth pass and the colour pass must land on exactly the same depth.
         struct SurfaceOut { float4 position [[position, invariant]]; float3 normal; float2 uv; float height; };
-        struct SurfaceLook { float shine; float sharpness; float warmth; float opacity; float rim; float tone; };
+        struct SurfaceLook { float shine; float sharpness; float warmth; float opacity; float rim; float tone; float soft; };
 
         vertex SurfaceOut surfaceVertex(uint id [[vertex_id]], const device GPUPoint* points [[buffer(0)]],
                                         constant Uniforms& u [[buffer(1)]], const device float2* uvs [[buffer(2)]]) {
@@ -73,7 +73,7 @@ enum HoloShaders {
                                         constant Uniforms& u [[buffer(1)]], constant SurfaceLook& look [[buffer(2)]]) {
             constexpr sampler s(filter::linear, mip_filter::linear, address::repeat);
             float4 texel = albedo.sample(s, in.uv);
-            if (texel.a < 0.5) discard_fragment();
+            if (texel.a < (look.soft > 0.5 ? 0.02 : 0.5)) discard_fragment();
             float3 n = normalize(in.normal);
             if (n.z < 0.0) n = -n;  // cards and folds are seen from either side
             float3 key = normalize(float3(-0.45, 0.5, 0.75));
@@ -89,7 +89,7 @@ enum HoloShaders {
             float3 tinted = u.colour.rgb * dot(colour, float3(0.299, 0.587, 0.114)) * 1.4;
             float3 rgb = mix(tinted, colour, smoothstep(0.15, 0.9, u.realism));
             // The neck, cut short, fades out rather than ending on a jagged edge.
-            float opacity = look.opacity * smoothstep(-1.3, -0.85, in.height);
+            float opacity = look.opacity * smoothstep(-1.3, -0.85, in.height) * (look.soft > 0.5 ? texel.a : 1.0);
             return float4(rgb * opacity, opacity);
         }
 
