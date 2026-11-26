@@ -1,5 +1,7 @@
 """Builds Visage's faces (spec, § 8.1): one .glb per preset, a MakeHuman head with its eyes, brows, lashes,
-teeth, tongue and hair, carrying the 52 ARKit shapes as morph targets named as ARKit names them.
+teeth, tongue and hair, carrying the 52 ARKit shapes as morph targets named as ARKit names them; and beside
+it, one texture per part, named as its node (`<face>.<part>.jpg` or `.png`), for the realistic end of the
+hologram (§ 8.3).
 
 Run by tools/faces/build.sh, inside Blender, without its interface:
     blender -b --factory-startup --python build_faces.py -- presets.json <output directory> [<face id>…]
@@ -16,6 +18,7 @@ import math
 import addon_utils
 import bmesh
 import bpy
+import numpy
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
@@ -56,8 +59,90 @@ def main():
     for preset in presets:
         clear_scene()
         path = os.path.join(output, preset["id"] + ".glb")
-        build(preset, data, path)
+        skin_box = build(preset, data, path)
+        write_textures(preset, data, output, skin_box)
         print(f"FACE {preset['id']} {os.path.getsize(path) / 1e6:.2f} MB")
+
+
+# Per part: the texture's size in the app (its height, for the skin's cropped one), and whether it keeps
+# its transparency (PNG) or not (JPEG).
+TEXTURES = {
+    "head": (2048, False), "eyes": (256, True), "eyebrows": (256, True), "eyelashes": (256, True),
+    "teeth": (512, True), "tongue": (256, False), "hair": (1024, True),
+}
+
+
+def skin_folder(preset):
+    """MakeHuman's skins come by age, origin and gender: the nearest to the preset."""
+    age = "young" if preset["age"] < 35 else "middleage" if preset["age"] < 55 else "old"
+    origin = ["asian", "caucasian", "african"][max(range(3), key=lambda index: preset["race"][index])]
+    return os.path.join("skins", f"{age}_{origin}_{'female' if preset['gender'] < 0.5 else 'male'}")
+
+
+def diffuse(material):
+    """The diffuse texture a MakeHuman material (.mhmat) names, beside it."""
+    for line in open(material, encoding="utf-8"):
+        if line.startswith("diffuseTexture "):
+            return os.path.join(os.path.dirname(material), line.split(maxsplit=1)[1].strip())
+    raise ValueError(f"no diffuse texture in {material}")
+
+
+def fit_uvs(obj, margin=0.01):
+    """The skin texture is the whole body's, and the head fills a third of it: only that third ships, the
+    head's UVs stretched to fill it. Returns the box it was, in the texture's UVs."""
+    uvs = obj.data.uv_layers.active.data
+    us = [loop.uv.x for loop in uvs]
+    vs = [loop.uv.y for loop in uvs]
+    u0, u1 = max(min(us) - margin, 0.0), min(max(us) + margin, 1.0)
+    v0, v1 = max(min(vs) - margin, 0.0), min(max(vs) + margin, 1.0)
+    for loop in uvs:
+        loop.uv.x = (loop.uv.x - u0) / (u1 - u0)
+        loop.uv.y = (loop.uv.y - v0) / (v1 - v0)
+    return u0, v0, u1, v1
+
+
+def crop(image, box, height):
+    """The part of `image` within `box` (UVs, origin bottom left, as Blender's pixels), `height` tall."""
+    width, full = image.size
+    pixels = numpy.empty(width * full * 4, dtype=numpy.float32)
+    image.pixels.foreach_get(pixels)
+    u0, v0, u1, v1 = box
+    x0, x1, y0, y1 = int(u0 * width), int(u1 * width), int(v0 * full), int(v1 * full)
+    part = pixels.reshape(full, width, 4)[y0:y1, x0:x1]
+    cropped = bpy.data.images.new(image.name + ".crop", x1 - x0, y1 - y0, alpha=True)
+    cropped.pixels.foreach_set(numpy.ascontiguousarray(part).ravel())
+    cropped.scale(round(height * (x1 - x0) / (y1 - y0)), height)
+    return cropped
+
+
+def write_textures(preset, data, output, skin_box):
+    folders = {
+        "head": skin_folder(preset),
+        "eyes": os.path.join("eyes", "materials", preset["eyes"] + ".mhmat"),
+        "eyebrows": os.path.join("eyebrows", preset["eyebrows"]),
+        "eyelashes": os.path.join("eyelashes", preset["eyelashes"]),
+        "teeth": os.path.join("teeth", "teeth_base"),
+        "tongue": os.path.join("tongue", "tongue01"),
+        "hair": os.path.join("hair", preset["hair"]),
+    }
+    for part, (size, alpha) in TEXTURES.items():
+        source = os.path.join(data, folders[part])
+        material = source if source.endswith(".mhmat") else next(
+            os.path.join(source, name) for name in sorted(os.listdir(source)) if name.endswith(".mhmat"))
+        image = bpy.data.images.load(diffuse(material))
+        if part == "head":
+            whole, image = image, crop(image, skin_box, size)
+            bpy.data.images.remove(whole)
+        else:
+            image.scale(size, size)
+        target = os.path.join(output, f"{preset['id']}.{part}.{'png' if alpha else 'jpg'}")
+        settings = bpy.context.scene.render.image_settings
+        settings.file_format = "PNG" if alpha else "JPEG"
+        settings.color_mode = "RGBA" if alpha else "RGB"
+        settings.quality = 85
+        settings.compression = 90
+        image.save_render(target)
+        bpy.data.images.remove(image)
 
 
 def clear_scene():
@@ -131,6 +216,7 @@ def build(preset, data, path):
     hair = next(part for part in parts if part.name.endswith(".hair"))
     tidy_hair(hair, human, eyes, cut)
     keep_seen(human, [human, eyes])
+    skin_box = fit_uvs(human)
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in [human] + parts:
@@ -138,9 +224,10 @@ def build(preset, data, path):
             obj.select_set(True)
     bpy.ops.export_scene.gltf(
         filepath=path, export_format="GLB", use_selection=True, export_apply=False, export_yup=True,
-        export_materials="NONE", export_texcoords=False, export_normals=True, export_morph=True,
+        export_materials="NONE", export_texcoords=True, export_normals=True, export_morph=True,
         export_morph_normal=False, export_morph_tangent=False, export_try_sparse_sk=True,
         export_try_omit_sparse_sk=True)
+    return skin_box
 
 
 def keep_head(human, cut):
@@ -205,10 +292,11 @@ def keep_seen(obj, occluders):
     rotation = matrix.to_3x3()
     hidden = []
     for face in bm.faces:
-        centre = matrix @ face.calc_center_median()
         normal = (rotation @ face.normal).normalized()
-        seen = any(
-            normal.dot(view) > 0 and tree.ray_cast(centre + view * 1e-4, view, 1.0)[0] is None for view in VIEWS)
+        # A millimetre off the face: the centre of a quad that is not flat lies under its own surface where
+        # the skin bulges, and a ray from there would hit the face itself.
+        origin = matrix @ face.calc_center_median() + normal * 0.001
+        seen = any(normal.dot(view) > 0 and tree.ray_cast(origin, view, 1.0)[0] is None for view in VIEWS)
         if not seen:
             hidden.append(face)
     bmesh.ops.delete(bm, geom=hidden, context="FACES_ONLY")
