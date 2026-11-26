@@ -109,6 +109,26 @@ struct MeshHeadTests {
         #expect(MeshHead.lipsClosing(shut: 0.5, jaw: 0.3) == 0.15)
     }
 
+    /// The lips' widest gap across the mouth, in a shaped head.
+    private func lipGap(_ head: MeshHead, _ points: [SIMD4<Float>]) -> Float? {
+        head.lips.map { points[$0.upper].y - points[$0.lower].y }.max()
+    }
+
+    @Test("at rest, every face's lips meet: no line of teeth between them; they part as the jaw opens")
+    func restingLips() throws {
+        for id in Self.ids {
+            let head = try head(id)
+            #expect(head.restingClose >= 0 && head.restingClose <= MeshHead.restingCloseLimit, "\(id)")
+            let rest = try #require(lipGap(head, head.shape(FacePose(), time: 0)), "\(id)")
+            #expect(rest < 0.004, "\(id): \(rest)")
+            let open = try #require(lipGap(head, head.shape(pose(.jawOpen, 0.35), time: 0)), "\(id)")
+            #expect(open > rest + 0.03, "\(id): \(open)")
+            #expect(head.lips.count >= 3, "\(id)")
+        }
+        #expect(MeshHead.lipsClosing(shut: 0, jaw: 0, resting: 0.2) == 0.2)
+        #expect(MeshHead.lipsClosing(shut: 0, jaw: 0.3, resting: 0.2) == 0)
+    }
+
     @Test("jawOpen moves the points it moves downwards, and leaves the brow where it is")
     func jaw() throws {
         let head = try head("lea")

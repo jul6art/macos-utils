@@ -37,8 +37,10 @@ public struct HeadSurface: Sendable {
         case eye
         /// Strands: cut out where their texture is transparent, a soft sheen.
         case hair
-        /// Brows, lashes, teeth, tongue: cut out, matte.
+        /// Brows, lashes, tongue: cut out, matte.
         case matte
+        /// Inside the mouth, in its shade: a little darker than their texture, a faint shine.
+        case teeth
     }
 
     public let triangles: [UInt32]
@@ -76,6 +78,15 @@ public final class MeshHead: HeadModel {
     private let shapes: [(indices: [Int32], deltas: [SIMD3<Float>])]
     /// The eyeballs' points and centres, to turn them with the gaze.
     private let eyes: [(indices: [Int32], centre: SIMD3<Float>)]
+    /// Across the mouth, in its middle and on either side: the upper lip's lowest point, the lower lip's
+    /// highest, and how fast mouthClose brings them together, per unit of weight.
+    let lips: [(upper: Int, lower: Int, closing: Float)]
+    /// How much mouthClose shuts the mouth at rest: MakeHuman's lips rest apart, and between full lips a
+    /// line of teeth showed (Amara, Kofi). Measured on the face, from 0 to `restingCloseLimit`.
+    let restingClose: Float
+    static let restingCloseLimit: Float = 0.35
+    /// Twice what the points need: on Amara, the measure (0.031) left specks of teeth, 0.07 a clean line.
+    static let restingMargin: Float = 2
 
     /// Each part's look: point size and brightness.
     private static let parts: [String: (size: Float, brightness: Float)] = [
@@ -106,6 +117,8 @@ public final class MeshHead: HeadModel {
             repeating: ([], []), count: FaceShape.allCases.count)
         var eyes: [(indices: [Int32], centre: SIMD3<Float>)] = []
         var heads: [Range<Int>] = []
+        /// The head's points its triangles use: tools/faces dropped the faces nobody sees (inside the lips).
+        var drawn = Set<Int>()
         var occluders: [UInt32] = []
         var surfaces: [HeadSurface] = []
         var uvs: [SIMD2<Float>] = []
@@ -128,6 +141,7 @@ public final class MeshHead: HeadModel {
                     case "head": .skin
                     case "eyes": .eye
                     case "hair": .hair
+                    case "teeth": .teeth
                     default: .matte
                     }
                 surfaces.append(
@@ -141,7 +155,10 @@ public final class MeshHead: HeadModel {
                 shapes[shape.rawValue].indices += target.indices.map { $0 + offset }
                 shapes[shape.rawValue].deltas += target.deltas.map { $0 * scale }
             }
-            if part == "head" { heads.append(Int(offset)..<base.count) }
+            if part == "head" {
+                heads.append(Int(offset)..<base.count)
+                drawn.formUnion(mesh.triangles.map { Int($0) + Int(offset) })
+            }
             // The skin and the eyeballs hide what is behind them: the hair at the back of the head, the
             // teeth behind closed lips, the eyeball behind a closing lid.
             if part == "head" || part == "eyes" { occluders += mesh.triangles.map { $0 + UInt32(offset) } }
@@ -178,6 +195,16 @@ public final class MeshHead: HeadModel {
         self.base = base
         self.normals = normals
         self.shapes = shapes
+        let close = shapes[FaceShape.mouthClose.rawValue]
+        let lips = Self.mouthOpenings(
+            moved: zip(close.indices, close.deltas).filter { index, _ in
+                heads.contains { $0.contains(Int(index)) }
+            }.map { (Int($0.0), $0.1) }, drawn: drawn, base: base)
+        self.lips = lips
+        // The widest opening sets it, with a margin: once the points meet, the lips' edges, straight from
+        // point to point, still let specks of teeth through towards the corners.
+        let measured = lips.map { max(base[$0.upper].y - base[$0.lower].y, 0) / $0.closing }.max() ?? 0
+        restingClose = min(measured * Self.restingMargin, Self.restingCloseLimit)
         self.eyes = eyes
         self.occluders = occluders
         // Skin first, then what is cut out of its texture: brows, lashes and strands lie over the skin.
@@ -254,16 +281,49 @@ public final class MeshHead: HeadModel {
     /// ARKit's mouthClose, from the animator's. ARKit's closes the lips over an open jaw, and past jawOpen
     /// they go through each other (a bulge under the nose on « p »); the animator's says how shut the lips
     /// are, whatever the jaw. And a mouth at rest is shut: the breath's few hundredths of jaw do not part
-    /// the lips (a line of teeth showed between them).
-    static func lipsClosing(shut: Float, jaw: Float) -> Float {
-        let resting = min(max((0.1 - jaw) / 0.05, 0), 1)
-        return min(max(shut, resting), 1) * jaw
+    /// the lips, and `resting`, the face's own closure at rest, joins them, fading as the jaw opens.
+    static func lipsClosing(shut: Float, jaw: Float, resting: Float = 0) -> Float {
+        let atRest = min(max((0.1 - jaw) / 0.05, 0), 1)
+        return min(max(shut, atRest), 1) * jaw + resting * atRest
+    }
+
+    /// The mouth's opening, as it shows, across the lips, up to near the corners. mouthClose
+    /// lifts the lower lip: of the points it moves most (a third of its strongest move or more), within a
+    /// narrow band across the lips, the highest is the lower lip's edge; above it, the lowest point of the
+    /// skin is the upper lip's. Only `drawn` points count: tools/faces dropped the faces nobody sees.
+    static func mouthOpenings(moved: [(Int, SIMD3<Float>)], drawn: Set<Int>, base: [SIMD4<Float>])
+        -> [(upper: Int, lower: Int, closing: Float)]
+    {
+        let strongest = moved.map { simd_length($0.1) }.max() ?? 0
+        let strong = moved.filter { simd_length($0.1) >= strongest / 3 && drawn.contains($0.0) }
+        let xs = strong.map { base[$0.0].x }
+        guard let low = xs.min(), let high = xs.max() else { return [] }
+        let lifts = Dictionary(moved.map { ($0.0, $0.1.y) }, uniquingKeysWith: { first, _ in first })
+        let band = (high - low) / 12
+        // Every tenth of the way from one side to the other, short of the corners: the points are sparse,
+        // and a few samples missed the widest place (Kofi's).
+        return (-7...7).compactMap { (step: Int) -> (upper: Int, lower: Int, closing: Float)? in
+            let x = (low + high) / 2 + Float(step) / 10 * (high - low) / 2
+            guard
+                let lower = strong.filter({ abs(base[$0.0].x - x) <= band && $0.1.y > 0 })
+                    .max(by: { base[$0.0].y < base[$1.0].y })
+            else { return nil }
+            let edge = base[lower.0]
+            let above = drawn.filter {
+                abs(base[$0].x - x) <= band && base[$0].y > edge.y + 1e-4 && base[$0].y < edge.y + 0.2
+                    && base[$0].z > edge.z - 0.04
+            }
+            guard let upper = above.min(by: { base[$0].y < base[$1].y }) else { return nil }
+            let closing = lower.1.y - (lifts[upper] ?? 0)
+            return closing > 1e-5 ? (upper, lower.0, closing) : nil
+        }
     }
 
     public func shape(_ pose: FacePose, time: Double) -> [SIMD4<Float>] {
         var points = base
         var weights = pose.weights
-        weights[FaceShape.mouthClose.rawValue] = Self.lipsClosing(shut: pose[.mouthClose], jaw: pose[.jawOpen])
+        weights[FaceShape.mouthClose.rawValue] = Self.lipsClosing(
+            shut: pose[.mouthClose], jaw: pose[.jawOpen], resting: restingClose)
         for (shapeIndex, weight) in weights.enumerated() where weight > 0.001 {
             let shape = shapes[shapeIndex]
             for (index, delta) in zip(shape.indices, shape.deltas) {
