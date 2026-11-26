@@ -11,6 +11,7 @@ struct SettingsView: View {
             }
             Section {
                 FaceGrid(model: model)
+                RealismSlider(model: model)
             } header: {
                 Text("Face")
             }
@@ -57,6 +58,31 @@ private struct MillisecondsSlider: View {
                 value: Binding(get: { Double(value) }, set: { set(Int($0)) }),
                 in: Double(range.lowerBound)...Double(range.upperBound), step: 10)
             Text(help).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// From the hologram of points to the face as real as its model allows (spec, § 8.3).
+private struct RealismSlider: View {
+    let model: AppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Realism")
+                Spacer()
+                Text(model.realism, format: .percent.precision(.fractionLength(0))).monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            Slider(value: Binding(get: { model.realism }, set: { model.realism = $0 }), in: 0...1) {
+                EmptyView()
+            } minimumValueLabel: {
+                Text("Hologram")
+            } maximumValueLabel: {
+                Text("Real")
+            }
+            Text("From light alone to skin and eyes: the hologram fades as the face becomes real.")
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 }

@@ -41,6 +41,11 @@ final class AppModel {
         }
     }
 
+    /// From the hologram of points (0) to the face as real as its model allows (1), spec § 8.3.
+    var realism: Double {
+        didSet { defaults.set(realism, forKey: Key.realism) }
+    }
+
     /// The settings' thumbnails, per face, made the first time they are shown.
     var thumbnails: [String: CGImage] = [:]
 
@@ -56,6 +61,7 @@ final class AppModel {
         static let anticipation = "anticipationMilliseconds"
         static let extraLatency = "extraLatencyMilliseconds"
         static let face = "face"
+        static let realism = "realism"
     }
 
     init() {
@@ -66,6 +72,7 @@ final class AppModel {
         anticipationMilliseconds = defaults.integer(forKey: Key.anticipation)
         extraLatencyMilliseconds = defaults.integer(forKey: Key.extraLatency)
         faceID = defaults.string(forKey: Key.face) ?? FaceLibrary.faces.first?.id ?? FaceLibrary.points
+        realism = defaults.double(forKey: Key.realism)
         connection = Connection(delayMilliseconds: defaults.integer(forKey: Key.delay))
     }
 
