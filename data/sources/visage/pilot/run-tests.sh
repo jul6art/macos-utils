@@ -100,7 +100,9 @@ wait_capture 30 || echo "    (no capture)";
 pilot_crash; sleep 0.5;
 echo "    after the crash:    $(mic after-crash-public) dB";
 "${PILOT_BIN}" --list | grep '^taps' | tee "${OUT}/t3-taps.txt";
-for uid in $(sed -e 's/^taps: //' -e 's/,//g' "${OUT}/t3-taps.txt"); do "${PILOT_BIN}" --destroy-tap "${uid}"; done;
+sed -e 's/^taps: //' "${OUT}/t3-taps.txt" | tr ',' '\n' | while read -r uid; do
+	[ -n "${uid}" ] && "${PILOT_BIN}" --destroy-tap "${uid}";
+done;
 kill "${AFPLAY}" 2>/dev/null || true; wait "${AFPLAY}" 2>/dev/null || true;
 
 echo "==> 4 · capture by bundle ID, and the app restarting";
