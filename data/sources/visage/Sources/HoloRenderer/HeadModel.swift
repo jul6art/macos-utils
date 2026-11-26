@@ -186,9 +186,20 @@ public final class MeshHead: HeadModel {
         return (0.5, 0.16)
     }
 
+    /// ARKit's mouthClose, from the animator's. ARKit's closes the lips over an open jaw, and past jawOpen
+    /// they go through each other (a bulge under the nose on « p »); the animator's says how shut the lips
+    /// are, whatever the jaw. And a mouth at rest is shut: the breath's few hundredths of jaw do not part
+    /// the lips (a line of teeth showed between them).
+    static func lipsClosing(shut: Float, jaw: Float) -> Float {
+        let resting = min(max((0.1 - jaw) / 0.05, 0), 1)
+        return min(max(shut, resting), 1) * jaw
+    }
+
     public func shape(_ pose: FacePose, time: Double) -> [SIMD4<Float>] {
         var points = base
-        for (shapeIndex, weight) in pose.weights.enumerated() where weight > 0.001 {
+        var weights = pose.weights
+        weights[FaceShape.mouthClose.rawValue] = Self.lipsClosing(shut: pose[.mouthClose], jaw: pose[.jawOpen])
+        for (shapeIndex, weight) in weights.enumerated() where weight > 0.001 {
             let shape = shapes[shapeIndex]
             for (index, delta) in zip(shape.indices, shape.deltas) {
                 let position = Int(index)
