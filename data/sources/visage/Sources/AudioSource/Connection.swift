@@ -44,6 +44,8 @@ public final class Connection {
 
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var tappedProcesses: Set<AudioObjectID> = []
+    /// Bundle mode: the bundle IDs given to Core Audio, which follows exactly those.
+    @ObservationIgnored private var tappedBundleIDs: Set<String> = []
     @ObservationIgnored private var watchdog: Timer?
     /// How long the app has been playing, in watchdog ticks (seconds), while the capture listens.
     @ObservationIgnored private var playingSeconds = 0.0
@@ -109,6 +111,7 @@ public final class Connection {
         var target = CaptureTarget()
         if usesBundleMode, bundleID.contains(".") {
             target.bundleIDs = Array(Set(processes.map(\.bundleID).filter { !$0.isEmpty } + [bundleID])).sorted()
+            tappedBundleIDs = Set(target.bundleIDs)
         } else {
             guard !processes.isEmpty else {
                 state = .waitingForApp
@@ -179,6 +182,12 @@ public final class Connection {
     }
 
     nonisolated public static let stallLimit = 2.0
+
+    /// Whether the app has a process with a bundle ID the bundle-mode tap was not given: Core Audio follows
+    /// exactly the bundle IDs it is given, so a helper born after the connection would play unheard.
+    nonisolated public static func missesHelpers(seen: [String], tapped: Set<String>) -> Bool {
+        seen.contains { !$0.isEmpty && !tapped.contains($0) }
+    }
     nonisolated public static let restartLimit = 2
 
     private func restart() {
@@ -190,6 +199,7 @@ public final class Connection {
         capture?.stop()
         capture = nil
         tappedProcesses = []
+        tappedBundleIDs = []
     }
 
     // MARK: - Keeping it alive
@@ -201,8 +211,15 @@ public final class Connection {
             start(bundleID: bundleID)
         case .connected, .permissionMissing:
             let processes = AudioProcesses.matching(bundleID, in: AudioProcesses.all())
-            // Process mode: a new helper, or the app restarted with new processes.
-            if !usesBundleMode || !bundleID.contains(".") {
+            if usesBundleMode, bundleID.contains(".") {
+                // Bundle mode: a helper whose bundle ID the tap was not given (Claude's audio service, when
+                // it first plays or listens after the connection).
+                if Self.missesHelpers(seen: processes.map(\.bundleID), tapped: tappedBundleIDs) {
+                    start(bundleID: bundleID)
+                    return
+                }
+            } else {
+                // Process mode: a new helper, or the app restarted with new processes.
                 let objects = Set(processes.map(\.objectID))
                 if !objects.isEmpty, objects != tappedProcesses {
                     start(bundleID: bundleID)
