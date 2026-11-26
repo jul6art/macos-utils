@@ -288,28 +288,33 @@ changer de visage à chaud, avec un fondu, même pendant qu'il parle.
   enregistrée comme une forme à elles, elles s'animent donc comme la tête.
 
 Pas encore faits, et à juger sur le test à l'aveugle (R6) avant de s'y lancer : la subdivision à l'export,
-une carte de normales tirée d'une peau CC0, la cornée et son reflet humide.
+une carte de normales tirée d'une peau CC0, la cornée et son reflet humide. Les textures du pack, elles,
+servent au bout réaliste de la jauge (§ 8.3).
 
 **La chaîne de fabrication** :
 
 ```
 tools/faces/
   presets.json         les 10 visages : réglages MakeHuman (genre, âge, origines, poids, muscles),
-                       cheveux, sourcils, cils
+                       cheveux, sourcils, cils, couleur des yeux
   build_faces.py       Blender sans interface (blender -b -P) : crée chaque visage avec MPFB2, cuit sa
                        morphologie, ajoute yeux, sourcils, cils, dents, langue et cheveux, charge les
                        52 formes, les enregistre sur chaque objet, garde la tête et le cou (25 cm),
-                       retire les faces cachées, exporte un .glb
+                       retire les faces cachées, exporte un .glb, puis écrit une texture par
+                       partie à côté (<visage>.<partie>.jpg ou .png, § 8.3)
   build.sh             le lance (tous les visages, ou ceux qu'on nomme) et copie presets.json
-Resources/Faces/*.glb  les fichiers générés, commités : construire l'app ne demande pas Blender
+Resources/Faces/       les fichiers générés, commités : construire l'app ne demande pas Blender
 ```
 
 **Les faces cachées sont retirées à la fabrication.** La lumière de l'hologramme est additive : elle
 traverse tout. L'intérieur de la bouche et le fond des orbites, derrière les globes oculaires,
 transparaissaient à travers le visage : deux anneaux autour des yeux, comme des lunettes, et un troisième
-autour de la bouche. Une face est gardée si, depuis son centre, un rayon vers l'un des 120 points de vue
-(jusqu'à 70° de côté, 35° en haut ou en bas) ne rencontre ni la tête ni les yeux. Environ 1 600 faces sur
-8 500 partent ainsi, l'arrière du crâne compris : on ne le voit jamais.
+autour de la bouche. Une face est gardée si, depuis un millimètre au-dessus de son centre, un rayon vers l'un des 120 points
+de vue (jusqu'à 70° de côté, 35° en haut ou en bas) ne rencontre ni la tête ni les yeux. Le millimètre
+compte : le centre d'un quadrilatère qui n'est pas plan passe sous sa propre surface là où la peau est
+bombée, et le rayon heurtait la face elle-même. Ces faces-là partaient à tort, des trous qui ne se
+voyaient pas en points et criblaient la peau en surface. Environ 1 200 faces sur 8 500 partent, l'arrière
+du crâne compris : on ne le voit jamais.
 
 **Les cheveux sont rangés à la fabrication.** Ils ne couvrent jamais le visage sous les sourcils : une
 mèche de la coupe `bob01` traversait celui de Mei de la tempe au menton. Et rien ne pend derrière un cou
@@ -324,15 +329,17 @@ zones ne brillent pas plus que le reste sans effacer les traits. Du globe oculai
 visible entre les paupières s'allume : l'iris plus que le blanc, la pupille sombre.
 
 **Ce que contient chaque `.glb`** (glTF 2.0) : les 52 formes ARKit nommées selon la norme (`jawOpen`,
-`mouthClose`, `mouthFunnel`…) dans `extras.targetNames`, en cibles creuses, et rien d'autre (ni matériau
-ni texture). La même nomenclature pour tous, donc une animation commune ; le maillage, lui, varie d'un
-visage à l'autre après le retrait des faces cachées. De 1,4 à 2 Mo par visage, **moins de 3 Mo** exigés
-parce que chaque clone de `macos-utils` les télécharge, et moins de 40 000 points. Un test le vérifie
-(§ 11.2).
+`mouthClose`, `mouthFunnel`…) dans `extras.targetNames`, en cibles creuses, et les coordonnées de
+texture ; ni matériau ni image (les textures sont à côté). La même nomenclature pour tous, donc une
+animation commune ; le maillage, lui, varie d'un visage à l'autre après le retrait des faces cachées. De
+1,6 à 2,2 Mo par `.glb` (**moins de 3 Mo** exigés) et de 1,4 à 1,9 Mo de textures (moins de 2,5 Mo), parce
+que chaque clone de `macos-utils` les télécharge : 33 Mo pour les dix. Moins de 40 000 points. Un test le
+vérifie (§ 11.2).
 
-**Chargeur glTF maison** (positions, normales, triangles, cibles de morphing denses ou creuses) :
-moins de 200 lignes, sans bibliothèque. Pas de coordonnées de texture : des points n'en ont pas besoin.
-Les triangles ne servent qu'à la pré-passe de profondeur (§ 8.2).
+**Chargeur glTF maison** (positions, normales, coordonnées de texture, triangles, cibles de morphing
+denses ou creuses) : environ 200 lignes, sans bibliothèque. Un sommet sur une couture de texture est
+exporté une fois par côté, au même endroit : dessiné deux fois, il ferait briller les coutures ; son
+jumeau ne sert qu'à la surface.
 
 **Le choix du visage** : une grille de vignettes dans les réglages (chaque visage au repos, fabriqué la
 première fois que la fenêtre s'ouvre, hors du fil principal), une liste de noms dans le menu ; la tête
@@ -379,6 +386,37 @@ L'effet se construit en couches, chacune réglable :
 
 Le style reste celui d'un hologramme de science-fiction générique : il n'imite aucune œuvre en particulier.
 On vise 60 images par seconde (120 sur un écran ProMotion) quand il parle, 30 au repos.
+
+### 8.3 La jauge de réalisme
+
+Un curseur « Réalisme » dans les réglages, sous la grille des visages, idée de l'utilisateur (2026-11-26) :
+de 0 %, l'hologramme de points, à 100 %, le visage aussi réel que MakeHuman le permet.
+
+- **La surface** : les triangles de chaque partie, texturés (peau, iris, cheveux, sourcils, cils, dents,
+  langue : les textures CC0 du pack, réduites ; la peau, texture du corps entier, recadrée sur la tête),
+  éclairés par une lumière principale en haut à gauche, une lumière d'appoint à droite et un liseré. La
+  peau est un peu chaude dans l'ombre, l'œil a un reflet net. Cheveux, sourcils et cils sont découpés là
+  où leur texture est transparente.
+- **Le mélange** : la surface monte avec la jauge, d'abord teintée de la couleur de l'hologramme puis
+  dans ses vraies couleurs ; les points s'éteignent d'autant ; le halo, les lignes de balayage, le
+  scintillement, la bande et le socle s'effacent. Une passe de profondeur des surfaces précède leur
+  couleur : translucide, le visage ne montre que sa couche la plus proche, pas l'intérieur du crâne. Le
+  cou coupé s'estompe au lieu de finir en dents de scie.
+- **La bouche** : le `mouthClose` d'ARKit ferme les lèvres sur une mâchoire ouverte, et au-delà de
+  `jawOpen` elles se traversent (une bosse sous le nez sur « p », « b » et « m », invisible en points).
+  Celui de l'animateur dit à quel point les lèvres sont closes : `MeshHead` le traduit en le multipliant
+  par l'ouverture de la mâchoire. Et une bouche au repos est fermée : les quelques centièmes de mâchoire
+  de la respiration n'entrouvrent plus les lèvres.
+- **Les limites, dites franchement** : 100 % veut dire le niveau de MakeHuman, un personnage de jeu
+  convaincant de loin, pas une personne filmée. En gros plan, la vallée de l'étrange guette : des yeux
+  un peu de poupée, une peau lisse, des sourcils en traits ; chez Amara et Kofi, un filet de dents au repos
+  (`mouthClose` n'est pas calé sur des lèvres plus pleines). L'hologramme pardonne la synchro labiale
+  sans phonèmes, le visage réel moins : la jauge laisse chacun choisir. Le photoréalisme demanderait
+  MetaHuman (pas redistribuable) ou un modèle qui anime une photo (lourd, et trop proche du deepfake) :
+  hors périmètre.
+
+`Visage --render … --realism <0-100>` filme à un niveau donné, ou en faisant glisser la jauge
+(`--realism 0-100`) ; `--snapshot` ajoute la planche des dix visages à 100 % (`faces-real.png`).
 
 ## 9. Fenêtre et réglages
 
@@ -548,7 +586,7 @@ reste du temps, comme sur les autres dépôts.
 | R4 | **Analyse sans modèle** insuffisante en français. | V2 Core ML (§ 6.2). |
 | R5 | **Mode vocal en bêta** chez Claude (le français aussi) : la voix peut changer. | Visage ne suit que le son : la normalisation automatique réapprend la voix. |
 | R6 | **Réalisme de MakeHuman** trop juste en gros plan. | Subdivision, cartes de normales, yeux soignés ; l'hologramme et la parallaxe portent le reste. Jugé au lot 5 sur le test à l'aveugle. |
-| R7 | **Poids des visages** : chaque clone de `macos-utils` les emporte. | Moins de 3 Mo par visage (cibles creuses, quantifiées), vérifié par un test ; régénération seulement en cas de besoin. |
+| R7 | **Poids des visages** : chaque clone de `macos-utils` les emporte. | Moins de 3 Mo par `.glb` (cibles creuses) et 2,5 Mo de textures par visage, vérifiés par un test : 33 Mo pour les dix, accepté par l'utilisateur pour la jauge de réalisme (2026-11-26) ; régénération seulement en cas de besoin. |
 
 ## 13. Découpage en lots
 
@@ -576,7 +614,7 @@ reste du temps, comme sur les autres dépôts.
 - **Lot 5** fait : chaîne Blender (Blender 5.3, MPFB 2.0.18, packs CC0 de MakeHuman), les 10 visages,
   choix du visage dans le menu et les réglages, planche des visages (`Visage --snapshot`) et vidéos
   muettes (`--face <id> --mute`), pré-passe de profondeur, cheveux rangés, grille de vignettes et fondu
-  au changement de visage. Reste le test à l'aveugle (R6) avec l'utilisateur.
+  au changement de visage, jauge de réalisme (§ 8.3). Reste le test à l'aveugle (R6) avec l'utilisateur.
 - **Lots 6 et 7** à venir : caméra, réglages complets, robustesse ; doc et publication.
 
 ## 14. Hors périmètre
