@@ -616,7 +616,7 @@ reste du temps, comme sur les autres dépôts.
 
 | # | Risque | Parade |
 |---|---|---|
-| R1 | **Écho** : rejoué 150 ms plus tard, le son peut tromper l'annulation d'écho de l'app IA, qui s'entendrait elle-même et se couperait. | Au casque, aucun souci. En haut-parleurs, on mesure, puis on réduit D ou on conseille le casque. Ne se pose pas avec « Lire à voix haute » (pilote, § 4) ; se pose avec les modes vocaux mains libres de Claude et de ChatGPT, qui écoutent pendant qu'ils parlent. |
+| R1 | **Écho** : rejoué 150 ms plus tard, le son peut tromper l'annulation d'écho de l'app IA, qui s'entendrait elle-même et se couperait. | Au casque, aucun souci. En haut-parleurs, on mesure, puis on réduit D ou on conseille le casque. Ne se pose pas avec « Lire à voix haute » (pilote, § 4). **Levé pour Claude le 2026-11-26** : en mode vocal mains libres, en haut-parleurs, avec le retard de 150 ms, Claude ne s'entend pas lui-même. Reste ChatGPT. |
 | R2 | **Processus audio** : il faut trouver celui qui joue la voix (Claude Desktop est une app Electron) et le suivre quand l'app redémarre. | macOS 26 tape une app par son identifiant et la retrouve quand elle redémarre (pilote, tests 4 et 5) ; sinon, filtrer par préfixe et par PID responsable. |
 | R3 | **Sûreté de la coupure** : le son de l'IA doit revenir si Visage s'arrête. | Critère 6, bloquant. Tap privé ; mesure au micro par le pilote (tests 2 et 3). |
 | R4 | **Analyse sans modèle** insuffisante en français. | V2 Core ML (§ 6.2). |
@@ -656,8 +656,9 @@ reste du temps, comme sur les autres dépôts.
   quand la capture se fige, auxiliaire né après le branchement), les couches et la couleur de l'hologramme,
   la caméra (regard et parallaxe, sens à confirmer avec l'utilisateur) et la conversation : le visage
   écoute quand l'app IA a son micro ouvert, réfléchit après une phrase ou une dictée, et, avec l'option
-  micro, hoche la tête aux pauses. Restent l'essai du mode vocal de Claude Desktop avec l'utilisateur,
-  R1 (au casque d'abord, puis en haut-parleurs), et les mesures du § 11.3.
+  micro, hoche la tête aux pauses. Le mode vocal de Claude Desktop, essayé en haut-parleurs le soir
+  même : pas d'écho (R1 levé pour Claude). Restent les yeux, les cheveux et les dents des visages, et les
+  mesures du § 11.3.
 - **Lot 7** à venir : doc et publication.
 
 ## 14. Hors périmètre
