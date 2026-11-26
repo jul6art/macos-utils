@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Regenerate Visage's brand files from the kit — the Command Line Tools are enough.
-# The geometry lives in kit/Mark.swift; every file next to this script comes
-# from it. Edit the kit, never the files.
+# The geometry lives in Sources/Shared/BrandMark.swift, shared with the app;
+# every file next to this script comes from it. Edit the code, never the files.
 #
 #   sh generate.sh                      # rewrite the SVG files next to this script
 #   sh generate.sh --iconset DIR        # also render the app icon into DIR.iconset
@@ -29,7 +29,7 @@ fi;
 mkdir -p "${BUILD_DIR}";
 
 echo "==> Compiling the kit";
-swiftc -O -swift-version 6 -o "${BUILD_DIR}/brandkit" "${SRC_DIR}"/kit/*.swift;
+swiftc -O -swift-version 6 -o "${BUILD_DIR}/brandkit" "${SRC_DIR}"/kit/*.swift "${SRC_DIR}/../Sources/Shared/BrandMark.swift";
 
 echo "==> Writing the SVG files";
 "${BUILD_DIR}/brandkit" svg "${SRC_DIR}";
