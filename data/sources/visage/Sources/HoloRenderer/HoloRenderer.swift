@@ -15,6 +15,11 @@ public struct HoloSettings: Sendable {
     /// From 0, the hologram of points, to 1, the face as a lit, textured surface (§ 8.3). Only the heads
     /// that have surfaces take it.
     public var realism: Float = 0
+    /// The layers (§ 8.2, § 9.2): the halo's strength (1 the charter's), the scanlines' and the sweeping
+    /// band's (0 none), and the flicker with the rare glitch.
+    public var halo: Float = 1
+    public var scanlines: Float = 1
+    public var glitches = true
 
     public init() {}
 
@@ -111,6 +116,8 @@ public final class HoloRenderer: @unchecked Sendable {
         var glitch: Float
         var projector: Float
         var realism: Float
+        var halo: Float
+        var scanlines: Float
         var background: SIMD4<Float>
     }
 
@@ -320,10 +327,11 @@ public final class HoloRenderer: @unchecked Sendable {
             viewProjection: Self.viewProjection(aspect: Float(width) / Float(height)),
             model: Self.model(head: pose.head), colour: SIMD4(settings.colour, 1),
             viewport: SIMD2(Float(width), Float(height)), time: Float(time), glow: pose.glow,
-            flicker: Self.flicker(time), pointScale: Float(height) * 0.0062 * model.pointScale,
-            glitch: elapsed < 0.1 ? 1 : Self.glitch(time),
+            flicker: settings.glitches ? Self.flicker(time) : 1,
+            pointScale: Float(height) * 0.0062 * model.pointScale,
+            glitch: settings.glitches ? (elapsed < 0.1 ? 1 : Self.glitch(time)) : 0,
             projector: settings.projector ? 1 : 0, realism: model.surfaces.isEmpty ? 0 : settings.realism,
-            background: settings.background)
+            halo: settings.halo, scanlines: settings.scanlines, background: settings.background)
 
         let light = MTLRenderPassDescriptor()
         light.colorAttachments[0].texture = scene

@@ -28,6 +28,9 @@ struct SettingsView: View {
                             RealismSlider(model: model)
                             FaceSizeSlider(model: model)
                         }
+                        BrandCard(title: String(localized: "Hologram")) {
+                            HologramSettings(model: model)
+                        }
                         BrandCard(title: String(localized: "Window")) {
                             WindowModeChoice(model: model)
                         }

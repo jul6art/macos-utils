@@ -73,6 +73,17 @@ enum Snapshots {
         {
             failures += 1
         }
+        // The hologram's card, below the fold of the settings' snapshot.
+        let hologram = BrandCard(title: String(localized: "Hologram")) { HologramSettings(model: model) }
+            .padding(20).frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(nsColor: Palette.charbon)).foregroundStyle(Palette.orPale)
+            .tint(Palette.braise)
+        if !write(
+            hologram, size: NSSize(width: 560, height: 420), to: directory.appending(path: "settings-hologram.png"),
+            dark: true)
+        {
+            failures += 1
+        }
         // The first launch's welcome, its AI not chosen yet.
         if !write(
             WelcomeView(model: model), size: NSSize(width: 860, height: 820),
