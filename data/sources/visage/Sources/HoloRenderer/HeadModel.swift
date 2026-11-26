@@ -37,8 +37,11 @@ public struct HeadSurface: Sendable {
         case eye
         /// Strands: cut out where their texture is transparent, a soft sheen.
         case hair
-        /// Brows, lashes, tongue: cut out, matte.
+        /// The tongue: cut out, matte.
         case matte
+        /// Brows and lashes: fine hairs, laid softly over the skin and the eyes by their texture's own
+        /// transparency. Cut out at half of it, they were hard black strokes.
+        case fine
         /// Inside the mouth, in its shade: a little darker than their texture, a faint shine.
         case teeth
     }
@@ -142,6 +145,7 @@ public final class MeshHead: HeadModel {
                     case "eyes": .eye
                     case "hair": .hair
                     case "teeth": .teeth
+                    case "eyebrows", "eyelashes": .fine
                     default: .matte
                     }
                 surfaces.append(
