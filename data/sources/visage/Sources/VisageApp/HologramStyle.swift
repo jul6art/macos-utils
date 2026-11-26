@@ -95,3 +95,34 @@ struct PercentSlider: View {
         }
     }
 }
+
+/// The settings' « Camera » card: the option, what it does, and what to do when macOS refuses.
+struct CameraSettings: View {
+    let model: AppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle("Follow me with the camera", isOn: Binding(get: { model.camera }, set: { model.camera = $0 }))
+                .toggleStyle(.switch)
+            Text(
+                "Its gaze rests on you and follows you, and its head turns a little as you move, as a real head behind the glass would. Images are read on your Mac, never recorded; the camera light stays on meanwhile."
+            )
+            .font(.caption).foregroundStyle(Palette.cendreClaire)
+            .fixedSize(horizontal: false, vertical: true)
+            switch model.cameraAccess {
+            case .denied:
+                HStack {
+                    Text("macOS refuses the camera to Visage.")
+                    Button("Open System Settings") {
+                        NSWorkspace.shared.open(
+                            URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera")!)
+                    }
+                }
+            case .noCamera:
+                Text("This Mac has no camera.")
+            default:
+                EmptyView()
+            }
+        }
+    }
+}

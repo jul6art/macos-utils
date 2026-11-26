@@ -50,6 +50,11 @@
 "The fine lines and the band that sweeps down the face." = "Les lignes fines, et la bande qui balaie le visage.";
 "Plinth and beam" = "Socle et faisceau";
 "Flicker and glitches" = "Scintillement et glitchs";
+"Camera" = "Caméra";
+"Follow me with the camera" = "Me suivre avec la caméra";
+"Its gaze rests on you and follows you, and its head turns a little as you move, as a real head behind the glass would. Images are read on your Mac, never recorded; the camera light stays on meanwhile." = "Son regard se pose sur vous et vous suit, et sa tête tourne un peu quand vous bougez, comme une vraie tête derrière la vitre. Les images sont lues sur votre Mac, jamais enregistrées ; le voyant de la caméra reste allumé pendant ce temps.";
+"macOS refuses the camera to Visage." = "macOS refuse la caméra à Visage.";
+"This Mac has no camera." = "Ce Mac n'a pas de caméra.";
 "Settings" = "Réglages";
 "Hide the face" = "Masquer le visage";
 "Welcome to Visage" = "Bienvenue dans Visage";

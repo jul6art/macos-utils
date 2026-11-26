@@ -72,6 +72,18 @@ final class AppModel {
         didSet { defaults.set(glitches, forKey: Key.glitches) }
     }
 
+    /// The camera option: the gaze follows the person, the head gains depth (spec, § 7.1, § 8.2).
+    var camera: Bool {
+        didSet {
+            defaults.set(camera, forKey: Key.camera)
+            Task { await applyCamera() }
+        }
+    }
+    /// Whether macOS let Visage use the camera, as last asked.
+    var cameraAccess: CameraTracker.Access?
+
+    @ObservationIgnored let cameraTracker = CameraTracker()
+
     /// Whether the face is on screen: the next launch puts it back as it was left.
     var faceShown: Bool {
         didSet { defaults.set(faceShown, forKey: Key.faceShown) }
@@ -107,6 +119,7 @@ final class AppModel {
         static let scanlines = "scanlines"
         static let projector = "projector"
         static let glitches = "glitches"
+        static let camera = "camera"
     }
 
     init() {
@@ -128,6 +141,7 @@ final class AppModel {
         scanlines = defaults.double(forKey: Key.scanlines)
         projector = defaults.bool(forKey: Key.projector)
         glitches = defaults.bool(forKey: Key.glitches)
+        camera = defaults.bool(forKey: Key.camera)
         faceScale = min(max(defaults.double(forKey: Key.faceScale), 0.5), 2)
         connection = Connection(delayMilliseconds: defaults.integer(forKey: Key.delay))
     }
@@ -136,6 +150,7 @@ final class AppModel {
     /// next ones say nothing: Visage reconnects to the last app and puts the face back as it was left.
     func launch() {
         faceWindow.apply(windowMode)
+        if camera { Task { await applyCamera() } }
         faceWindow.resize(scale: faceScale)
         if !defaults.bool(forKey: Key.welcomed) {
             welcomeWindow.show()
@@ -181,6 +196,15 @@ final class AppModel {
 
     func showSettings() {
         settingsWindow.show()
+    }
+
+    private func applyCamera() async {
+        if camera {
+            cameraAccess = await cameraTracker.start()
+        } else {
+            cameraTracker.stop()
+            cameraAccess = nil
+        }
     }
 
     func loadThumbnails() async {
