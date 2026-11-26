@@ -151,6 +151,30 @@ minute (percentiles glissants), puis la mémorise par source et par voix. Aucun 
 **Pourquoi sans modèle d'abord** : aucune dépendance, aucun fichier lourd, indépendant de la langue (le
 français marche comme l'anglais), et quelques pour cent d'un cœur suffisent.
 
+**Les lèvres ou la langue ?** Ce n'est pas la hauteur de F2 qui distingue p, b, m de t, d, n, k, g : c'est
+son mouvement. Il descend dans une occlusion des lèvres et en remonte ; la langue le tire vers le haut, ou
+le laisse plat. Visage pèse les deux pentes (une dérive de moins de 60 Hz ne compte pas), puis la hauteur
+de F2 aux bords. Il devine dès l'entrée dans l'occlusion, et confirme 60 ms après la sortie, toujours dans
+l'avance que donne le retard. Ses pièges, rencontrés et réglés :
+
+- F1 et F2 fusionnent quand ils se rapprochent (un « a » avant un « p ») : le pic suivant est alors F3.
+  Aucune voyelle n'a un F1 et un F2 tous deux hauts : une telle paire est une fusion ;
+- la trame collée à une occlusion chevauche le silence : ses formants mentent, elle est écartée ;
+- la barre de voisement d'un « b » clignote entre murmure et voyelle : l'occlusion est recousue ;
+- une voyelle qui s'éteint en fin de phrase n'est pas un murmure : son niveau chute trop vite.
+
+**Mesuré le 2026-11-26**, sur des voix de synthèse françaises de macOS (`say`, fichiers seulement, aucun son
+joué), avec `Visage --analyse` :
+
+| Mesure | Résultat |
+|---|---|
+| Hauteur (YIN) | Jacques 127 Hz, Eddy 112 Hz, Flo 243 Hz : plausibles ; à 3 % près sur signaux synthétiques |
+| Formants de a, i, u synthétisés | F1 à 15–20 % près, F2 à 12–20 % près ; a ouvre, i étire, u arrondit |
+| Occlusions : lèvres ou langue | **46 sur 48** (16 syllabes VCV — apa, aba, ata… amma, anna — × 3 voix), contre 41 avant les réglages ci-dessus. Restent le « m » de Flo et un « ibi » d'Eddy |
+
+La voix de Claude reste à mesurer (ce soir, avec le pilote) : les réglages ne collent pas à des voix de
+synthèse de macOS si elle se comporte autrement.
+
 ### 6.2 V2, seulement si la V1 manque les critères du § 11.3
 
 Un modèle multilingue de reconnaissance de phonèmes (famille wav2vec2), converti une fois en Core ML hors
