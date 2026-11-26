@@ -334,8 +334,10 @@ parce que chaque clone de `macos-utils` les télécharge, et moins de 40 000 poi
 moins de 200 lignes, sans bibliothèque. Pas de coordonnées de texture : des points n'en ont pas besoin.
 Les triangles ne servent qu'à la pré-passe de profondeur (§ 8.2).
 
-**Le choix du visage** : dans le menu et les réglages, les 10 visages et la tête en points de la charte.
-Le changement est immédiat ; le fondu et la grille de vignettes restent à faire (lot 6).
+**Le choix du visage** : une grille de vignettes dans les réglages (chaque visage au repos, fabriqué la
+première fois que la fenêtre s'ouvre, hors du fil principal), une liste de noms dans le menu ; la tête
+en points de la charte en plus des dix. Le nouveau visage est lu hors du fil principal, puis remplace
+l'ancien par un fondu de 0,6 s précédé d'un bref glitch, même pendant qu'il parle.
 
 ### 8.2 Le rendu : un vrai hologramme
 
@@ -573,8 +575,8 @@ reste du temps, comme sur les autres dépôts.
 - **Lot 4** fait : bouche, prosodie, repos (§ 7) ; jamais immobile plus d'une seconde (critère 3, testé).
 - **Lot 5** fait : chaîne Blender (Blender 5.3, MPFB 2.0.18, packs CC0 de MakeHuman), les 10 visages,
   choix du visage dans le menu et les réglages, planche des visages (`Visage --snapshot`) et vidéos
-  muettes (`--face <id> --mute`), pré-passe de profondeur, cheveux rangés. Restent le test à l'aveugle
-  (R6) avec l'utilisateur, puis le fondu et la grille de vignettes (lot 6).
+  muettes (`--face <id> --mute`), pré-passe de profondeur, cheveux rangés, grille de vignettes et fondu
+  au changement de visage. Reste le test à l'aveugle (R6) avec l'utilisateur.
 - **Lots 6 et 7** à venir : caméra, réglages complets, robustesse ; doc et publication.
 
 ## 14. Hors périmètre
