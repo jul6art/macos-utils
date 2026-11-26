@@ -14,7 +14,8 @@ public final class Connection {
         case notInstalled
         case starting
         case waitingForPermission
-        /// The IO never ran: macOS refused, or the user has not allowed system audio recording yet.
+        /// The app has been playing for a while and nothing of it came through: macOS keeps its sound from
+        /// Visage (not allowed, or allowed for an earlier build of the app).
         case permissionMissing
         /// Process mode only: the app has no audio process yet; it gets one when it first speaks.
         case waitingForApp
@@ -43,6 +44,8 @@ public final class Connection {
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var tappedProcesses: Set<AudioObjectID> = []
     @ObservationIgnored private var watchdog: Timer?
+    /// How long the app has been playing, in watchdog ticks (seconds), while the capture listens.
+    @ObservationIgnored private var playingSeconds = 0.0
     @ObservationIgnored private var outputListener: AudioObjectPropertyListenerBlock?
 
     public init(delayMilliseconds: Int) {
@@ -127,11 +130,20 @@ public final class Connection {
             return
         }
         self.capture = capture
-        // Without permission the IO never runs: no callback, not even silence.
-        try? await Task.sleep(for: .seconds(3))
-        guard attempt == generation else { return }
-        state = capture.callbacks.load(ordering: .relaxed) > 0 ? .connected : .permissionMissing
+        playingSeconds = 0
+        // Connected, and listening: whether macOS lets the sound through shows only once the app plays.
+        state = .connected
     }
+
+    /// Whether macOS seems to keep the app's sound from Visage: the app has played for `limit` seconds and
+    /// nothing but zeros came through since the capture began. No callback at all says nothing: on macOS 26,
+    /// a capture by bundle ID does not run while the app is silent (a first version said « not allowed »
+    /// there, until the app spoke). Once anything is heard, the permission is proven for the capture.
+    nonisolated public static func permissionLooksMissing(heardSomething: Bool, playingFor seconds: Double) -> Bool {
+        !heardSomething && seconds >= silentPlayLimit
+    }
+
+    nonisolated public static let silentPlayLimit = 6.0
 
     private func stopCapture() {
         capture?.stop()
@@ -146,13 +158,22 @@ public final class Connection {
         switch state {
         case .waitingForApp:
             start(bundleID: bundleID)
-        case .connected where !usesBundleMode || !bundleID.contains("."):
+        case .connected, .permissionMissing:
+            let processes = AudioProcesses.matching(bundleID, in: AudioProcesses.all())
             // Process mode: a new helper, or the app restarted with new processes.
-            let processes = Set(AudioProcesses.matching(bundleID, in: AudioProcesses.all()).map(\.objectID))
-            if !processes.isEmpty, processes != tappedProcesses { start(bundleID: bundleID) }
-        case .permissionMissing:
-            // The user may have allowed it in System Settings meanwhile.
-            if let capture, capture.callbacks.load(ordering: .relaxed) > 0 { state = .connected }
+            if !usesBundleMode || !bundleID.contains(".") {
+                let objects = Set(processes.map(\.objectID))
+                if !objects.isEmpty, objects != tappedProcesses {
+                    start(bundleID: bundleID)
+                    return
+                }
+            }
+            // Is the app's sound coming through? The user may also have allowed it meanwhile.
+            guard let capture else { return }
+            playingSeconds = processes.contains(where: \.isRunningOutput) ? playingSeconds + 1 : 0
+            let missing = Self.permissionLooksMissing(
+                heardSomething: capture.heardCallbacks.load(ordering: .relaxed) > 0, playingFor: playingSeconds)
+            if missing != (state == .permissionMissing) { state = missing ? .permissionMissing : .connected }
         default:
             break
         }
