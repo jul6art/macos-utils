@@ -10,8 +10,15 @@ public protocol HeadModel: AnyObject, Sendable {
     var normals: [SIMD4<Float>] { get }
     /// Size of a point relative to the renderer's default: dense clouds take smaller points.
     var pointScale: Float { get }
+    /// Triangles between the points, three indices each, drawn first into the depth buffer only: what
+    /// lies behind them is hidden, as behind a real head. Empty: nothing hides anything.
+    var occluders: [UInt32] { get }
     /// Per point: the position (xyz) and the size (w), for this pose.
     func shape(_ pose: FacePose, time: Double) -> [SIMD4<Float>]
+}
+
+extension HeadModel {
+    public var occluders: [UInt32] { [] }
 }
 
 /// The charter's point head (PointHead).
@@ -35,6 +42,7 @@ public final class MeshHead: HeadModel {
     public let normals: [SIMD4<Float>]
     public var pointCount: Int { base.count }
     public let pointScale: Float = 0.42
+    public let occluders: [UInt32]
 
     private let base: [SIMD4<Float>]
     /// Per `FaceShape`: the points it moves, and by how much, in head units.
@@ -45,7 +53,7 @@ public final class MeshHead: HeadModel {
     /// Each part's look: point size and brightness.
     private static let parts: [String: (size: Float, brightness: Float)] = [
         "head": (1, 0.8), "eyes": (0.6, 1), "eyebrows": (1.1, 0.9), "eyelashes": (0.6, 0.7),
-        "teeth": (0.5, 0.12), "tongue": (0.5, 0.1), "hair": (0.9, 0.45),
+        "teeth": (0.5, 0.4), "tongue": (0.5, 0.25), "hair": (0.9, 0.45),
     ]
 
     public init(url: URL) throws {
@@ -71,6 +79,7 @@ public final class MeshHead: HeadModel {
             repeating: ([], []), count: FaceShape.allCases.count)
         var eyes: [(indices: [Int32], centre: SIMD3<Float>)] = []
         var heads: [Range<Int>] = []
+        var occluders: [UInt32] = []
         for mesh in file.meshes {
             let part = String(mesh.name.split(separator: ".").last ?? "")
             let look = Self.parts[part] ?? (1, 0.7)
@@ -88,6 +97,9 @@ public final class MeshHead: HeadModel {
                 shapes[shape.rawValue].deltas += target.deltas.map { $0 * scale }
             }
             if part == "head" { heads.append(Int(offset)..<base.count) }
+            // The skin and the eyeballs hide what is behind them: the hair at the back of the head, the
+            // teeth behind closed lips, the eyeball behind a closing lid.
+            if part == "head" || part == "eyes" { occluders += mesh.triangles.map { $0 + UInt32(offset) } }
             if part == "eyes" {
                 // Two eyeballs: split by side, each turning about its own centre (its bounding box's: the
                 // cornea's points are denser, an average would sit in front of it).
@@ -121,6 +133,7 @@ public final class MeshHead: HeadModel {
         self.normals = normals
         self.shapes = shapes
         self.eyes = eyes
+        self.occluders = occluders
     }
 
     /// Dims the points of `range` by how crowded they are: `(typical / neighbours)^evenness`, neighbours

@@ -28,15 +28,25 @@ enum HoloShaders {
             GPUPoint p = points[id];
             float4 world = u.model * float4(p.position.xyz, 1.0);
             float3 n = normalize((u.model * float4(p.normal.xyz, 0.0)).xyz);
+            // Tested against the occluders a hair's breadth towards the camera, about 1.5 mm: a point on
+            // the skin is not hidden by the skin it sits on.
+            float4 tested = world + float4(0.0, 0.0, 0.015, 0.0);
             float rim = 1.0 - saturate(n.z);
             // Points turned away (the back of the head, the far side of an eyeball) fade out, as on a
             // surface lit from the front: the cloud reads as a face, not as a tangle.
             float facing = smoothstep(-0.35, 0.15, n.z);
             PointOut out;
             out.position = u.viewProjection * world;
+            out.position.z = (u.viewProjection * tested).z / (u.viewProjection * tested).w * out.position.w;
             out.size = max(p.position.w * u.pointScale * (0.75 + 1.1 * rim * rim) * (0.4 + 0.6 * facing), 0.0);
             out.light = p.normal.w * (0.55 + 0.65 * rim * facing) * (0.8 + 0.4 * u.glow) * facing;
             return out;
+        }
+
+        // 0. What hides: the skin and the eyeballs, into the depth buffer only, from the same points.
+        vertex float4 occluderVertex(uint id [[vertex_id]], const device GPUPoint* points [[buffer(0)]],
+                                     constant Uniforms& u [[buffer(1)]]) {
+            return u.viewProjection * (u.model * float4(points[id].position.xyz, 1.0));
         }
 
         fragment float4 pointFragment(PointOut in [[stage_in]], float2 coord [[point_coord]],

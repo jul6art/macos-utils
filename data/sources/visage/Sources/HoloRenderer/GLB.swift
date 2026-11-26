@@ -2,13 +2,15 @@ import Foundation
 import simd
 
 /// A minimal reader of binary glTF 2.0 (.glb), for the faces of tools/faces (spec, § 8.1): positions,
-/// normals, and morph targets (dense or sparse) with their names. A few hundred lines instead of a library.
+/// normals, triangles, and morph targets (dense or sparse) with their names. A few hundred lines instead of a library.
 struct GLBFile {
     struct Mesh {
         /// The node's name: `<face>.<part>` (head, eyes, eyebrows, eyelashes, teeth, tongue, hair).
         var name: String
         var positions: [SIMD3<Float>]
         var normals: [SIMD3<Float>]
+        /// Three vertex indices per triangle.
+        var triangles: [UInt32]
         /// Per target, in the order of `targetNames`: the vertices it moves and by how much.
         var targets: [(indices: [Int32], deltas: [SIMD3<Float>])]
         var targetNames: [String]
@@ -46,6 +48,8 @@ struct GLBFile {
             else { continue }
             let positions = try reader.vectors(positionAccessor)
             let normals = try attributes["NORMAL"].map { try reader.vectors($0) } ?? []
+            guard primitive["mode"] as? Int ?? 4 == 4 else { throw Failure.malformed("not triangles") }
+            let triangles = try (primitive["indices"] as? Int).map { try reader.integers($0) } ?? []
             var targets: [(indices: [Int32], deltas: [SIMD3<Float>])] = []
             for target in primitive["targets"] as? [[String: Int]] ?? [] {
                 guard let accessor = target["POSITION"] else {
@@ -57,8 +61,8 @@ struct GLBFile {
             let names = (mesh["extras"] as? [String: Any])?["targetNames"] as? [String] ?? []
             meshes.append(
                 Mesh(
-                    name: node["name"] as? String ?? "", positions: positions, normals: normals, targets: targets,
-                    targetNames: names))
+                    name: node["name"] as? String ?? "", positions: positions, normals: normals,
+                    triangles: triangles.map(UInt32.init(bitPattern:)), targets: targets, targetNames: names))
         }
         self.meshes = meshes
     }
@@ -88,7 +92,16 @@ struct GLBFile {
             }
         }
 
-        /// Unsigned integers (a sparse target's vertices), of any of glTF's widths.
+        /// A SCALAR accessor of unsigned integers: the triangles' corners.
+        func integers(_ index: Int) throws -> [Int32] {
+            let accessor = try accessor(index)
+            guard let view = accessor["bufferView"] as? Int else { throw Failure.malformed("indices") }
+            return integers(
+                at: try offset(view: view, extra: accessor["byteOffset"] as? Int ?? 0),
+                count: accessor["count"] as? Int ?? 0, component: accessor["componentType"] as? Int ?? 5125)
+        }
+
+        /// Unsigned integers (triangles' corners, a sparse target's vertices), of any of glTF's widths.
         private func integers(at offset: Int, count: Int, component: Int) -> [Int32] {
             (0..<count).map { item in
                 switch component {

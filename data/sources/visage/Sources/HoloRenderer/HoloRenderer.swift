@@ -23,12 +23,21 @@ public final class HoloRenderer: @unchecked Sendable {
     public let pixelFormat: MTLPixelFormat
     private let queue: MTLCommandQueue
     private let pointPipeline: MTLRenderPipelineState
+    private let occluderPipeline: MTLRenderPipelineState
     private let compositePipeline: MTLRenderPipelineState
+    /// Occluders write the depth; points are tested against it without writing it.
+    private let hiding: MTLDepthStencilState
+    private let hidden: MTLDepthStencilState
     private var pointBuffer: MTLBuffer
+    private var occluderBuffer: MTLBuffer?
     private var scene: MTLTexture?
+    private var depth: MTLTexture?
     /// The head drawn: the charter's point head, or a MakeHuman face. Swappable at any frame.
     public var model: HeadModel {
-        didSet { reserve(points: model.pointCount) }
+        didSet {
+            reserve(points: model.pointCount)
+            occluderBuffer = Self.occluderBuffer(model, device: device)
+        }
     }
 
     private struct GPUPoint {
@@ -72,6 +81,21 @@ public final class HoloRenderer: @unchecked Sendable {
         points.colorAttachments[0].destinationRGBBlendFactor = .one
         points.colorAttachments[0].sourceAlphaBlendFactor = .one
         points.colorAttachments[0].destinationAlphaBlendFactor = .one
+        points.depthAttachmentPixelFormat = .depth32Float
+
+        // Depth only: no fragment function, nothing written to the light.
+        let occluders = MTLRenderPipelineDescriptor()
+        occluders.vertexFunction = library.makeFunction(name: "occluderVertex")
+        occluders.colorAttachments[0].pixelFormat = .rgba16Float
+        occluders.colorAttachments[0].writeMask = []
+        occluders.depthAttachmentPixelFormat = .depth32Float
+
+        let hiding = MTLDepthStencilDescriptor()
+        hiding.depthCompareFunction = .less
+        hiding.isDepthWriteEnabled = true
+        let hidden = MTLDepthStencilDescriptor()
+        hidden.depthCompareFunction = .lessEqual
+        hidden.isDepthWriteEnabled = false
 
         let composite = MTLRenderPipelineDescriptor()
         composite.vertexFunction = library.makeFunction(name: "fullscreenVertex")
@@ -79,13 +103,28 @@ public final class HoloRenderer: @unchecked Sendable {
         composite.colorAttachments[0].pixelFormat = pixelFormat
 
         guard let pointPipeline = try? device.makeRenderPipelineState(descriptor: points),
+            let occluderPipeline = try? device.makeRenderPipelineState(descriptor: occluders),
             let compositePipeline = try? device.makeRenderPipelineState(descriptor: composite),
+            let hidingState = device.makeDepthStencilState(descriptor: hiding),
+            let hiddenState = device.makeDepthStencilState(descriptor: hidden),
             let pointBuffer = device.makeBuffer(
                 length: MemoryLayout<GPUPoint>.stride * max(model.pointCount, 1), options: .storageModeShared)
         else { return nil }
         self.pointPipeline = pointPipeline
+        self.occluderPipeline = occluderPipeline
         self.compositePipeline = compositePipeline
+        self.hiding = hidingState
+        self.hidden = hiddenState
         self.pointBuffer = pointBuffer
+        occluderBuffer = Self.occluderBuffer(model, device: device)
+    }
+
+    private static func occluderBuffer(_ model: HeadModel, device: MTLDevice) -> MTLBuffer? {
+        let indices = model.occluders
+        guard !indices.isEmpty else { return nil }
+        return indices.withUnsafeBytes {
+            device.makeBuffer(bytes: $0.baseAddress!, length: $0.count, options: .storageModeShared)
+        }
     }
 
     private func reserve(points: Int) {
@@ -109,8 +148,13 @@ public final class HoloRenderer: @unchecked Sendable {
             descriptor.usage = [.renderTarget, .shaderRead]
             descriptor.storageMode = .private
             scene = device.makeTexture(descriptor: descriptor)
+            let depthDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+                pixelFormat: .depth32Float, width: width, height: height, mipmapped: false)
+            depthDescriptor.usage = [.renderTarget]
+            depthDescriptor.storageMode = .private
+            depth = device.makeTexture(descriptor: depthDescriptor)
         }
-        guard let scene else { return }
+        guard let scene, let depth else { return }
 
         let shaped = model.shape(pose, time: time)
         let normals = model.normals
@@ -132,10 +176,22 @@ public final class HoloRenderer: @unchecked Sendable {
         light.colorAttachments[0].loadAction = .clear
         light.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         light.colorAttachments[0].storeAction = .store
+        light.depthAttachment.texture = depth
+        light.depthAttachment.loadAction = .clear
+        light.depthAttachment.clearDepth = 1
+        light.depthAttachment.storeAction = .dontCare
         if let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: light) {
-            encoder.setRenderPipelineState(pointPipeline)
             encoder.setVertexBuffer(pointBuffer, offset: 0, index: 0)
             encoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
+            if let occluderBuffer {
+                encoder.setRenderPipelineState(occluderPipeline)
+                encoder.setDepthStencilState(hiding)
+                encoder.drawIndexedPrimitives(
+                    type: .triangle, indexCount: occluderBuffer.length / MemoryLayout<UInt32>.stride,
+                    indexType: .uint32, indexBuffer: occluderBuffer, indexBufferOffset: 0)
+            }
+            encoder.setRenderPipelineState(pointPipeline)
+            encoder.setDepthStencilState(hidden)
             encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
             encoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: shaped.count)
             encoder.endEncoding()
