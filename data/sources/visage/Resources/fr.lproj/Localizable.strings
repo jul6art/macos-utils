@@ -1,0 +1,50 @@
+/* Visage, en français. Les clés sont les textes anglais. */
+
+/* Se connecter à mon IA */
+"Connect my AI" = "Se connecter à mon IA";
+"Connect my AI…" = "Se connecter à mon IA…";
+"Visage gives a face to the voice of the AI app you already use. It only hears that app's sound, and nothing leaves your Mac." = "Visage donne un visage à la voix de l'IA que vous utilisez déjà. Il n'entend que le son de cette app, et rien ne quitte votre Mac.";
+"Another app" = "Une autre app";
+"Connect" = "Se connecter";
+"Reconnect" = "Se reconnecter";
+"Download" = "Télécharger";
+"Connected" = "Connecté";
+"Open" = "Ouverte";
+"Installed" = "Installée";
+"Not installed" = "Non installée";
+"Pick the app you talk to." = "Choisissez l'app à laquelle vous parlez.";
+"%@ is not installed on this Mac." = "%@ n'est pas installée sur ce Mac.";
+"Connecting…" = "Connexion…";
+"macOS asks whether Visage may record system audio: allow it." = "macOS demande si Visage peut enregistrer l'audio du système : autorisez-le.";
+"Visage cannot hear %@ yet. Allow it in System Settings, under Privacy & Security, Screen & System Audio Recording." = "Visage n'entend pas encore %@. Autorisez-le dans Réglages Système, sous Confidentialité et sécurité, Enregistrement de l'écran et de l'audio du système.";
+"Open System Settings" = "Ouvrir Réglages Système";
+"Start voice mode in %@: Visage connects as soon as it speaks." = "Lancez le mode vocal dans %@ : Visage se connecte dès qu'il parle.";
+"Connected to %@. Start voice mode and talk." = "Connecté à %@. Lancez le mode vocal et parlez.";
+"Show the face" = "Afficher le visage";
+"The connection failed: %@" = "La connexion a échoué : %@";
+
+/* Le visage et le menu */
+"Listening to %@" = "À l'écoute de %@";
+"Waiting for permission" = "En attente d'autorisation";
+"Waiting for %@" = "En attente de %@";
+"Not connected" = "Non connecté";
+"Connected to %@" = "Connecté à %@";
+"%@ is not installed" = "%@ n'est pas installée";
+"Connection failed" = "Connexion échouée";
+"Disconnect" = "Se déconnecter";
+"Window" = "Fenêtre";
+"Settings…" = "Réglages…";
+"Quit Visage" = "Quitter Visage";
+"Transparent" = "Transparente";
+"Floating" = "Flottante";
+"Classic" = "Classique";
+
+/* Réglages */
+"Sync" = "Synchro";
+"Delay" = "Retard";
+"How long the voice waits for the face to read ahead. Unnoticeable in a conversation." = "Le temps que la voix attend, pour que le visage lise en avance. Imperceptible dans une conversation.";
+"Anticipation" = "Anticipation";
+"How early the lips move before the sound, as in a real face." = "L'avance des lèvres sur le son, comme sur un vrai visage.";
+"Lip offset" = "Décalage des lèvres";
+"For Bluetooth headphones, which play the sound later than the speakers." = "Pour les écouteurs Bluetooth, qui jouent le son plus tard que les haut-parleurs.";
+"%lld ms" = "%lld ms";
