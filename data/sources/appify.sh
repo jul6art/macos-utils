@@ -13,7 +13,7 @@ set -euo pipefail
 APPNAME=${2:-$(basename "${1}" '.sh')};
 DIR="${APPNAME}.app/Contents/MacOS";
 
-if [ -a "${APPNAME}.app" ]; then
+if [ -e "${APPNAME}.app" ]; then
 	echo "${PWD}/${APPNAME}.app already exists :(";
 	exit 1;
 fi;
