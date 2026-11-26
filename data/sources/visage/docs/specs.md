@@ -154,6 +154,8 @@ change pas.
 À chaque image, l'animation produit **les 52 poids ARKit**, la **pose de la tête** (trois rotations) et le
 **regard** (rotation des yeux).
 
+### 7.1 Quand il parle
+
 1. **Anticipation** : la forme de la bouche à l'instant *t* vient de l'analyse de *t* + 60 ms (réglable).
    Les lèvres se forment avant le son, jamais après.
 2. **Mâchoire et lèvres séparées** : la mâchoire suit l'énergie et F1 ; les lèvres suivent F2, F3, les
@@ -165,12 +167,7 @@ change pas.
 5. **La voix anime tout le visage** : une intonation qui monte lève les sourcils ; une syllabe accentuée
    (pic d'énergie et de F0) donne un petit hochement ; en fin de phrase, la tête se pose et un clignement
    devient probable.
-6. **Quatre états** :
-   - *attente* : respiration de 12 à 16 par minute, clignements aléatoires toutes les 2 à 6 s,
-     micro-saccades, lente dérive de la tête ;
-   - *écoute* (micro actif) : regard posé, hochements aux pauses ;
-   - *réflexion* (entre ta fin de phrase et sa réponse) : le regard s'écarte, les sourcils bougent ;
-   - *parole*.
+6. **Quatre états** : *parole* (ce § 7.1), *écoute*, *réflexion* et *attente*, détaillés au § 7.2.
 7. **Regard** : vers la caméra par défaut. En option, Vision détecte ton visage dans l'image de la caméra,
    et le regard puis la tête te suivent. Rien n'est enregistré.
 8. **Jamais mécanique** : du bruit cohérent (simplex) tiré au hasard à chaque lancement. Deux clignements
@@ -179,6 +176,53 @@ change pas.
    où l'image sera **affichée**. Ce moment est l'heure d'affichage (le `CADisplayLink` de macOS 14), plus
    la latence de sortie du périphérique (Core Audio), plus un réglage **« décalage lèvres »** de ±200 ms,
    utile pour des écouteurs Bluetooth.
+
+### 7.2 Au repos : vivant, même quand il ne parle pas
+
+Un visage figé trahit la machine tout de suite. Au repos, Visage reste vivant, sur trois plans qui se
+superposent : le visage, le moment de la conversation, et l'hologramme. Tout est tiré au hasard (bruit
+cohérent, intervalles aléatoires), pour que rien ne se répète.
+
+**Le visage**
+
+| Mouvement | Rythme | Détail |
+|---|---|---|
+| Respiration | 12 à 16 par minute | la tête monte et descend à peine, les narines s'ouvrent un peu |
+| Clignements | toutes les 2 à 6 s | 100 à 150 ms ; parfois doubles ; plus fréquents juste après une phrase |
+| Micro-saccades | toutes les 0,5 à 2 s | de très petits sauts du regard, qui empêchent l'œil d'avoir l'air peint |
+| Regard qui s'en va | toutes les 5 à 15 s | il se pose ailleurs une ou deux secondes, puis revient vers toi (ou vers la caméra) |
+| Dérive de la tête | en continu | lente, de quelques degrés, jamais périodique |
+| Micro-expressions | toutes les 20 à 60 s | un début de sourire, un sourcil qui bouge, des lèvres pincées ; jamais deux à la fois |
+
+**Le moment de la conversation**
+
+- *écoute* (ton micro est actif) : le regard reste posé sur toi, la tête hoche aux pauses de ta phrase,
+  les sourcils suivent ton intonation ;
+- *réflexion* (entre ta fin de phrase et sa réponse) : le regard monte ou s'écarte, la tête s'incline
+  légèrement, les lèvres se pincent ;
+- *attente* (personne ne parle) : les mouvements du tableau, seuls.
+
+**L'hologramme**
+
+- une lueur plus basse qu'en parole (environ −30 %), un scintillement lent ;
+- les lignes de balayage défilent toujours, mais la bande de balayage ne passe plus que toutes les 6 à
+  12 s ;
+- des poussières flottent dans le faisceau du projecteur ;
+- un glitch très rare, au plus une fois par minute ;
+- en rendu en demi-teintes, la lumière qui tombe sur le visage tourne très lentement : la trame respire.
+
+**Les passages**
+
+- *repos → parole* : la bouche s'entrouvre avant le premier son (anticipation, § 7.1), la lueur monte en
+  150 ms ;
+- *parole → repos* : retour en 300 à 500 ms, la bouche se ferme, un clignement devient probable ;
+- *veille* : après 5 minutes sans voix (réglable), les paupières s'alourdissent, la lumière baisse, et le
+  visage se défait en poussière jusqu'à un nuage de points qui respire. Il se reforme dès que la voix
+  revient, ou quand la souris le survole ;
+- *signal perdu* (l'app IA est fermée, ou la capture est tombée) : le visage se fige en un nuage de points
+  éteint, et l'icône de la barre des menus le signale.
+
+**Économie** : 30 images par seconde au repos, 15 en veille, aucun rendu quand la fenêtre est cachée.
 
 ## 8. Visages et rendu hologramme
 
@@ -394,7 +438,8 @@ reste du temps, comme sur les autres dépôts.
    mesure en filmant l'écran au ralenti (240 images par seconde) avec le téléphone.
 2. **Fermetures** : les lèvres se ferment sur au moins 90 % des « b », « p » et « m » des extraits de
    référence.
-3. **Jamais figé** : aucun intervalle de plus d'une seconde sans mouvement du visage, attente comprise.
+3. **Jamais figé** : aucun intervalle de plus d'une seconde sans mouvement du visage, attente comprise ; et
+   sur deux minutes de repos filmées, on ne repère aucune répétition.
 4. **Test à l'aveugle** : sur 10 extraits, on juge « on y croit » sur au moins 8.
 5. **Budgets** (MacBook Apple Silicon) : capture et analyse sous 10 % d'un cœur, une image sous 4 ms de
    GPU, moins de 250 Mo de mémoire, aucun craquement audio en une heure.
