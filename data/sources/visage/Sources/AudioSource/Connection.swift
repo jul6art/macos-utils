@@ -27,6 +27,11 @@ public final class Connection {
     public private(set) var state: State = .idle
     public private(set) var app: AIApp?
     public private(set) var capture: AudioCapture?
+    /// Whether the app has its microphone open: its voice mode, or its dictation, listens (spec, § 7.2).
+    /// Read four times a second; Core Audio tells it with no permission, never what the microphone hears.
+    public private(set) var appListening = false
+    /// Called when `appListening` changes.
+    @ObservationIgnored public var onListeningChange: ((Bool) -> Void)?
     public var delayMilliseconds: Int {
         didSet { capture?.setDelay(milliseconds: delayMilliseconds) }
     }
@@ -47,6 +52,9 @@ public final class Connection {
     /// Bundle mode: the bundle IDs given to Core Audio, which follows exactly those.
     @ObservationIgnored private var tappedBundleIDs: Set<String> = []
     @ObservationIgnored private var watchdog: Timer?
+    @ObservationIgnored private var listeningWatch: Timer?
+    /// The app's audio processes, as last seen.
+    @ObservationIgnored private var appProcesses: [AudioObjectID] = []
     /// How long the app has been playing, in watchdog ticks (seconds), while the capture listens.
     @ObservationIgnored private var playingSeconds = 0.0
     /// The capture's callbacks at the last tick, how long they have not moved while the app plays, and how
@@ -78,6 +86,9 @@ public final class Connection {
         watchdog = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             MainActor.assumeIsolated { self.watch() }
         }
+        listeningWatch = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { _ in
+            MainActor.assumeIsolated { self.watchListening() }
+        }
         // After sleep, the aggregate device may be gone: start again.
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
@@ -91,6 +102,10 @@ public final class Connection {
         generation += 1
         watchdog?.invalidate()
         watchdog = nil
+        listeningWatch?.invalidate()
+        listeningWatch = nil
+        appProcesses = []
+        setListening(false)
         if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }
         wakeObserver = nil
         unwatchOutputDevice()
@@ -108,6 +123,7 @@ public final class Connection {
     private func start(bundleID: String) {
         stopCapture()
         let processes = AudioProcesses.matching(bundleID, in: AudioProcesses.all())
+        appProcesses = processes.map(\.objectID)
         var target = CaptureTarget()
         if usesBundleMode, bundleID.contains(".") {
             target.bundleIDs = Array(Set(processes.map(\.bundleID).filter { !$0.isEmpty } + [bundleID])).sorted()
@@ -206,11 +222,12 @@ public final class Connection {
 
     private func watch() {
         guard let app, let bundleID = app.installation?.bundleID ?? app.bundleIDs.first else { return }
+        let processes = AudioProcesses.matching(bundleID, in: AudioProcesses.all())
+        appProcesses = processes.map(\.objectID)
         switch state {
         case .waitingForApp:
             start(bundleID: bundleID)
         case .connected, .permissionMissing:
-            let processes = AudioProcesses.matching(bundleID, in: AudioProcesses.all())
             if usesBundleMode, bundleID.contains(".") {
                 // Bundle mode: a helper whose bundle ID the tap was not given (Claude's audio service, when
                 // it first plays or listens after the connection).
@@ -252,6 +269,16 @@ public final class Connection {
         default:
             break
         }
+    }
+
+    private func watchListening() {
+        setListening(appProcesses.contains(where: AudioProcesses.isRunningInput))
+    }
+
+    private func setListening(_ listening: Bool) {
+        guard listening != appListening else { return }
+        appListening = listening
+        onListeningChange?(listening)
     }
 
     private func watchOutputDevice() {
