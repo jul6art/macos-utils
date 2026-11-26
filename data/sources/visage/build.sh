@@ -97,6 +97,8 @@ cp "${OUT}/${APPNAME}" "${APP_DIR}/Contents/MacOS/${APPNAME}";
 cp "${SRC_DIR}/Info.plist" "${APP_DIR}/Contents/Info.plist";
 printf 'APPL????' > "${APP_DIR}/Contents/PkgInfo";
 cp -R "${SRC_DIR}"/Resources/*.lproj "${APP_DIR}/Contents/Resources/";
+# The faces, built by tools/faces: one .glb each, and their list.
+cp -R "${SRC_DIR}/Resources/Faces" "${APP_DIR}/Contents/Resources/Faces";
 
 echo "==> Icon";
 # Drawn by code from the brand's geometry (docs/charte.md, § 2): the repository holds no bitmap.

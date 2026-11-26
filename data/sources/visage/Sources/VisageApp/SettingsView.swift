@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The settings (spec, § 9.2). The face, the hologram's layers and the camera arrive with their lots.
+/// The settings (spec, § 9.2). The hologram's layers and the camera arrive with their lots.
 struct SettingsView: View {
     let model: AppModel
 
@@ -9,6 +9,7 @@ struct SettingsView: View {
             Picker("Window", selection: Binding(get: { model.windowMode }, set: { model.windowMode = $0 })) {
                 ForEach(WindowMode.allCases) { Text($0.title).tag($0) }
             }
+            FacePicker(model: model)
 
             Section {
                 MillisecondsSlider(

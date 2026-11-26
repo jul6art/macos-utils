@@ -21,7 +21,7 @@ final class FaceDriver: NSObject, MTKViewDelegate {
 
     init(model: AppModel) {
         self.model = model
-        renderer = HoloRenderer()
+        renderer = HoloRenderer(model: FaceLibrary.model(id: model.faceID))
     }
 
     nonisolated func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
