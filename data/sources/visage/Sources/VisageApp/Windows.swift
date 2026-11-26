@@ -26,7 +26,7 @@ final class FaceWindowController {
     func apply(_ mode: WindowMode) {
         let frame = window.frame
         switch mode {
-        case .transparent, .floating:
+        case .floating:
             window.styleMask = [.borderless, .resizable]
             window.isOpaque = false
             window.backgroundColor = .clear
@@ -67,8 +67,58 @@ final class ConnectWindowController {
     }
 
     func show() {
+        Foreground.show(window)
+    }
+}
+
+/// The settings (spec, § 9.2), in a window of Visage's own rather than SwiftUI's settings scene: shown in
+/// front, as the others are.
+@MainActor
+final class SettingsWindowController {
+    private let window: NSWindow
+
+    init(model: AppModel) {
+        window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 460, height: 660),
+            styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        window.title = String(localized: "Settings")
+        window.contentView = NSHostingView(rootView: SettingsView(model: model).frame(height: 660))
+        window.isReleasedWhenClosed = false
+        window.center()
+    }
+
+    func show() {
+        Foreground.show(window)
+    }
+}
+
+/// Visage lives in the menu bar, without a Dock icon: macOS never brings such an app forward, and its
+/// windows opened behind the others' (the settings, the connection). While one of its own windows is
+/// open, it becomes an ordinary app, in front, with a Dock icon; it returns to the menu bar when the last
+/// one closes. The face's window is not one of them: it floats on its own.
+@MainActor
+enum Foreground {
+    private static var observers: [ObjectIdentifier: NSObjectProtocol] = [:]
+
+    static func show(_ window: NSWindow) {
+        let id = ObjectIdentifier(window)
+        if observers[id] == nil {
+            observers[id] = NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification, object: window, queue: .main
+            ) { _ in
+                MainActor.assumeIsolated { closed(id) }
+            }
+        }
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
+    }
+
+    private static func closed(_ id: ObjectIdentifier) {
+        if let observer = observers.removeValue(forKey: id) {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if observers.isEmpty { NSApp.setActivationPolicy(.accessory) }
     }
 }
 

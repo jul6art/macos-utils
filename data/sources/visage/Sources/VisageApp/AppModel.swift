@@ -52,6 +52,7 @@ final class AppModel {
     @ObservationIgnored private let defaults = UserDefaults.standard
     @ObservationIgnored private lazy var faceWindow = FaceWindowController(model: self)
     @ObservationIgnored private lazy var connectWindow = ConnectWindowController(model: self)
+    @ObservationIgnored private lazy var settingsWindow = SettingsWindowController(model: self)
     @ObservationIgnored lazy var faceDriver = FaceDriver(model: self)
 
     private enum Key {
@@ -67,7 +68,7 @@ final class AppModel {
     init() {
         let defaults = UserDefaults.standard
         defaults.register(defaults: [Key.delay: 150, Key.anticipation: 60, Key.extraLatency: 0])
-        windowMode = WindowMode(rawValue: defaults.string(forKey: Key.windowMode) ?? "") ?? .transparent
+        windowMode = WindowMode(rawValue: defaults.string(forKey: Key.windowMode) ?? "") ?? .floating
         delayMilliseconds = defaults.integer(forKey: Key.delay)
         anticipationMilliseconds = defaults.integer(forKey: Key.anticipation)
         extraLatencyMilliseconds = defaults.integer(forKey: Key.extraLatency)
@@ -106,6 +107,10 @@ final class AppModel {
         faceWindow.show()
     }
 
+    func showSettings() {
+        settingsWindow.show()
+    }
+
     func loadThumbnails() async {
         guard thumbnails.isEmpty else { return }
         thumbnails = await FaceLibrary.thumbnails()
@@ -135,11 +140,11 @@ final class AppModel {
     }
 }
 
-/// How the face's window sits on the desktop (spec, § 9.1).
+/// How the face's window sits on the desktop (spec, § 9.1). Two modes since the first test with Claude
+/// (2026-11-26): a third, transparent among the other windows, let the face vanish behind Claude as soon
+/// as Claude was clicked. A setting saved with it reads as `floating`.
 enum WindowMode: String, CaseIterable, Identifiable {
-    /// No frame, no background: the face floats on the desktop.
-    case transparent
-    /// Transparent, above every window, on every desktop.
+    /// No frame, no background, above every window, on every desktop: always in sight.
     case floating
     /// A plain window with a title bar and a dark background: screen sharing, recording.
     case classic
@@ -148,7 +153,6 @@ enum WindowMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .transparent: String(localized: "Transparent")
         case .floating: String(localized: "Floating")
         case .classic: String(localized: "Classic")
         }

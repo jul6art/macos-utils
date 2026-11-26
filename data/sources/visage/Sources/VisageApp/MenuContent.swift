@@ -23,10 +23,8 @@ struct MenuContent: View {
         }
         FacePicker(model: model)
         Divider()
-        SettingsLink {
-            Text("Settings…")
-        }
-        .keyboardShortcut(",")
+        Button("Settings…") { model.showSettings() }
+            .keyboardShortcut(",")
         Button("Quit Visage") { NSApp.terminate(nil) }
             .keyboardShortcut("q")
     }
