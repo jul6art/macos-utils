@@ -528,6 +528,18 @@ reste du temps, comme sur les autres dépôts.
 | **7 — Publication** | `data/doc/VISAGE.md` en anglais, avec les vidéos du mode fichier ; une ligne dans le tableau du README de `macos-utils`, et ses prérequis. | Le cadeau est en ligne. |
 | Option | Phonèmes en Core ML (V2) ; téléphone comme écran déporté (pyramide hologramme) ; autres apps. | — |
 
+**Avancement au 2026-11-26** :
+
+- **Lot 0** : capture et relecture retardée validées ; restent les mesures qui demandent le son du Mac,
+  deux autorisations et Claude Desktop (pilote, § 4).
+- **Lot 1** fait : l'app se construit sans Xcode, se branche, se rebranche (SwiftPM écarté, § 10.2).
+- **Lot 2** fait : l'analyse, mesurée sur trois voix françaises (§ 6.1).
+- **Lot 3** fait pour la tête en points de la charte : Metal, couches de l'hologramme, rendu vidéo hors
+  ligne (`Visage --render`), visage en direct dans sa fenêtre. Les visages MakeHuman attendent le lot 5.
+- **Lot 4** fait : bouche, prosodie, repos (§ 7) ; jamais immobile plus d'une seconde (critère 3, testé).
+- **Lot 5** attend Blender, MPFB2 et les packs d'éléments de MakeHuman : trois téléchargements à valider.
+- **Lots 6 et 7** à venir : caméra, réglages complets, robustesse ; doc et publication.
+
 ## 14. Hors périmètre
 
 - **iPhone et iPad en autonome** : aucune app ne peut capter et couper le son d'une autre. Windows et Linux

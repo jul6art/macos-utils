@@ -106,3 +106,14 @@ Puis, à l'oreille et à l'œil, en parlant à Claude en haut-parleurs pendant u
 - **R1, l'écho** : Claude s'interrompt-il tout seul ?
 - **La synchro** : avec D = 150 ms et 40 ms d'anticipation, la bouche part-elle avec le son, ou un peu
   avant ? Comparer avec D = 0 (la bouche doit paraître en retard).
+
+Puis l'app elle-même, qui a avancé entre-temps (lots 1 à 4) :
+
+```shell
+sh data/sources/visage/build.sh && open data/sources/visage/build/Visage.app
+```
+
+« Se connecter à mon IA » → Claude → autoriser l'audio du système → mode vocal : le visage en points doit
+parler avec la voix de Claude. Le même soir, `Visage --analyse` sur un enregistrement de la voix de Claude
+(dans un fichier, sans le jouer) dira si les réglages faits sur les voix de macOS lui conviennent
+(spécification, § 6.1).
