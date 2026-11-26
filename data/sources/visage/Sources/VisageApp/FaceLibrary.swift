@@ -1,3 +1,4 @@
+import FaceAnimation
 import Foundation
 import HoloRenderer
 import SwiftUI
@@ -21,6 +22,9 @@ enum FaceLibrary {
         return (try? JSONDecoder().decode([Entry].self, from: data)) ?? []
     }()
 
+    /// What can be chosen: the faces, then the point head.
+    static var choices: [Entry] { faces + [Entry(id: points, name: String(localized: "Points (logo)"))] }
+
     /// The face's model; the point head when the face is unknown or its file unreadable.
     static func model(id: String) -> HeadModel {
         guard id != points, let url = directory?.appending(path: "\(id).glb"), let head = try? MeshHead(url: url) else {
@@ -28,16 +32,85 @@ enum FaceLibrary {
         }
         return head
     }
+
+    /// A head at rest on charbon, as `renderer` draws it: the thumbnails and the snapshots' sheet.
+    static func portrait(_ head: HeadModel, renderer: HoloRenderer, width: Int, height: Int, seed: UInt32)
+        -> CGImage?
+    {
+        renderer.model = head
+        let animator = FaceAnimator(seed: seed)
+        var pose = FacePose()
+        for _ in 0..<90 { pose = animator.update(dt: 1.0 / 60, voice: nil, moment: .waiting) }
+        var settings = HoloSettings()
+        settings.background = HoloSettings.charbon
+        return renderer.image(pose: pose, time: 1.5, settings: settings, width: width, height: height)
+    }
+
+    /// Every choice's thumbnail, made off the main thread: reading ten faces takes a moment.
+    static func thumbnails() async -> [String: CGImage] {
+        let ids = choices.map(\.id)
+        return await Task.detached(priority: .utility) { makeThumbnails(ids) }.value
+    }
+
+    static func makeThumbnails(_ ids: [String]) -> [String: CGImage] {
+        guard let renderer = HoloRenderer() else { return [:] }
+        var images: [String: CGImage] = [:]
+        for (index, id) in ids.enumerated() {
+            images[id] = portrait(model(id: id), renderer: renderer, width: 144, height: 180, seed: UInt32(index + 1))
+        }
+        return images
+    }
 }
 
-/// Which face: the menu's and the settings' picker.
+/// Which face, in the menu: a list of names.
 struct FacePicker: View {
     let model: AppModel
 
     var body: some View {
         Picker("Face", selection: Binding(get: { model.faceID }, set: { model.faceID = $0 })) {
-            ForEach(FaceLibrary.faces) { Text($0.name).tag($0.id) }
-            Text("Points (logo)").tag(FaceLibrary.points)
+            ForEach(FaceLibrary.choices) { Text($0.name).tag($0.id) }
+        }
+    }
+}
+
+/// Which face, in the settings: the faces themselves, at rest, five to a row (spec, § 8.1).
+struct FaceGrid: View {
+    let model: AppModel
+
+    private let columns = Array(repeating: GridItem(.fixed(72), spacing: 10), count: 5)
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
+            ForEach(FaceLibrary.choices) { choice in
+                let chosen = model.faceID == choice.id
+                Button {
+                    model.faceID = choice.id
+                } label: {
+                    VStack(spacing: 4) {
+                        thumbnail(choice.id)
+                            .frame(width: 72, height: 90)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6).stroke(chosen ? Palette.braise : .clear, lineWidth: 2)
+                            )
+                        Text(choice.name).font(.caption).lineLimit(1)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(choice.name)
+                .accessibilityAddTraits(chosen ? .isSelected : [])
+            }
+        }
+        .padding(.vertical, 4)
+        .task { await model.loadThumbnails() }
+    }
+
+    @ViewBuilder
+    private func thumbnail(_ id: String) -> some View {
+        if let image = model.thumbnails[id] {
+            Image(decorative: image, scale: 2)
+        } else {
+            Color(nsColor: Palette.charbon).overlay(ProgressView().controlSize(.small))
         }
     }
 }

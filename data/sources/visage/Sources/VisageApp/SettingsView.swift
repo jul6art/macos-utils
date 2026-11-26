@@ -9,7 +9,11 @@ struct SettingsView: View {
             Picker("Window", selection: Binding(get: { model.windowMode }, set: { model.windowMode = $0 })) {
                 ForEach(WindowMode.allCases) { Text($0.title).tag($0) }
             }
-            FacePicker(model: model)
+            Section {
+                FaceGrid(model: model)
+            } header: {
+                Text("Face")
+            }
 
             Section {
                 MillisecondsSlider(
