@@ -31,6 +31,9 @@ struct SettingsView: View {
                         BrandCard(title: String(localized: "Hologram")) {
                             HologramSettings(model: model)
                         }
+                        BrandCard(title: String(localized: "Conversation")) {
+                            ConversationSettings(model: model)
+                        }
                         BrandCard(title: String(localized: "Camera")) {
                             CameraSettings(model: model)
                         }

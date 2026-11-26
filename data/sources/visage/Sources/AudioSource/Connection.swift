@@ -31,7 +31,7 @@ public final class Connection {
     /// Read four times a second; Core Audio tells it with no permission, never what the microphone hears.
     public private(set) var appListening = false
     /// Called when `appListening` changes.
-    @ObservationIgnored public var onListeningChange: ((Bool) -> Void)?
+    @ObservationIgnored public var onListeningChange: (@MainActor (Bool) -> Void)?
     public var delayMilliseconds: Int {
         didSet { capture?.setDelay(milliseconds: delayMilliseconds) }
     }

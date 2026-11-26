@@ -84,6 +84,17 @@ enum Snapshots {
         {
             failures += 1
         }
+        // The conversation's card, below the fold too: no AI connected in a snapshot.
+        let conversation = BrandCard(title: String(localized: "Conversation")) { ConversationSettings(model: model) }
+            .padding(20).frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(nsColor: Palette.charbon)).foregroundStyle(Palette.orPale)
+            .tint(Palette.braise)
+        if !write(
+            conversation, size: NSSize(width: 560, height: 260),
+            to: directory.appending(path: "settings-conversation.png"), dark: true)
+        {
+            failures += 1
+        }
         // The first launch's welcome, its AI not chosen yet.
         if !write(
             WelcomeView(model: model), size: NSSize(width: 860, height: 820),

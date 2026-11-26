@@ -1,3 +1,4 @@
 /* macOS's permission prompts, in French. */
 "NSAudioCaptureUsageDescription" = "Visage entend le son de votre IA pour le rejouer en phase avec le visage qu'il anime. Rien n'est enregistré ni envoyé nulle part.";
+"NSMicrophoneUsageDescription" = "Avec l'option micro, Visage lit le niveau de votre voix pendant que votre IA vous écoute, pour que le visage hoche la tête à vos pauses et réfléchisse quand vous avez fini. Rien n'est enregistré ni envoyé nulle part.";
 "NSCameraUsageDescription" = "Avec l'option caméra, Visage repère où est votre visage, pour que son regard vous suive et que sa tête prenne du relief. Les images sont lues sur votre Mac, jamais enregistrées ni envoyées.";

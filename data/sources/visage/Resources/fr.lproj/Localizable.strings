@@ -52,6 +52,14 @@
 "The fine lines and the band that sweeps down the face." = "Les lignes fines, et la bande qui balaie le visage.";
 "Plinth and beam" = "Socle et faisceau";
 "Flicker and glitches" = "Scintillement et glitchs";
+"Conversation" = "Conversation";
+"Hear me through the microphone" = "M'entendre avec le micro";
+"While your AI listens to you, Visage reads how loud your voice is, and nothing else: the face nods at your pauses and thinks once your sentence ends. The microphone opens only while your AI's is open; nothing is recorded or sent." = "Pendant que votre IA vous écoute, Visage lit le niveau de votre voix, et rien d'autre : le visage hoche la tête à vos pauses et réfléchit quand votre phrase est finie. Le micro ne s'ouvre que pendant que celui de votre IA l'est ; rien n'est enregistré ni envoyé.";
+"macOS refuses the microphone to Visage." = "macOS refuse le micro à Visage.";
+"This Mac has no microphone." = "Ce Mac n'a pas de micro.";
+"No AI connected." = "Aucune IA connectée.";
+"%@ is listening to you." = "%@ vous écoute.";
+"%@ is not listening: start its voice mode." = "%@ n'écoute pas : lancez son mode vocal.";
 "Camera" = "Caméra";
 "Follow me with the camera" = "Me suivre avec la caméra";
 "Its gaze rests on you and follows you, and its head turns a little as you move, as a real head behind the glass would. Images are read on your Mac, never recorded; the camera light stays on meanwhile." = "Son regard se pose sur vous et vous suit, et sa tête tourne un peu quand vous bougez, comme une vraie tête derrière la vitre. Les images sont lues sur votre Mac, jamais enregistrées ; le voyant de la caméra reste allumé pendant ce temps.";

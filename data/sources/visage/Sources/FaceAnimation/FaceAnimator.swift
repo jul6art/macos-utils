@@ -48,12 +48,16 @@ public final class FaceAnimator: @unchecked Sendable {
     private var nextExpression: Double
     private var expression: (shape: [FaceShape], start: Double, duration: Double, strength: Float)?
     private var nextListeningNod: Double = 0
+    /// The person's voice, with the microphone: how long they have spoken since the last pause, how long
+    /// they have been silent.
+    private var personSpoke: Double = 0
+    private var personSilent: Double = 0
 
     // The voice's recent past.
     private var lastLoudness: Float = 0
     private var averageLoudness: Float = 0
     private var pitchHistory: [Float] = []
-    private var nodUntil: Double = -1
+    private(set) var nodUntil: Double = -1
     private var lastVoiced: Double = -10
     private var phraseEnded = true
 
@@ -79,8 +83,18 @@ public final class FaceAnimator: @unchecked Sendable {
     /// the gaze rests on the camera.
     public var lookAt: SIMD2<Float>?
 
-    public func update(dt: Double, voice: VoiceFrame?, moment: ConversationMoment) -> FacePose {
+    /// `heard`: whether the person's voice is heard, with the microphone option (nil without): listening,
+    /// the head nods at their pauses rather than now and then.
+    public func update(dt: Double, voice: VoiceFrame?, moment: ConversationMoment, heard: Bool? = nil) -> FacePose {
         time += dt
+        if let heard {
+            if heard {
+                personSpoke += dt
+                personSilent = 0
+            } else {
+                personSilent += dt
+            }
+        }
         let dtf = Float(dt)
         let speaking = moment == .speaking && voice.map { $0.sound != .silence } == true
 
@@ -89,7 +103,7 @@ public final class FaceAnimator: @unchecked Sendable {
         // 2. The brows and the head, from the intonation; the end of a phrase.
         prosody(voice: speaking ? voice : nil, targets: &targets)
         // 3. The moment: listening, thinking.
-        momentTargets(moment, targets: &targets)
+        momentTargets(moment, heard: heard, targets: &targets)
         // 4. A rare micro-expression, never while speaking.
         microExpression(moment: moment, targets: &targets)
 
@@ -194,14 +208,23 @@ public final class FaceAnimator: @unchecked Sendable {
 
     // MARK: - Moments
 
-    private func momentTargets(_ moment: ConversationMoment, targets: inout [Int: Float]) {
+    private func momentTargets(_ moment: ConversationMoment, heard: Bool?, targets: inout [Int: Float]) {
         switch moment {
         case .thinking:
             targets[FaceShape.mouthPressLeft.rawValue] = max(targets[FaceShape.mouthPressLeft.rawValue] ?? 0, 0.18)
             targets[FaceShape.mouthPressRight.rawValue] = max(targets[FaceShape.mouthPressRight.rawValue] ?? 0, 0.18)
             targets[FaceShape.browInnerUp.rawValue] = max(targets[FaceShape.browInnerUp.rawValue] ?? 0, 0.15)
         case .listening:
-            if time >= nextListeningNod {
+            if heard != nil {
+                // At a pause in the person's sentence, often a small nod (§ 7.2); never while they speak.
+                if personSpoke >= 0.5, personSilent >= 0.2 {
+                    personSpoke = 0
+                    if time >= nextListeningNod, random.next() < 0.7 {
+                        nodUntil = time + 0.16
+                        nextListeningNod = time + 1.2
+                    }
+                }
+            } else if time >= nextListeningNod {
                 nodUntil = time + 0.16
                 nextListeningNod = time + 2.5 + random.next() * 2
             }
