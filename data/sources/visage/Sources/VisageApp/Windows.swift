@@ -111,7 +111,7 @@ final class SettingsWindowController {
 
     init(model: AppModel) {
         window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 720),
+            contentRect: NSRect(x: 0, y: 0, width: 860, height: 720),
             styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = String(localized: "Settings")
         window.contentView = NSHostingView(rootView: SettingsView(model: model))
@@ -132,7 +132,7 @@ final class WelcomeWindowController {
 
     init(model: AppModel) {
         window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 720, height: 820),
+            contentRect: NSRect(x: 0, y: 0, width: 860, height: 820),
             styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = String(localized: "Welcome to Visage")
         window.contentView = NSHostingView(rootView: WelcomeView(model: model))

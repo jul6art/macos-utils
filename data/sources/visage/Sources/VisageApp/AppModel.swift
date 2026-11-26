@@ -37,6 +37,7 @@ final class AppModel {
                 let model = await Task.detached { FaceLibrary.model(id: id) }.value
                 guard id == faceID else { return }
                 faceDriver.renderer?.fade(to: model)
+                previewDriver.renderer?.fade(to: model)
             }
         }
     }
@@ -70,6 +71,8 @@ final class AppModel {
     @ObservationIgnored private lazy var settingsWindow = SettingsWindowController(model: self)
     @ObservationIgnored private lazy var welcomeWindow = WelcomeWindowController(model: self)
     @ObservationIgnored lazy var faceDriver = FaceDriver(model: self)
+    /// The settings' and the welcome's preview: the same face, at rest.
+    @ObservationIgnored lazy var previewDriver = FaceDriver(model: self, preview: true)
 
     private enum Key {
         static let app = "app"

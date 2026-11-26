@@ -121,3 +121,20 @@ enum BrandWindow {
         window.styleMask.insert(.fullSizeContentView)
     }
 }
+
+/// The face as the settings make it, at rest, beside them: each choice shows at once.
+struct FacePreview: View {
+    let model: AppModel
+    var width: CGFloat = 260
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HoloView(driver: model.previewDriver)
+                .frame(width: width, height: width * 1.25)
+                .background(Color(nsColor: Palette.charbon))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Palette.brou))
+            Text("Preview").font(.caption).foregroundStyle(Palette.cendreClaire)
+        }
+    }
+}
