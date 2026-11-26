@@ -1,0 +1,3 @@
+/* macOS's permission prompts. */
+"NSAudioCaptureUsageDescription" = "Visage hears the sound of your AI app to play it back in sync with the face it animates. Nothing is recorded or sent anywhere.";
+"NSCameraUsageDescription" = "With the camera option, Visage finds where your face is so that its gaze follows you and its head gains depth. Images are read on your Mac, never recorded or sent anywhere.";

@@ -31,6 +31,8 @@
 	<true/>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>Visage hears the sound of your AI app to play it back in sync with the face it animates. Nothing is recorded or sent anywhere.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>With the camera option, Visage finds where your face is so that its gaze follows you and its head gains depth. Images are read on your Mac, never recorded or sent anywhere.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 jul6art — MIT</string>
 </dict>

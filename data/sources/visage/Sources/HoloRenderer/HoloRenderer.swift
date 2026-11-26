@@ -20,6 +20,9 @@ public struct HoloSettings: Sendable {
     public var halo: Float = 1
     public var scanlines: Float = 1
     public var glitches = true
+    /// Where the viewer stands, seen from the screen (x right, y up, −1 to 1): the head turns as an object
+    /// behind the glass would, showing the side they move to (§ 8.2, point 7, the parallax).
+    public var viewer = SIMD2<Float>.zero
 
     public init() {}
 
@@ -325,7 +328,7 @@ public final class HoloRenderer: @unchecked Sendable {
 
         var uniforms = Uniforms(
             viewProjection: Self.viewProjection(aspect: Float(width) / Float(height)),
-            model: Self.model(head: pose.head), colour: SIMD4(settings.colour, 1),
+            model: Self.model(head: pose.head, viewer: settings.viewer), colour: SIMD4(settings.colour, 1),
             viewport: SIMD2(Float(width), Float(height)), time: Float(time), glow: pose.glow,
             flicker: settings.glitches ? Self.flicker(time) : 1,
             pointScale: Float(height) * 0.0062 * model.pointScale,
@@ -454,10 +457,15 @@ public final class HoloRenderer: @unchecked Sendable {
     }
 
     /// The head's rotation, about the top of the neck.
-    private static func model(head: SIMD3<Float>) -> simd_float4x4 {
+    private static func model(head: SIMD3<Float>, viewer: SIMD2<Float> = .zero) -> simd_float4x4 {
         let pivot = SIMD3<Float>(0, -0.4, 0)
+        // A viewer moving to the right sees more of the head's side on that side, as with a real head
+        // behind the glass: the head turns, by up to 13° sideways and 7° up or down.
+        let parallax =
+            simd_quatf(angle: viewer.y * 0.12, axis: SIMD3(1, 0, 0))
+            * simd_quatf(angle: -viewer.x * 0.22, axis: SIMD3(0, 1, 0))
         let rotation =
-            simd_quatf(angle: head.z, axis: SIMD3(0, 0, 1)) * simd_quatf(angle: head.y, axis: SIMD3(0, 1, 0))
+            parallax * simd_quatf(angle: head.z, axis: SIMD3(0, 0, 1)) * simd_quatf(angle: head.y, axis: SIMD3(0, 1, 0))
             * simd_quatf(angle: -head.x, axis: SIMD3(1, 0, 0))
         var model = simd_float4x4(rotation)
         let moved = pivot - rotation.act(pivot)

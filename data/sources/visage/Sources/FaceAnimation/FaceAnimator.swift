@@ -1,6 +1,7 @@
 import Foundation
 import Shared
 import VoiceAnalysis
+import simd
 
 /// Turns the voice into a face, one displayed frame at a time (spec, § 7).
 ///
@@ -73,6 +74,11 @@ public final class FaceAnimator: @unchecked Sendable {
     }
 
     /// Advances by `dt` seconds. `voice` is the frame read ahead (nil when nothing is captured).
+    /// Where the person stands, seen from the screen (x right, y up, each −1 to 1), when the camera finds
+    /// them (spec, § 7.1, point 7): the gaze rests there, and the head turns a little towards them. Nil:
+    /// the gaze rests on the camera.
+    public var lookAt: SIMD2<Float>?
+
     public func update(dt: Double, voice: VoiceFrame?, moment: ConversationMoment) -> FacePose {
         time += dt
         let dtf = Float(dt)
@@ -267,7 +273,7 @@ public final class FaceAnimator: @unchecked Sendable {
             glanceUntil = time + 1 + random.next()
             glance = SIMD2(Float(random.next() - 0.5) * 1.0, Float(random.next() - 0.5) * 0.6)
         }
-        var target = saccade
+        var target = Self.gazeTarget(for: lookAt) + saccade
         if time < glanceUntil { target += glance }
         if moment == .thinking { target += SIMD2(0.35, 0.45) }
         gazeX.update(towards: target.x, dt: dt)
@@ -278,6 +284,12 @@ public final class FaceAnimator: @unchecked Sendable {
         pose[.eyeLookUpRight] = max(0, gazeY.value) * 0.6
         pose[.eyeLookDownLeft] = max(0, -gazeY.value) * 0.6
         pose[.eyeLookDownRight] = max(0, -gazeY.value) * 0.6
+    }
+
+    /// The gaze's resting point for a person at `position`: their place, within the eyes' reach.
+    static func gazeTarget(for position: SIMD2<Float>?) -> SIMD2<Float> {
+        guard let position else { return .zero }
+        return simd_clamp(position, SIMD2(-1, -1), SIMD2(1, 1)) * SIMD2(0.8, 0.6)
     }
 
     private func head(moment: ConversationMoment, dt: Float) {
@@ -293,8 +305,10 @@ public final class FaceAnimator: @unchecked Sendable {
             }
             return Float(sum) * 0.018
         }
-        var pitch = drift(0) + breath * 0.006
-        var yaw = drift(1)
+        // The head turns a little towards the person, after the eyes (their followers are slower).
+        let toward = Self.gazeTarget(for: lookAt)
+        var pitch = drift(0) + breath * 0.006 + toward.y * 0.05
+        var yaw = drift(1) + toward.x * 0.08
         var roll = drift(2) * 0.6
         if time < nodUntil { pitch += 0.04 }
         if moment == .thinking {

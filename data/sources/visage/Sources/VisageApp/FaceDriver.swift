@@ -19,6 +19,8 @@ final class FaceDriver: NSObject, MTKViewDelegate {
     private let animator = FaceAnimator(seed: UInt32(truncatingIfNeeded: Int(Date().timeIntervalSince1970)))
     private weak var attached: AudioCapture?
     private var lastDraw: CFTimeInterval = 0
+    /// The viewer's place, eased between the camera's ten readings a second.
+    private var viewer = SIMD2<Float>.zero
     private let start = CACurrentMediaTime()
 
     init(model: AppModel, preview: Bool = false) {
@@ -60,6 +62,9 @@ final class FaceDriver: NSObject, MTKViewDelegate {
             }
         }
         let speaking = frame.map { $0.sound != .silence } == true
+        let seen = model.camera ? model.cameraTracker.position : nil
+        animator.lookAt = seen
+        viewer += ((seen ?? .zero) - viewer) * Float(min(1, dt / 0.25))
         let pose = animator.update(dt: dt, voice: frame, moment: speaking ? .speaking : .waiting)
         // Full rate while it speaks, half at rest (spec, § 7.2: economy).
         view.preferredFramesPerSecond = speaking ? 60 : 30
@@ -72,6 +77,7 @@ final class FaceDriver: NSObject, MTKViewDelegate {
         settings.scanlines = Float(model.scanlines)
         settings.projector = model.projector
         settings.glitches = model.glitches
+        settings.viewer = viewer
         renderer.encode(
             pose: pose, time: now - start, settings: settings, into: drawable.texture, commandBuffer: commandBuffer)
         commandBuffer.present(drawable)
