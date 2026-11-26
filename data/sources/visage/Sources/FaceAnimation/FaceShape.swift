@@ -49,7 +49,7 @@ public struct FacePose: Sendable, Equatable {
 public enum ConversationMoment: Sendable, Equatable {
     /// Nobody speaks.
     case waiting
-    /// The user speaks (their microphone is live).
+    /// The AI listens: its app has the microphone open (its voice mode, a dictation).
     case listening
     /// Between the end of the user's sentence and the AI's answer.
     case thinking

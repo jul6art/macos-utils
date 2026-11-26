@@ -20,6 +20,8 @@
 "Open System Settings" = "Ouvrir Réglages Système";
 "Start voice mode in %@: Visage connects as soon as it speaks." = "Lancez le mode vocal dans %@ : Visage se connecte dès qu'il parle.";
 "Connected to %@. Start voice mode and talk." = "Connecté à %@. Lancez le mode vocal et parlez.";
+"Connected to %@, which is listening: talk to it." = "Connecté à %@, qui vous écoute : parlez-lui.";
+"Connected to Claude. Start its voice mode: the sound-wave button, at the bottom right of its window." = "Connecté à Claude. Lancez son mode vocal : le bouton en forme d'onde sonore, en bas à droite de sa fenêtre.";
 "Show the face" = "Afficher le visage";
 "The connection failed: %@" = "La connexion a échoué : %@";
 

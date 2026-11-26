@@ -9,13 +9,19 @@ public struct AudioProcess: Hashable, Sendable {
     public let bundleID: String
     public let executable: String
     public let isRunningOutput: Bool
+    /// The process has the microphone open: a voice mode, or a dictation, listens.
+    public let isRunningInput: Bool
 
-    public init(objectID: AudioObjectID, pid: pid_t, bundleID: String, executable: String, isRunningOutput: Bool) {
+    public init(
+        objectID: AudioObjectID, pid: pid_t, bundleID: String, executable: String, isRunningOutput: Bool,
+        isRunningInput: Bool = false
+    ) {
         self.objectID = objectID
         self.pid = pid
         self.bundleID = bundleID
         self.executable = executable
         self.isRunningOutput = isRunningOutput
+        self.isRunningInput = isRunningInput
     }
 
     public var executableName: String { (executable as NSString).lastPathComponent }
@@ -34,9 +40,16 @@ public enum AudioProcesses {
                 pid: pid,
                 bundleID: (try? readStringProperty(object, kAudioProcessPropertyBundleID)) ?? "",
                 executable: executablePath(of: pid),
-                isRunningOutput: output != 0
+                isRunningOutput: output != 0,
+                isRunningInput: isRunningInput(object)
             )
         }
+    }
+
+    /// Whether a process has the microphone open. Core Audio says it with no permission: only that the
+    /// microphone runs for it, never what it hears.
+    public static func isRunningInput(_ object: AudioObjectID) -> Bool {
+        ((try? readProperty(object, kAudioProcessPropertyIsRunningInput, initial: UInt32(0))) ?? 0) != 0
     }
 
     /// The processes of an app: its bundle ID, and the helpers whose bundle IDs extend it (an Electron

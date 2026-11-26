@@ -13,6 +13,7 @@ struct ConnectScreen: View {
         ConnectView(
             state: model.connection.state,
             connectedApp: model.connection.app,
+            listening: model.connection.appListening,
             apps: AIApp.known.map { AppCardInfo(app: $0) },
             otherApps: model.otherApps(),
             connect: { model.connect(to: $0, showingFace: !welcoming) },
@@ -47,6 +48,7 @@ struct AppCardInfo: Identifiable {
 struct ConnectView: View {
     let state: Connection.State
     let connectedApp: AIApp?
+    var listening = false
     let apps: [AppCardInfo]
     let otherApps: [AIApp]
     let connect: (AIApp) -> Void
@@ -91,7 +93,7 @@ struct ConnectView: View {
                 }
             }
 
-            StatusLine(state: state, app: connectedApp, showFace: showFace)
+            StatusLine(state: state, app: connectedApp, listening: listening, showFace: showFace)
         }
         .padding(header ? 24 : 0)
         .frame(width: header ? 560 : nil, alignment: .leading)
@@ -137,6 +139,7 @@ private struct AppCard: View {
 private struct StatusLine: View {
     let state: Connection.State
     let app: AIApp?
+    let listening: Bool
     let showFace: () -> Void
 
     var body: some View {
@@ -168,7 +171,17 @@ private struct StatusLine: View {
             case .waitingForApp:
                 Text("Start voice mode in \(name): Visage connects as soon as it speaks.")
             case .connected:
-                Text("Connected to \(name). Start voice mode and talk.")
+                if listening {
+                    Text("Connected to \(name), which is listening: talk to it.")
+                } else if app?.id == AIApp.claude.id {
+                    // Not dictation (the microphone): the sound-wave button opens the spoken conversation.
+                    Text(
+                        "Connected to Claude. Start its voice mode: the sound-wave button, at the bottom right of its window."
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Connected to \(name). Start voice mode and talk.")
+                }
                 Spacer()
                 Button("Show the face", action: showFace)
             case .failed(let message):

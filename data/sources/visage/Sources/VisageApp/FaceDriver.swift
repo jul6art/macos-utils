@@ -21,6 +21,8 @@ final class FaceDriver: NSObject, MTKViewDelegate {
     private var lastDraw: CFTimeInterval = 0
     /// The viewer's place, eased between the camera's ten readings a second.
     private var viewer = SIMD2<Float>.zero
+    /// Where the conversation stands: speaking, listening, thinking, waiting (spec, § 7.2).
+    private var conversation = ConversationTracker()
     private let start = CACurrentMediaTime()
 
     init(model: AppModel, preview: Bool = false) {
@@ -61,13 +63,18 @@ final class FaceDriver: NSObject, MTKViewDelegate {
                 frame = voice.frame(atHop: Int(ahead) / voice.hopFrames)
             }
         }
-        let speaking = frame.map { $0.sound != .silence } == true
+        let moment =
+            preview
+            ? ConversationMoment.waiting
+            : conversation.update(
+                dt: dt, aiVoiced: frame.map { $0.sound != .silence } == true,
+                appListening: model.connection.appListening, personVoiced: nil)
         let seen = model.camera ? model.cameraTracker.position : nil
         animator.lookAt = seen
         viewer += ((seen ?? .zero) - viewer) * Float(min(1, dt / 0.25))
-        let pose = animator.update(dt: dt, voice: frame, moment: speaking ? .speaking : .waiting)
-        // Full rate while it speaks, half at rest (spec, § 7.2: economy).
-        view.preferredFramesPerSecond = speaking ? 60 : 30
+        let pose = animator.update(dt: dt, voice: frame, moment: moment)
+        // Full rate while it speaks, half otherwise (spec, § 7.2: economy).
+        view.preferredFramesPerSecond = moment == .speaking ? 60 : 30
 
         var settings = HoloSettings()
         if model.windowMode == .classic || preview { settings.background = HoloSettings.charbon }
