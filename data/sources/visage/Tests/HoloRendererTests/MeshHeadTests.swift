@@ -55,6 +55,16 @@ struct MeshHeadTests {
         }
     }
 
+    @Test("the skin and the eyeballs hide what is behind them: whole triangles between existing points")
+    func occluders() throws {
+        for id in Self.ids {
+            let head = try head(id)
+            #expect(head.occluders.count > 3000 && head.occluders.count % 3 == 0, "\(id)")
+            #expect(head.occluders.allSatisfy { Int($0) < head.pointCount }, "\(id)")
+        }
+        #expect(PointHeadModel().occluders.isEmpty)
+    }
+
     @Test("jawOpen moves the points it moves downwards, and leaves the brow where it is")
     func jaw() throws {
         let head = try head("lea")
