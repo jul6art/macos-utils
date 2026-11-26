@@ -46,19 +46,26 @@ struct FaceView: View {
 
 /// Draws the logo, in braise, from the shared geometry (Sources/Shared/BrandMark.swift).
 enum MarkDrawing {
-    static func draw(in context: inout GraphicsContext, size: CGSize, glow: Bool = false) {
+    /// The logo, still; with a `time`, alive (`MarkMotion`).
+    static func draw(in context: inout GraphicsContext, size: CGSize, glow: Bool = false, time: Double? = nil) {
         let side = min(size.width, size.height)
         let scale = side / 100
         let origin = CGPoint(x: (size.width - side) / 2, y: (size.height - side) / 2)
         if glow {
             context.addFilter(.shadow(color: Palette.braise.opacity(0.6), radius: side * 0.012))
         }
-        for dot in Mark.dots where dot.logoOpacity > 0 {
-            let radius = dot.logoRadius * scale
+        for dot in Mark.dots {
+            // Still, the logo is the dust; alive, each dot travels between the whole face and the dust.
+            let p = time.map { MarkMotion.progress(of: dot, at: $0) } ?? 1
+            let opacity = dot.homeOpacity + (dot.logoOpacity - dot.homeOpacity) * p
+            guard opacity > 0 else { continue }
+            let x = dot.home.x + (dot.logo.x - dot.home.x) * p
+            let y = dot.home.y + (dot.logo.y - dot.home.y) * p
+            let radius = (dot.radius + (dot.logoRadius - dot.radius) * p) * scale
             let rect = CGRect(
-                x: origin.x + dot.logo.x * scale - radius, y: origin.y + dot.logo.y * scale - radius,
-                width: 2 * radius, height: 2 * radius)
-            context.fill(Path(ellipseIn: rect), with: .color(Palette.braise.opacity(dot.logoOpacity)))
+                x: origin.x + x * scale - radius, y: origin.y + y * scale - radius, width: 2 * radius,
+                height: 2 * radius)
+            context.fill(Path(ellipseIn: rect), with: .color(Palette.braise.opacity(opacity)))
         }
     }
 }

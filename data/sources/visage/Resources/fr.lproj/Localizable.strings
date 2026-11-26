@@ -36,6 +36,19 @@
 "Face" = "Visage";
 "Points (logo)" = "Points (logo)";
 "Realism" = "Réalisme";
+"Settings" = "Réglages";
+"Hide the face" = "Masquer le visage";
+"Welcome to Visage" = "Bienvenue dans Visage";
+"A face for the voice of the AI app you already talk to." = "Un visage pour la voix de l'IA à qui vous parlez déjà.";
+"Four choices, and it is yours." = "Quatre choix, et il est à vous.";
+"Your AI" = "Votre IA";
+"Your face" = "Votre visage";
+"Where it shows" = "Où il s'affiche";
+"Where to find Visage" = "Où retrouver Visage";
+"Visage lives in the menu bar, at the top right of the screen, under this sign. Click it to show or hide the face, or to change the settings or the AI." = "Visage vit dans la barre des menus, en haut à droite de l'écran, sous ce signe. Cliquez dessus pour afficher ou masquer le visage, ou pour changer les réglages ou l'IA.";
+"Choose your AI to start." = "Choisissez votre IA pour commencer.";
+"All of it can be changed later, from the menu bar." = "Tout se change ensuite depuis la barre des menus.";
+"Start" = "Commencer";
 "Hologram" = "Hologramme";
 "Real" = "Réel";
 "From light alone to skin and eyes: the hologram fades as the face becomes real." = "De la lumière seule à la peau et aux yeux : l'hologramme s'efface à mesure que le visage devient réel.";
@@ -43,7 +56,8 @@
 "Quit Visage" = "Quitter Visage";
 "Floating" = "Flottante";
 "Classic" = "Classique";
-"Settings" = "Réglages";
+"Transparent, above every window, on every desktop: always in sight." = "Transparent, au-dessus de toutes les fenêtres, sur tous les bureaux : toujours visible.";
+"A plain window, with a title bar and a dark background: to share your screen or record it." = "Une fenêtre ordinaire, fond sombre et barre de titre : pour partager votre écran ou l'enregistrer.";
 
 /* Réglages */
 "Sync" = "Synchro";

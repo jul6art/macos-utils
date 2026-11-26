@@ -14,7 +14,11 @@ struct MenuContent: View {
             Button("Disconnect") { model.disconnect() }
         }
         Button("Connect my AI…") { model.showConnectWindow() }
-        Button("Show the face") { model.showFace() }
+        if model.faceShown {
+            Button("Hide the face") { model.hideFace() }
+        } else {
+            Button("Show the face") { model.showFace() }
+        }
         Picker(
             "Window",
             selection: Binding(get: { model.windowMode }, set: { model.windowMode = $0 })

@@ -4,23 +4,38 @@ import SwiftUI
 /// The face's window. AppKit rather than a SwiftUI scene: the three modes change the window's style, level
 /// and background on the fly, which a scene cannot.
 @MainActor
-final class FaceWindowController {
+final class FaceWindowController: NSObject, NSWindowDelegate {
     private let window: NSWindow
+    /// Told when the window closes by its own button (the classic mode's).
+    private let closed: () -> Void
 
-    init(model: AppModel) {
+    init(model: AppModel, closed: @escaping () -> Void) {
         window = FaceWindow(
             contentRect: NSRect(x: 0, y: 0, width: 420, height: 520),
             styleMask: [.borderless, .resizable], backing: .buffered, defer: false)
+        self.closed = closed
+        super.init()
         window.contentView = NSHostingView(rootView: FaceView(model: model))
         window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 200, height: 240)
         window.title = "Visage"
         window.setFrameAutosaveName("VisageFace")
         if !window.setFrameUsingName("VisageFace") { window.center() }
+        window.delegate = self
     }
+
+    var isVisible: Bool { window.isVisible }
 
     func show() {
         window.orderFrontRegardless()
+    }
+
+    func hide() {
+        window.orderOut(nil)
+    }
+
+    nonisolated func windowWillClose(_ notification: Notification) {
+        MainActor.assumeIsolated { closed() }
     }
 
     func apply(_ mode: WindowMode) {
@@ -63,11 +78,16 @@ final class ConnectWindowController {
         window.title = String(localized: "Connect my AI")
         window.contentView = NSHostingView(rootView: ConnectScreen(model: model))
         window.isReleasedWhenClosed = false
+        BrandWindow.style(window)
         window.center()
     }
 
     func show() {
         Foreground.show(window)
+    }
+
+    func close() {
+        window.close()
     }
 }
 
@@ -79,16 +99,42 @@ final class SettingsWindowController {
 
     init(model: AppModel) {
         window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 660),
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 720),
             styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = String(localized: "Settings")
-        window.contentView = NSHostingView(rootView: SettingsView(model: model).frame(height: 660))
+        window.contentView = NSHostingView(rootView: SettingsView(model: model))
         window.isReleasedWhenClosed = false
+        BrandWindow.style(window)
         window.center()
     }
 
     func show() {
         Foreground.show(window)
+    }
+}
+
+/// The first launch's welcome: the AI, the face, where it shows, and where to find Visage again.
+@MainActor
+final class WelcomeWindowController {
+    private let window: NSWindow
+
+    init(model: AppModel) {
+        window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 820),
+            styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        window.title = String(localized: "Welcome to Visage")
+        window.contentView = NSHostingView(rootView: WelcomeView(model: model))
+        window.isReleasedWhenClosed = false
+        BrandWindow.style(window)
+        window.center()
+    }
+
+    func show() {
+        Foreground.show(window)
+    }
+
+    func close() {
+        window.close()
     }
 }
 
@@ -128,4 +174,9 @@ enum Palette {
     static let braise = Color(red: 0xFF / 255, green: 0xC9 / 255, blue: 0x78 / 255)
     static let orPale = Color(red: 0xFF / 255, green: 0xE9 / 255, blue: 0xC4 / 255)
     static let cendre = Color(red: 0x6E / 255, green: 0x65 / 255, blue: 0x5B / 255)
+    /// The secondary text on charbon: cendre itself is too faint there to read small type.
+    static let cendreClaire = Color(red: 0xA9 / 255, green: 0x9D / 255, blue: 0x8E / 255)
+    static let brou = Color(red: 0x3A / 255, green: 0x26 / 255, blue: 0x12 / 255)
+    /// Charbon, lifted: the branded screens' cards.
+    static let surface = Color(red: 0x17 / 255, green: 0x13 / 255, blue: 0x0F / 255)
 }
