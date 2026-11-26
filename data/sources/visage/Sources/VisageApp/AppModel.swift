@@ -27,11 +27,17 @@ final class AppModel {
     var extraLatencyMilliseconds: Int {
         didSet { defaults.set(extraLatencyMilliseconds, forKey: Key.extraLatency) }
     }
-    /// The face shown: one of FaceLibrary's, or its point head.
+    /// The face shown: one of FaceLibrary's, or its point head. A new one is read off the main thread,
+    /// then fades in over the old one, even while it speaks.
     var faceID: String {
         didSet {
             defaults.set(faceID, forKey: Key.face)
-            faceDriver.renderer?.model = FaceLibrary.model(id: faceID)
+            let id = faceID
+            Task {
+                let model = await Task.detached { FaceLibrary.model(id: id) }.value
+                guard id == faceID else { return }
+                faceDriver.renderer?.fade(to: model)
+            }
         }
     }
 
