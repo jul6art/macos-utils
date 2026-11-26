@@ -4,6 +4,7 @@
 # utilities of macos-utils: each module of Sources/ becomes a static library, then the app links them.
 #
 #   sh build.sh                  # build ./build/Visage.app for this Mac
+#   sh build.sh --universal      # build a universal app (arm64 + x86_64)
 #   sh build.sh --install        # build, then move the app to /Applications
 #   sh build.sh --tests          # build the modules for testing, then run the tests
 #
@@ -23,13 +24,15 @@ BUILD_DIR="${SRC_DIR}/build";
 TARGET="$(uname -m)-apple-macos${MIN_MACOS}";
 DEVELOPER_DIR="$(xcode-select -p)";
 
+UNIVERSAL=0;
 INSTALL=0;
 TESTS=0;
 for arg in "$@"; do
 	case "${arg}" in
+		--universal) UNIVERSAL=1;;
 		--install) INSTALL=1;;
 		--tests) TESTS=1;;
-		-h|--help) sed -n '2,13p' "${0}"; exit 0;;
+		-h|--help) sed -n '2,12p' "${0}"; exit 0;;
 		*) echo "Unknown option: ${arg}"; exit 1;;
 	esac;
 done;
@@ -82,13 +85,27 @@ fi;
 
 OUT="${BUILD_DIR}/release";
 APP_DIR="${BUILD_DIR}/${APPNAME}.app";
-echo "==> Compiling the modules";
-compile_modules "${OUT}" -O;
-echo "==> Compiling the app";
-# shellcheck disable=SC2086
-swiftc -O -target "${TARGET}" -parse-as-library -module-name VisageApp \
-	-I "${OUT}" -L "${OUT}" ${LINK_LIBRARIES} \
-	-o "${OUT}/${APPNAME}" "${SRC_DIR}/Sources/VisageApp"/*.swift;
+ARCHS="$(uname -m)";
+[ "${UNIVERSAL}" -eq 1 ] && ARCHS="arm64 x86_64";
+BINARIES="";
+# One pass per architecture, the modules included: a static library holds a single one.
+for arch in ${ARCHS}; do
+	TARGET="${arch}-apple-macos${MIN_MACOS}";
+	echo "==> Compiling the modules (${arch})";
+	compile_modules "${OUT}/${arch}" -O;
+	echo "==> Compiling the app (${arch})";
+	# shellcheck disable=SC2086
+	swiftc -O -target "${TARGET}" -parse-as-library -module-name VisageApp \
+		-I "${OUT}/${arch}" -L "${OUT}/${arch}" ${LINK_LIBRARIES} \
+		-o "${OUT}/${arch}/${APPNAME}" "${SRC_DIR}/Sources/VisageApp"/*.swift;
+	BINARIES="${BINARIES} ${OUT}/${arch}/${APPNAME}";
+done;
+if [ "${UNIVERSAL}" -eq 1 ]; then
+	# shellcheck disable=SC2086
+	lipo -create -output "${OUT}/${APPNAME}" ${BINARIES};
+else
+	cp "${OUT}/${ARCHS}/${APPNAME}" "${OUT}/${APPNAME}";
+fi;
 
 echo "==> Assembling the bundle";
 rm -rf "${APP_DIR}";
