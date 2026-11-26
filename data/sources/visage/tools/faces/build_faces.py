@@ -72,6 +72,33 @@ TEXTURES = {
 }
 
 
+# MakeHuman's "brown" iris is a deep, saturated red (hue 7°, saturation 0.99): on a face it reads burgundy.
+# Its iris turns to a natural brown, the hue and the share of its saturation kept below; the white, grey,
+# stays as it is.
+IRIS = {"brown": (24 / 360, 0.7)}
+
+
+def recolour_iris(image, hue, keep):
+    """The saturated pixels of an eye texture (the iris) to `hue`, `keep` of their saturation, same value."""
+    width, height = image.size
+    pixels = numpy.empty(width * height * 4, dtype=numpy.float32)
+    image.pixels.foreach_get(pixels)
+    pixels = pixels.reshape(-1, 4)
+    rgb = pixels[:, :3]
+    value = rgb.max(1)
+    saturation = numpy.where(value > 0, (value - rgb.min(1)) / numpy.maximum(value, 1e-6), 0)
+    iris = numpy.clip((saturation - 0.25) / 0.2, 0, 1)[:, None]
+    chroma = value * saturation * keep
+    sector = hue * 6
+    second = chroma * (1 - abs(sector % 2 - 1))
+    zero = numpy.zeros_like(chroma)
+    order = [(chroma, second, zero), (second, chroma, zero), (zero, chroma, second),
+             (zero, second, chroma), (second, zero, chroma), (chroma, zero, second)][int(sector) % 6]
+    recoloured = numpy.stack(order, 1) + (value - chroma)[:, None]
+    pixels[:, :3] = rgb * (1 - iris) + recoloured * iris
+    image.pixels.foreach_set(pixels.ravel())
+
+
 def skin_folder(preset):
     """MakeHuman's skins come by age, origin and gender: the nearest to the preset."""
     age = "young" if preset["age"] < 35 else "middleage" if preset["age"] < 55 else "old"
@@ -135,6 +162,8 @@ def write_textures(preset, data, output, skin_box):
             bpy.data.images.remove(whole)
         else:
             image.scale(size, size)
+        if part == "eyes" and preset["eyes"] in IRIS:
+            recolour_iris(image, *IRIS[preset["eyes"]])
         target = os.path.join(output, f"{preset['id']}.{part}.{'png' if alpha else 'jpg'}")
         settings = bpy.context.scene.render.image_settings
         settings.file_format = "PNG" if alpha else "JPEG"
