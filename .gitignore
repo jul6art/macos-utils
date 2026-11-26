@@ -42,3 +42,4 @@ data/sources/siphon/build/
 # A personal icon dropped next to the sources; the default one is drawn by icon/AppIcon.swift
 data/sources/*/AppIcon.icns
 *.icns.tmp
+data/sources/visage/brand/.build/
