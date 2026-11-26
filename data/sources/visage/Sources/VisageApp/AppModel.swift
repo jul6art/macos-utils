@@ -55,6 +55,23 @@ final class AppModel {
         }
     }
 
+    /// The hologram's colour and layers (spec, § 8.2, § 9.2).
+    var holoColour: HoloColour {
+        didSet { defaults.set(holoColour.rawValue, forKey: Key.holoColour) }
+    }
+    var halo: Double {
+        didSet { defaults.set(halo, forKey: Key.halo) }
+    }
+    var scanlines: Double {
+        didSet { defaults.set(scanlines, forKey: Key.scanlines) }
+    }
+    var projector: Bool {
+        didSet { defaults.set(projector, forKey: Key.projector) }
+    }
+    var glitches: Bool {
+        didSet { defaults.set(glitches, forKey: Key.glitches) }
+    }
+
     /// Whether the face is on screen: the next launch puts it back as it was left.
     var faceShown: Bool {
         didSet { defaults.set(faceShown, forKey: Key.faceShown) }
@@ -85,12 +102,19 @@ final class AppModel {
         static let faceShown = "faceShown"
         static let faceScale = "faceScale"
         static let welcomed = "welcomed"
+        static let holoColour = "holoColour"
+        static let halo = "halo"
+        static let scanlines = "scanlines"
+        static let projector = "projector"
+        static let glitches = "glitches"
     }
 
     init() {
         let defaults = UserDefaults.standard
         defaults.register(defaults: [
             Key.delay: 150, Key.anticipation: 60, Key.extraLatency: 0, Key.faceShown: true, Key.faceScale: 1.0,
+            Key.halo: 1.0,
+            Key.scanlines: 1.0, Key.projector: true, Key.glitches: true,
         ])
         windowMode = WindowMode(rawValue: defaults.string(forKey: Key.windowMode) ?? "") ?? .floating
         delayMilliseconds = defaults.integer(forKey: Key.delay)
@@ -99,6 +123,11 @@ final class AppModel {
         faceID = defaults.string(forKey: Key.face) ?? FaceLibrary.faces.first?.id ?? FaceLibrary.points
         realism = defaults.double(forKey: Key.realism)
         faceShown = defaults.bool(forKey: Key.faceShown)
+        holoColour = HoloColour(rawValue: defaults.string(forKey: Key.holoColour) ?? "") ?? .braise
+        halo = defaults.double(forKey: Key.halo)
+        scanlines = defaults.double(forKey: Key.scanlines)
+        projector = defaults.bool(forKey: Key.projector)
+        glitches = defaults.bool(forKey: Key.glitches)
         faceScale = min(max(defaults.double(forKey: Key.faceScale), 0.5), 2)
         connection = Connection(delayMilliseconds: defaults.integer(forKey: Key.delay))
     }

@@ -67,6 +67,11 @@ final class FaceDriver: NSObject, MTKViewDelegate {
         var settings = HoloSettings()
         if model.windowMode == .classic || preview { settings.background = HoloSettings.charbon }
         settings.realism = Float(model.realism)
+        settings.colour = model.holoColour.rgb
+        settings.halo = Float(model.halo)
+        settings.scanlines = Float(model.scanlines)
+        settings.projector = model.projector
+        settings.glitches = model.glitches
         renderer.encode(
             pose: pose, time: now - start, settings: settings, into: drawable.texture, commandBuffer: commandBuffer)
         commandBuffer.present(drawable)

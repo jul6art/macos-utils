@@ -18,6 +18,8 @@ enum HoloShaders {
             float glitch;
             float projector;
             float realism;
+            float halo;
+            float scanlines;
             float4 background;
         };
 
@@ -135,13 +137,13 @@ enum HoloShaders {
             halo /= 19.2;
             // The hologram's layers fade as the face becomes real (§ 8.3).
             float hologram = 1.0 - u.realism;
-            float4 col = c + halo * (0.8 + 0.6 * u.glow) * hologram;
+            float4 col = c + halo * (0.8 + 0.6 * u.glow) * hologram * u.halo;
 
-            float line = mix(1.0, 0.76 + 0.24 * step(0.5, fract(in.position.y / 3.0)), hologram);
+            float line = mix(1.0, 0.76 + 0.24 * step(0.5, fract(in.position.y / 3.0)), hologram * u.scanlines);
             float bandAt = fract(u.time / 5.0) * 1.4 - 0.2;
             float band = exp(-pow((uv.y - bandAt) * 10.0, 2.0));
             col.rgb *= line * mix(1.0, u.flicker, hologram);
-            col.rgb += u.colour.rgb * band * 0.2 * saturate(col.a) * hologram;
+            col.rgb += u.colour.rgb * band * 0.2 * saturate(col.a) * hologram * u.scanlines;
 
             if (u.projector > 0.5 && hologram > 0.0) {
                 float2 p = (in.uv - float2(0.5, 0.94)) * float2(1.0, 4.5);
