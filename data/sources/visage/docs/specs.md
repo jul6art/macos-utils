@@ -353,7 +353,7 @@ Visage est un outil de plus de `macos-utils` (public, MIT), rangé comme les aut
 macos-utils/
   README.md               une ligne de plus dans le tableau des outils, et ses prérequis
   data/doc/VISAGE.md      la doc utilisateur, en anglais : prérequis, sources, installation, usage
-  data/sources/visage/    le paquet SwiftPM de Visage (§ 10.2), dont docs/specs.md, cette spécification
+  data/sources/visage/    les sources de Visage (§ 10.2), dont docs/specs.md, cette spécification
 ```
 
 Visage reprend les conventions du dépôt :
@@ -376,19 +376,23 @@ Deux adaptations du dépôt, au lot 1 :
   morceau.
 - **Le poids** : `macos-utils` pèse environ 1,7 Mo au 2026-11-26, et chaque clone emporte tous les outils.
   Les 10 visages sont donc limités à 3 Mo chacun (moins de 30 Mo en tout). On ne les régénère qu'en cas
-  de besoin, parce que chaque régénération s'ajoute à l'historique. Le `.gitignore` écarte `.build/` et
-  `build/` de Visage.
+  de besoin, parce que chaque régénération s'ajoute à l'historique. Le `.gitignore` écarte `build/` de
+  Visage.
 
 ### 10.2 Le code
 
-**Swift 6 et SwiftPM, macOS 14.2 au minimum** (imposé par les taps), **macOS 26 si le pilote confirme**
-la capture par identifiant de bundle (`bundleIDs`, `processRestoreEnabled` : pilote, § 2.6). L'app est
-développée sur macOS 27.
-SwiftPM remplace le simple `swiftc *.swift` des autres outils de `macos-utils`, parce que Visage a des
-modules et des tests. Contenu de `data/sources/visage/` :
+**Swift 6, compilé par `swiftc` comme les autres outils de `macos-utils`, macOS 15 au minimum** (les
+compteurs atomiques du module `Synchronization`), **macOS 26 si le pilote confirme** la capture par
+identifiant de bundle (`bundleIDs`, `processRestoreEnabled` : pilote, § 2.6). L'app est développée sur
+macOS 27.
+
+**Pas de SwiftPM.** Avec les Command Line Tools de ce Mac (Swift 6.4.2), SwiftPM ne lie même pas le
+manifeste d'un paquet vierge : sa bibliothèque `PackageDescription` ne correspond pas au compilateur
+(constaté le 2026-11-26). `build.sh` compile donc chaque module de `Sources/` en bibliothèque statique, dans
+l'ordre des dépendances, puis lie l'app : moins de pièces mobiles, et la convention du dépôt. Contenu de
+`data/sources/visage/` :
 
 ```
-Package.swift
 Sources/
   VisageApp/       SwiftUI + AppKit : fenêtre (3 modes), barre des menus, réglages, « Se connecter à mon IA »
   AudioSource/     découverte des processus, tap Core Audio, tampon circulaire, relecture retardée
@@ -400,12 +404,14 @@ Resources/
   Faces/*.glb      les 10 visages, générés par tools/faces
   Shaders/*.metal
   en.lproj/, fr.lproj/
-Tests/             un dossier par module
+Tests/             un dossier par module, et TestRunner.swift, le point d'entrée des tests
 tools/faces/       la chaîne Blender (§ 8.1)
 brand/             le kit de marque (kit/) et les fichiers qu'il écrit : logos, animations, icône
-docs/specs.md      cette spécification
-docs/charte.md     la charte
-build.sh           construit Visage.app : Info.plist, ressources, signature
+pilot/             le pilote (lot 0)
+docs/              cette spécification, la charte, le compte rendu du pilote
+Info.plist
+build.sh           construit Visage.app (modules, app, ressources, icône, signature) ; --tests, --install
+check.sh           la porte
 ```
 
 - **Dépendances : aucun paquet tiers.** Seulement des frameworks d'Apple : SwiftUI, AppKit, CoreAudio,
@@ -414,8 +420,13 @@ build.sh           construit Visage.app : Info.plist, ressources, signature
   bibliothèque standard.
 - **Fils d'exécution** : l'`IOProc` sur le fil temps réel (sans allocation ni verrou), l'analyse sur un fil
   dédié, le rendu sur le display link. Ils échangent par des tampons circulaires sans verrou.
-- **Construire** : `build.sh` lance `swift build -c release`, puis assemble le `.app` avec `Info.plist`
-  (dont `NSAudioCaptureUsageDescription` et, pour l'option caméra, `NSCameraUsageDescription`).
+- **Construire** : `build.sh` compile les modules et l'app, puis assemble le `.app` avec `Info.plist` (dont
+  `NSAudioCaptureUsageDescription` et, pour l'option caméra, `NSCameraUsageDescription`), les traductions et
+  l'icône. Les shaders voyagent dans le code, en chaînes compilées au lancement : pas de paquet de
+  ressources à signer.
+- **Les écrans se vérifient sans écran** : `Visage --snapshot <dossier>` rend chaque écran, dans chaque état
+  qui compte, en PNG, hors écran (une fenêtre hors écran, pas `ImageRenderer`, qui dessine les contrôles
+  AppKit en pointillés). Ni affichage ni autorisation d'enregistrer l'écran ne sont nécessaires.
 - **Pas de macros SwiftUI qui exigent Xcode** : `@State` et `#Preview` sont, dans ce SDK, des macros dont le
   greffon n'existe que dans Xcode ; la construction par les Command Line Tools échoue (pilote, § 2.5). Le
   modèle est `@Observable` (la macro Observation compile) et tenu par référence.
@@ -429,8 +440,11 @@ build.sh           construit Visage.app : Info.plist, ressources, signature
 
 ### 11.1 La porte (avant chaque commit)
 
-`swift build -c release`, `swift test` et `swift format lint --strict`. Tous ces outils sont fournis avec
-Swift : rien à installer.
+`sh check.sh` : la construction de l'app, les tests, puis `swift format lint --strict` ; `--fix` met d'abord
+les sources en forme. Les tests sont en Swift Testing, livré avec les Command Line Tools (XCTest ne l'est
+pas) : `build.sh --tests` compile les modules avec `-enable-testing` et lie les tests à un exécutable dont
+`Tests/TestRunner.swift` est le point d'entrée. La porte lit le décompte (« Test run with N tests passed »),
+pas seulement le code de sortie. Rien à installer.
 
 **Pas de CI au départ** : `macos-utils` n'en a pas. Un workflow GitHub (runner macOS, gratuit pour un
 dépôt public) pourra jouer la même porte. Il rejoindrait alors le passage mensuel, et resterait coupé le
@@ -481,7 +495,7 @@ reste du temps, comme sur les autres dépôts.
 | Lot | Contenu | Sortie |
 |---|---|---|
 | **0 — Pilote** (bloquant) | Tap sur Claude Desktop en mode vocal, coupure et relecture retardée ; mesure de R1, R2 et R3 ; une bouche 2D sommaire (la mâchoire suit l'énergie) pour juger la synchro. | Un go ou no-go écrit, les identifiants relevés. |
-| **1 — Socle** | `data/sources/visage/` dans `macos-utils` : paquet SwiftPM, `build.sh`, porte, `.gitignore` ; `CONTRIBUTING.md` adapté ; écran « Se connecter à mon IA », barre des menus, rebranchement automatique. | L'app se branche et se rebranche seule. |
+| **1 — Socle** | `data/sources/visage/` dans `macos-utils` : modules, `build.sh`, porte, `.gitignore` ; `CONTRIBUTING.md` adapté ; écran « Se connecter à mon IA », barre des menus, rebranchement automatique. | L'app se branche et se rebranche seule. |
 | **2 — Analyse** | § 6.1, mode fichier, tests sur signaux synthétiques. | Les courbes d'analyse sont justes sur les extraits. |
 | **3 — Rendu** | Chargeur glTF, morphing, les huit couches de l'hologramme, trois modes de fenêtre, synchro à l'affichage. | Une tête hologramme à 60 images par seconde. |
 | **4 — Animation** | § 7 en entier. | Critères 1 à 3. |
