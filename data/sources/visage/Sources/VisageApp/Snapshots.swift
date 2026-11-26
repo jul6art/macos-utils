@@ -57,7 +57,40 @@ enum Snapshots {
         } else {
             failures += 1
         }
+        if !FaceLibrary.faces.isEmpty, !writeFaceSheet(to: directory.appending(path: "faces.png")) {
+            failures += 1
+        }
         return failures == 0 ? 0 : 1
+    }
+
+    /// The faces side by side, at rest on charbon, five to a row: to compare them at a glance.
+    private static func writeFaceSheet(to url: URL) -> Bool {
+        let faces = FaceLibrary.faces
+        let (width, height, columns) = (320, 400, 5)
+        let rows = (faces.count + columns - 1) / columns
+        guard let renderer = HoloRenderer(),
+            let sheet = CGContext(
+                data: nil, width: width * columns, height: height * rows, bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return false }
+        var settings = HoloSettings()
+        settings.background = HoloSettings.charbon
+        for (index, face) in faces.enumerated() {
+            renderer.model = FaceLibrary.model(id: face.id)
+            let animator = FaceAnimator(seed: UInt32(index + 1))
+            var pose = FacePose()
+            for _ in 0..<90 { pose = animator.update(dt: 1.0 / 60, voice: nil, moment: .waiting) }
+            guard let image = renderer.image(pose: pose, time: 1.5, settings: settings, width: width, height: height)
+            else { return false }
+            let (column, row) = (index % columns, index / columns)
+            sheet.draw(
+                image,
+                in: CGRect(x: column * width, y: (rows - 1 - row) * height, width: width, height: height))
+        }
+        guard let image = sheet.makeImage() else { return false }
+        VideoRender.savePNG(image, to: url)
+        return true
     }
 
     private static func write(_ view: some View, size: NSSize, to url: URL) -> Bool {

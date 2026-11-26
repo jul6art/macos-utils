@@ -21,6 +21,7 @@ struct MenuContent: View {
         ) {
             ForEach(WindowMode.allCases) { Text($0.title).tag($0) }
         }
+        FacePicker(model: model)
         Divider()
         SettingsLink {
             Text("Settings…")

@@ -27,6 +27,13 @@ final class AppModel {
     var extraLatencyMilliseconds: Int {
         didSet { defaults.set(extraLatencyMilliseconds, forKey: Key.extraLatency) }
     }
+    /// The face shown: one of FaceLibrary's, or its point head.
+    var faceID: String {
+        didSet {
+            defaults.set(faceID, forKey: Key.face)
+            faceDriver.renderer?.model = FaceLibrary.model(id: faceID)
+        }
+    }
 
     @ObservationIgnored private let defaults = UserDefaults.standard
     @ObservationIgnored private lazy var faceWindow = FaceWindowController(model: self)
@@ -39,6 +46,7 @@ final class AppModel {
         static let delay = "delayMilliseconds"
         static let anticipation = "anticipationMilliseconds"
         static let extraLatency = "extraLatencyMilliseconds"
+        static let face = "face"
     }
 
     init() {
@@ -48,6 +56,7 @@ final class AppModel {
         delayMilliseconds = defaults.integer(forKey: Key.delay)
         anticipationMilliseconds = defaults.integer(forKey: Key.anticipation)
         extraLatencyMilliseconds = defaults.integer(forKey: Key.extraLatency)
+        faceID = defaults.string(forKey: Key.face) ?? FaceLibrary.faces.first?.id ?? FaceLibrary.points
         connection = Connection(delayMilliseconds: defaults.integer(forKey: Key.delay))
     }
 
