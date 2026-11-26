@@ -71,6 +71,9 @@ public final class HoloRenderer: @unchecked Sendable {
         var sharpness: Float
         var warmth: Float
         var opacity: Float
+        /// The rim light at grazing angles. Added to the colour, it drew pale streaks along dark strands
+        /// seen edge on: dark parts take little of it.
+        var rim: Float
     }
     /// The head drawn: the charter's point head, or a MakeHuman face. Set, it shows at once; `fade(to:)`
     /// changes it gently.
@@ -232,10 +235,11 @@ public final class HoloRenderer: @unchecked Sendable {
             else { continue }
             let look: SurfaceLook =
                 switch surface.material {
-                case .skin: SurfaceLook(shine: 0.06, sharpness: 24, warmth: 0.5, opacity: 1)
-                case .eye: SurfaceLook(shine: 0.9, sharpness: 300, warmth: 0, opacity: 1)
-                case .hair: SurfaceLook(shine: 0.1, sharpness: 40, warmth: 0.15, opacity: 1)
-                case .matte: SurfaceLook(shine: 0.02, sharpness: 10, warmth: 0.2, opacity: 1)
+                case .skin: SurfaceLook(shine: 0.06, sharpness: 24, warmth: 0.5, opacity: 1, rim: 0.12)
+                case .eye: SurfaceLook(shine: 0.9, sharpness: 300, warmth: 0, opacity: 1, rim: 0)
+                // A broad, faint sheen: a sharp one made a plastic helmet of the darkest hair, in grey bands.
+                case .hair: SurfaceLook(shine: 0.012, sharpness: 6, warmth: 0.15, opacity: 1, rim: 0.02)
+                case .matte: SurfaceLook(shine: 0.02, sharpness: 10, warmth: 0.2, opacity: 1, rim: 0.04)
                 }
             let cull: MTLCullMode = surface.material == .skin || surface.material == .eye ? .back : .none
             draws.append(
