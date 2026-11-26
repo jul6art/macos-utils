@@ -105,7 +105,8 @@ Seules les apps sont prises en charge : pas de mode navigateur (Q5).
 
 - **API** : les « taps » Core Audio par processus (macOS 14.2 et plus). On crée un `CATapDescription` sur
   les processus audio de l'app IA, avec `muteBehavior` à `.mutedWhenTapped`, puis un périphérique agrégé
-  qui porte ce tap, et une fonction de rappel (`IOProc`) qui lit des trames en float 32 bits.
+  qui porte ce tap, et une fonction de rappel (`IOProc`) qui lit des trames en float 32 bits. Le tap est
+  **privé** : un tap public survit au processus qui l'a créé (pilote, § 2.2).
 - **Trouver le bon processus** : la liste `kAudioHardwarePropertyProcessObjectList`, filtrée par
   identifiant de bundle (`kAudioProcessPropertyBundleID`). Claude Desktop est une app Electron, dont le son
   sort d'un processus auxiliaire : on filtre donc par préfixe d'identifiant et par PID responsable. Les
@@ -115,11 +116,18 @@ Seules les apps sont prises en charge : pas de mode navigateur (Q5).
 - **Tampon** : un tampon circulaire sans verrou (un producteur : l'`IOProc` ; un consommateur : la
   relecture). Le retard **D vaut 150 ms par défaut, réglable de 80 à 300 ms**. Aucune allocation ni aucun
   verrou sur le fil temps réel.
-- **Relecture** : `AVAudioEngine` avec un nœud source, sur la sortie par défaut. Elle suit les
-  changements de sortie (casque branché, AirPods).
+- **Relecture** : dans la même `IOProc`, sur la sortie de l'agrégat, dont le périphérique principal est la
+  sortie par défaut : capture et relecture partagent une horloge, sans dérive (validé au pilote). Quand la
+  sortie par défaut change (casque branché, AirPods), Visage reconstruit l'agrégat.
+- **Démarrage hors du fil principal** : tant que l'autorisation n'est pas donnée, `AudioDeviceStart` reste
+  bloqué (90 s au pilote). L'interface dit « en attente de ton autorisation ».
+- **Autorisation manquante** : aucun cycle audio dans les 3 s qui suivent le démarrage. Visage ouvre alors
+  le panneau *Enregistrement de l'écran et de l'audio du système* de Réglages Système.
 - **Une seule horloge** : tout est daté en temps hôte (`mHostTime`) — capture, relecture, image affichée.
-- **Sûreté** : si Visage quitte ou plante, le tap disparaît avec son processus et le son de l'IA revient
-  seul. C'est **à vérifier au pilote, et bloquant** (critère 6, § 11.3).
+- **Sûreté** : si Visage quitte ou plante, le son de l'IA doit revenir seul : la coupure ne dure que
+  pendant la lecture du tap, et l'agrégat meurt avec le processus. **Bloquant** (critère 6, § 11.3) :
+  mesuré au micro par le pilote (tests 2 et 3). Au lancement, Visage détruit tout tap public nommé
+  « Visage » laissé par une version qui aurait planté.
 - **Micro (option)** : Visage lit seulement le niveau du micro, pour l'état « écoute ». Il n'enregistre
   rien.
 
@@ -373,7 +381,9 @@ Deux adaptations du dépôt, au lot 1 :
 
 ### 10.2 Le code
 
-**Swift 6 et SwiftPM, macOS 14.2 au minimum** (imposé par les taps). L'app est développée sur macOS 27.
+**Swift 6 et SwiftPM, macOS 14.2 au minimum** (imposé par les taps), **macOS 26 si le pilote confirme**
+la capture par identifiant de bundle (`bundleIDs`, `processRestoreEnabled` : pilote, § 2.6). L'app est
+développée sur macOS 27.
 SwiftPM remplace le simple `swiftc *.swift` des autres outils de `macos-utils`, parce que Visage a des
 modules et des tests. Contenu de `data/sources/visage/` :
 
@@ -406,6 +416,9 @@ build.sh           construit Visage.app : Info.plist, ressources, signature
   dédié, le rendu sur le display link. Ils échangent par des tampons circulaires sans verrou.
 - **Construire** : `build.sh` lance `swift build -c release`, puis assemble le `.app` avec `Info.plist`
   (dont `NSAudioCaptureUsageDescription` et, pour l'option caméra, `NSCameraUsageDescription`).
+- **Pas de macros SwiftUI qui exigent Xcode** : `@State` et `#Preview` sont, dans ce SDK, des macros dont le
+  greffon n'existe que dans Xcode ; la construction par les Command Line Tools échoue (pilote, § 2.5). Le
+  modèle est `@Observable` (la macro Observation compile) et tenu par référence.
 - **Signature en développement** : la signature ad hoc change à chaque build, et macOS redemande alors
   l'autorisation audio. Pour le développement, `VISAGE_SIGN_IDENTITY` permet à `build.sh` de signer avec un
   certificat local auto-signé (gratuit, Trousseau).
@@ -456,8 +469,8 @@ reste du temps, comme sur les autres dépôts.
 | # | Risque | Parade |
 |---|---|---|
 | R1 | **Écho** : rejoué 150 ms plus tard, le son peut tromper l'annulation d'écho de l'app IA, qui s'entendrait elle-même et se couperait. | Au casque, aucun souci. En haut-parleurs, on mesure, puis on réduit D ou on conseille le casque. |
-| R2 | **Processus audio** : il faut trouver celui qui joue la voix (Claude Desktop est une app Electron) et le suivre quand l'app redémarre. | Relever les identifiants au pilote ; filtrer par préfixe et par PID responsable. |
-| R3 | **Sûreté de la coupure** : le son de l'IA doit revenir si Visage s'arrête. | Critère 6, bloquant. |
+| R2 | **Processus audio** : il faut trouver celui qui joue la voix (Claude Desktop est une app Electron) et le suivre quand l'app redémarre. | macOS 26 tape une app par son identifiant et la retrouve quand elle redémarre (pilote, tests 4 et 5) ; sinon, filtrer par préfixe et par PID responsable. |
+| R3 | **Sûreté de la coupure** : le son de l'IA doit revenir si Visage s'arrête. | Critère 6, bloquant. Tap privé ; mesure au micro par le pilote (tests 2 et 3). |
 | R4 | **Analyse sans modèle** insuffisante en français. | V2 Core ML (§ 6.2). |
 | R5 | **Mode vocal en bêta** chez Claude (le français aussi) : la voix peut changer. | Visage ne suit que le son : la normalisation automatique réapprend la voix. |
 | R6 | **Réalisme de MakeHuman** trop juste en gros plan. | Subdivision, cartes de normales, yeux soignés ; l'hologramme et la parallaxe portent le reste. Jugé au lot 5 sur le test à l'aveugle. |
