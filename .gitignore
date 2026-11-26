@@ -43,3 +43,5 @@ data/sources/siphon/build/
 data/sources/*/AppIcon.icns
 *.icns.tmp
 data/sources/visage/brand/.build/
+data/sources/visage/pilot/build/
+data/sources/visage/pilot/results/
