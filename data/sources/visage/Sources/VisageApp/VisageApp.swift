@@ -7,7 +7,8 @@ import SwiftUI
 /// - `Visage --snapshot <directory>` renders the screens to PNG files: they can be checked without a
 ///   display (and without the screen recording permission);
 /// - `Visage --analyse <audio file> <frames.json>` runs the voice analysis on a file;
-/// - `Visage --render <audio file> <video.mov> [<frames directory>]` films the face speaking the file.
+/// - `Visage --render <audio file> <video.mov> [<frames directory>]` films the face speaking the file
+///   (`--face <id>`, `--realism <0-100>` or a range such as `0-100`, `--mute`).
 @main
 enum VisageMain {
     @MainActor
@@ -19,13 +20,20 @@ enum VisageMain {
         if let index = arguments.firstIndex(of: "--render"), index + 2 < arguments.count {
             let framesArgument = index + 3 < arguments.count ? arguments[index + 3] : nil
             let frames = framesArgument.flatMap { $0.hasPrefix("--") ? nil : URL(fileURLWithPath: $0) }
-            let face = arguments.firstIndex(of: "--face").flatMap { $0 + 1 < arguments.count ? arguments[$0 + 1] : nil }
+            func value(_ option: String) -> String? {
+                arguments.firstIndex(of: option).flatMap { $0 + 1 < arguments.count ? arguments[$0 + 1] : nil }
+            }
+            let face = value("--face")
+            // A percentage, or a range (« 0-100 ») the gauge slides across.
+            let bounds = (value("--realism") ?? "0").split(separator: "-").compactMap { Float($0) }
+                .map { min(max($0 / 100, 0), 1) }
+            let realism = (bounds.first ?? 0)...(max(bounds.last ?? 0, bounds.first ?? 0))
             exit(
                 VideoRender.run(
                     input: URL(fileURLWithPath: arguments[index + 1]),
                     output: URL(fileURLWithPath: arguments[index + 2]), frames: frames,
                     face: face ?? FaceLibrary.faces.first?.id ?? FaceLibrary.points,
-                    mute: arguments.contains("--mute")))
+                    realism: realism, mute: arguments.contains("--mute")))
         }
         if let index = arguments.firstIndex(of: "--analyse"), index + 2 < arguments.count {
             exit(
