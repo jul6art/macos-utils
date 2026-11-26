@@ -281,48 +281,72 @@ l'animation (§ 7) fait le reste.
 personnes de synthèse, à l'image d'aucune personne réelle). On les choisit dans une grille, et on peut
 changer de visage à chaud, avec un fondu, même pendant qu'il parle.
 
-**Ce qui pousse le réalisme** :
-- une subdivision à l'export, pour une silhouette lisse sous le contour lumineux ;
-- une carte de normales tirée d'une peau CC0, quand elle en a une : pores et rides accrochent la lumière
-  du contour ;
-- des yeux à part, avec cornée et reflet humide, qui tournent vers leur cible ; des cils et des sourcils ;
+**Ce qui pousse le réalisme**, tel que codé au lot 5 (2026-11-26) :
+- des yeux à part qui tournent avec le regard ; des cils et des sourcils ;
 - des cheveux (éléments CC0), rendus en mèches d'hologramme ;
-- des dents et une langue qui suivent la mâchoire (elles se voient sur « t » et « l »). Si elles ne
-  suivent pas les formes faceunits01, le script d'export les accroche à la mâchoire.
+- des dents et une langue qui suivent la mâchoire : chaque forme faceunits01 est réajustée sur elles et
+  enregistrée comme une forme à elles, elles s'animent donc comme la tête.
+
+Pas encore faits, et à juger sur le test à l'aveugle (R6) avant de s'y lancer : la subdivision à l'export,
+une carte de normales tirée d'une peau CC0, la cornée et son reflet humide.
 
 **La chaîne de fabrication** :
 
 ```
 tools/faces/
-  presets/*.json       les 10 visages : réglages MakeHuman (genre, âge, origines, proportions),
-                       cheveux, sourcils, cils, peau
-  build_faces.py       Blender sans interface (blender -b -P) : crée chaque visage avec MPFB2,
-                       applique les 52 formes, cuit chaque forme sur tous les objets
-                       (tête, yeux, dents, langue, cheveux) et exporte un .glb
+  presets.json         les 10 visages : réglages MakeHuman (genre, âge, origines, poids, muscles),
+                       cheveux, sourcils, cils
+  build_faces.py       Blender sans interface (blender -b -P) : crée chaque visage avec MPFB2, cuit sa
+                       morphologie, ajoute yeux, sourcils, cils, dents, langue et cheveux, charge les
+                       52 formes, les enregistre sur chaque objet, garde la tête et le cou (25 cm),
+                       retire les faces cachées, exporte un .glb
+  build.sh             le lance (tous les visages, ou ceux qu'on nomme) et copie presets.json
 Resources/Faces/*.glb  les fichiers générés, commités : construire l'app ne demande pas Blender
 ```
 
-**Ce que doit contenir chaque `.glb`** (glTF 2.0) : les 52 formes ARKit nommées selon la norme
-(`jawOpen`, `mouthClose`, `mouthFunnel`…) dans `extras.targetNames`, la même nomenclature pour tous (donc
-une animation commune), au plus 40 000 triangles et **moins de 3 Mo** (cibles creuses, quantifiées),
-parce que chaque clone de `macos-utils` les télécharge. Un test le vérifie (§ 11.2).
+**Les faces cachées sont retirées à la fabrication.** La lumière de l'hologramme est additive : elle
+traverse tout. L'intérieur de la bouche et le fond des orbites, derrière les globes oculaires,
+transparaissaient à travers le visage : deux anneaux autour des yeux, comme des lunettes, et un troisième
+autour de la bouche. Une face est gardée si, depuis son centre, un rayon vers l'un des 120 points de vue
+(jusqu'à 70° de côté, 35° en haut ou en bas) ne rencontre ni la tête ni les yeux. Environ 1 600 faces sur
+8 500 partent ainsi, l'arrière du crâne compris : on ne le voit jamais.
 
-**Chargeur glTF maison** (positions, normales, coordonnées de texture, index, cibles de morphing) :
-quelques centaines de lignes, sans bibliothèque.
+**Chaque sommet est un point de lumière.** Le maillage de MakeHuman suit les traits du visage : ses
+boucles dessinent les paupières, les lèvres, les ailes du nez, et l'hologramme les montre. Échantillonner
+la surface uniformément a été essayé et écarté : le grain aléatoire noyait le modelé, et le visage se
+réduisait à son contour. Les sommets se serrent toutefois autour des yeux, de la bouche et des oreilles ;
+chaque point y cède une part de sa lumière selon le nombre de ses voisins (à 4 mm), assez pour que ces
+zones ne brillent pas plus que le reste sans effacer les traits. Du globe oculaire, seule la partie
+visible entre les paupières s'allume : l'iris plus que le blanc, la pupille sombre.
+
+**Ce que contient chaque `.glb`** (glTF 2.0) : les 52 formes ARKit nommées selon la norme (`jawOpen`,
+`mouthClose`, `mouthFunnel`…) dans `extras.targetNames`, en cibles creuses, et rien d'autre (ni matériau
+ni texture). La même nomenclature pour tous, donc une animation commune ; le maillage, lui, varie d'un
+visage à l'autre après le retrait des faces cachées. De 1,4 à 2 Mo par visage, **moins de 3 Mo** exigés
+parce que chaque clone de `macos-utils` les télécharge, et moins de 40 000 points. Un test le vérifie
+(§ 11.2).
+
+**Chargeur glTF maison** (positions, normales, cibles de morphing denses ou creuses) : 160 lignes, sans
+bibliothèque. Ni index ni coordonnées de texture : des points n'en ont pas besoin.
+
+**Le choix du visage** : dans le menu et les réglages, les 10 visages et la tête en points de la charte.
+Le changement est immédiat ; le fondu et la grille de vignettes restent à faire (lot 6).
 
 ### 8.2 Le rendu : un vrai hologramme
 
 Un rendu **Metal maison** : une seule tête à dessiner, un effet sur mesure, et aucun lien avec SceneKit
 (déprécié en 2025) ni avec RealityKit. Les **shaders sont compilés au lancement** depuis leur source
-(`makeLibrary(source:)`) : pas besoin de la chaîne Metal d'Xcode. Le morphing se fait sur le GPU :
-position = base + Σ (poids × écart).
+(`makeLibrary(source:)`) : pas besoin de la chaîne Metal d'Xcode. Le morphing se fait sur le processeur,
+position = base + Σ (poids × écart) sur les seuls sommets de chaque cible creuse : quelques dizaines de
+milliers de points, une fraction de milliseconde.
 
 L'effet se construit en couches, chacune réglable :
 
 1. **Le projecteur** : un socle discret sous la tête, un faisceau de lumière en cône (dégradé additif) et
    des poussières qui flottent dans le faisceau. On peut le masquer.
 2. **La lumière de la tête** :
-   - une transparence additive, avec une pré-passe de profondeur pour ne pas voir l'intérieur de la tête ;
+   - une transparence additive ; l'intérieur de la tête est retiré à la fabrication (§ 8.1) et les points
+     tournés vers l'arrière s'éteignent ;
    - un contour lumineux (Fresnel) ;
    - une luminance tirée de la peau, pour que les yeux, les sourcils et les lèvres restent lisibles ;
    - les arêtes du maillage, à peine visibles.
@@ -479,9 +503,9 @@ reste du temps, comme sur les autres dépôts.
 - **Analyse** : sur des signaux synthétiques (voyelles synthétisées aux formants connus, bruits de
   fricatives, silences et explosions). On vérifie F1, F2, F0 et la détection des occlusions.
 - **Animation** : mapping et ressorts, de façon déterministe, avec une graine fixe.
-- **Visages** : chaque `.glb` de `Resources/Faces` porte les 52 noms ARKit, le même maillage que les
-  autres, au plus 40 000 triangles et moins de 3 Mo.
-- **Chargeur glTF** : sur un fichier de test.
+- **Visages et chargeur glTF** : chaque `.glb` de `Resources/Faces` porte ses parties et les 52 noms
+  ARKit, pèse moins de 3 Mo et donne moins de 40 000 points ; `jawOpen` abaisse la mâchoire sans
+  toucher le front, le regard ne tourne que les yeux.
 - **Tampon circulaire** : en concurrence, producteur contre consommateur.
 - **Mode fichier** : Visage lit un `.wav` au lieu d'une app. Il sert à la mise au point sans IA, aux
   démos, et au **rendu vidéo hors ligne** (`.mov` via AVAssetWriter), pour comparer deux versions image
@@ -534,10 +558,13 @@ reste du temps, comme sur les autres dépôts.
   deux autorisations et Claude Desktop (pilote, § 4).
 - **Lot 1** fait : l'app se construit sans Xcode, se branche, se rebranche (SwiftPM écarté, § 10.2).
 - **Lot 2** fait : l'analyse, mesurée sur trois voix françaises (§ 6.1).
-- **Lot 3** fait pour la tête en points de la charte : Metal, couches de l'hologramme, rendu vidéo hors
-  ligne (`Visage --render`), visage en direct dans sa fenêtre. Les visages MakeHuman attendent le lot 5.
+- **Lot 3** fait : Metal, couches de l'hologramme, rendu vidéo hors ligne (`Visage --render`), visage en
+  direct dans sa fenêtre.
 - **Lot 4** fait : bouche, prosodie, repos (§ 7) ; jamais immobile plus d'une seconde (critère 3, testé).
-- **Lot 5** attend Blender, MPFB2 et les packs d'éléments de MakeHuman : trois téléchargements à valider.
+- **Lot 5** fait : chaîne Blender (Blender 5.3, MPFB 2.0.18, packs CC0 de MakeHuman), les 10 visages,
+  choix du visage dans le menu et les réglages, planche des visages (`Visage --snapshot`) et vidéos
+  muettes (`--face <id> --mute`). Restent le test à l'aveugle (R6) avec l'utilisateur, puis le fondu et
+  la grille de vignettes (lot 6).
 - **Lots 6 et 7** à venir : caméra, réglages complets, robustesse ; doc et publication.
 
 ## 14. Hors périmètre
