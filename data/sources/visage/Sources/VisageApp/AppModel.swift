@@ -41,6 +41,9 @@ final class AppModel {
         }
     }
 
+    /// The settings' thumbnails, per face, made the first time they are shown.
+    var thumbnails: [String: CGImage] = [:]
+
     @ObservationIgnored private let defaults = UserDefaults.standard
     @ObservationIgnored private lazy var faceWindow = FaceWindowController(model: self)
     @ObservationIgnored private lazy var connectWindow = ConnectWindowController(model: self)
@@ -94,6 +97,11 @@ final class AppModel {
 
     func showFace() {
         faceWindow.show()
+    }
+
+    func loadThumbnails() async {
+        guard thumbnails.isEmpty else { return }
+        thumbnails = await FaceLibrary.thumbnails()
     }
 
     /// Apps playing sound right now, other than the known ones: candidates for « Another app ».

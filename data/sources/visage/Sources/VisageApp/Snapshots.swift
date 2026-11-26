@@ -60,6 +60,15 @@ enum Snapshots {
         if !FaceLibrary.faces.isEmpty, !writeFaceSheet(to: directory.appending(path: "faces.png")) {
             failures += 1
         }
+        // The settings, their thumbnails already made (the window makes them the first time it opens).
+        let model = AppModel()
+        model.thumbnails = FaceLibrary.makeThumbnails(FaceLibrary.choices.map(\.id))
+        if !write(
+            SettingsView(model: model), size: NSSize(width: 460, height: 620),
+            to: directory.appending(path: "settings.png"))
+        {
+            failures += 1
+        }
         return failures == 0 ? 0 : 1
     }
 
@@ -74,14 +83,11 @@ enum Snapshots {
                 space: CGColorSpace(name: CGColorSpace.sRGB)!,
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
         else { return false }
-        var settings = HoloSettings()
-        settings.background = HoloSettings.charbon
         for (index, face) in faces.enumerated() {
-            renderer.model = FaceLibrary.model(id: face.id)
-            let animator = FaceAnimator(seed: UInt32(index + 1))
-            var pose = FacePose()
-            for _ in 0..<90 { pose = animator.update(dt: 1.0 / 60, voice: nil, moment: .waiting) }
-            guard let image = renderer.image(pose: pose, time: 1.5, settings: settings, width: width, height: height)
+            guard
+                let image = FaceLibrary.portrait(
+                    FaceLibrary.model(id: face.id), renderer: renderer, width: width, height: height,
+                    seed: UInt32(index + 1))
             else { return false }
             let (column, row) = (index % columns, index / columns)
             sheet.draw(
