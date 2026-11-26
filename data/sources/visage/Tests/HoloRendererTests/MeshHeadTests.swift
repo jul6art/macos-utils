@@ -65,6 +65,25 @@ struct MeshHeadTests {
         #expect(PointHeadModel().occluders.isEmpty)
     }
 
+    @Test("mouthClose never shuts the lips past the jaw, and a mouth at rest stays shut")
+    func lipsShut() throws {
+        let head = try head("lea")
+        let rest = head.shape(FacePose(), time: 0)
+        #expect(head.shape(pose(.mouthClose, 1), time: 0) == rest)
+        var open = pose(.jawOpen, 0.3)
+        let jaw = head.shape(open, time: 0)
+        open.weights[FaceShape.mouthClose.rawValue] = 1
+        #expect(head.shape(open, time: 0) != jaw)
+        // At rest, the jaw ajar with the breath, the lips stay shut, asked or not.
+        var resting = pose(.jawOpen, 0.04)
+        let sealed = head.shape(resting, time: 0)
+        resting.weights[FaceShape.mouthClose.rawValue] = 1
+        #expect(head.shape(resting, time: 0) == sealed)
+        #expect(MeshHead.lipsClosing(shut: 0, jaw: 0.04) == 0.04)
+        #expect(MeshHead.lipsClosing(shut: 0, jaw: 0.3) == 0)
+        #expect(MeshHead.lipsClosing(shut: 0.5, jaw: 0.3) == 0.15)
+    }
+
     @Test("jawOpen moves the points it moves downwards, and leaves the brow where it is")
     func jaw() throws {
         let head = try head("lea")
