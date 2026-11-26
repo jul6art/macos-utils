@@ -35,6 +35,8 @@ shellcheck data/sources/*.sh data/sources/*/*.sh
 - [ ] Every script keeps `set -euo pipefail` and quotes its expansions
 - [ ] I ran the utility on a throwaway target and it did what the doc says
 - [ ] For Awake and Siphon: `build.sh` succeeds from a clean `build/` directory
+- [ ] For Visage: `sh data/sources/visage/check.sh` is green — build, tests
+      (read the count), format
 
 <details>
 <summary>Output</summary>

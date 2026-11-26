@@ -23,8 +23,8 @@ Only the tip of `master` is maintained. There are no releases to backport to.
 ## What is in scope
 
 * **A script that does more than its documentation says.** `appify.sh`,
-  `custom_macos_app.sh`, `awake/build.sh` and `siphon/build.sh` are meant to be
-  readable end to end; anything in them that touches a path, a preference or a
+  `custom_macos_app.sh` and the `build.sh` of Awake, Siphon and Visage are meant
+  to be readable end to end; anything in them that touches a path, a preference or a
   login item the doc does not mention is a defect worth reporting.
 * **Injection through an argument.** These scripts take a script path and an
   application name and build paths from them. A name or path that escapes its
@@ -33,6 +33,12 @@ Only the tip of `master` is maintained. There are no releases to backport to.
   reaches yt-dlp after `--`, and every file must land inside the folder chosen in
   the window. A link that yt-dlp reads as an option, or a download written
   anywhere else, is in scope.
+* **Visage hearing, keeping or sending more than it says.** Visage captures
+  the sound of the one AI app you chose and plays it back, keeping nothing; its
+  options read your microphone's level and find your face in the camera's
+  image, on the Mac. Capturing another app, writing sound or images anywhere,
+  opening a network connection — Visage opens none — or leaving the AI app
+  muted once Visage has quit or crashed is in scope.
 * **A script writing outside its declared scope** — installing into
   `/Applications`, a `LaunchAgents` entry or a preference domain that the doc
   never announced, or leaving a world-writable file behind.
@@ -45,8 +51,9 @@ Only the tip of `master` is maintained. There are no releases to backport to.
 
 ## What is *not* in scope
 
-* **Unsigned and un-notarized applications.** Everything built here is
-  unsigned; Gatekeeper will say so, and you will have to allow it yourself. That
+* **Unsigned and un-notarized applications.** Everything built here is either
+  unsigned (appify's bundles) or signed ad hoc (the Swift apps), and never
+  notarized; Gatekeeper will say so, and you will have to allow it yourself. That
   is a documented consequence of shipping source instead of a signed installer,
   not a vulnerability. If you need a signed build, sign it yourself.
 * **Vulnerabilities in macOS, Xcode or the Command Line Tools** — report those
