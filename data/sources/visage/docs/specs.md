@@ -17,6 +17,7 @@
 | Q3 | Quelle fenêtre ? | **Trois modes** : transparente (par défaut), flottante, classique (§ 9). |
 | Q4 | Quel dépôt ? | **Public, sous licence MIT** : un cadeau. Visage rejoint **`macos-utils`** (public, MIT), dans `data/sources/visage/` (§ 10.1). |
 | Q5 | Un mode navigateur ? | **Non** : l'app officielle seulement. |
+| Q6 | Quelle identité ? | **C4 « Poussière »** : un visage en points qui se défait en poussière, en lumière de braise. Charte dans `docs/charte.md`, fichiers dans `brand/`. |
 
 ## 1. Le but
 
@@ -306,7 +307,8 @@ L'effet se construit en couches, chacune réglable :
 7. **La parallaxe** (option caméra) : Vision suit la position de ta tête, et la caméra de rendu se déplace
    avec elle (projection décentrée). La tête paraît avoir un vrai volume derrière l'écran : c'est ce qui
    fait passer l'écran plat pour un hologramme.
-8. **La couleur** : cyan par défaut, palette réglable ; un mode nuage de points en option.
+8. **La couleur** : la braise de la charte (`#FFC978`) par défaut, palette réglable ; un mode nuage de
+   points en option, celui du signe.
 
 Le style reste celui d'un hologramme de science-fiction générique : il n'imite aucune œuvre en particulier.
 On vise 60 images par seconde (120 sur un écran ProMotion) quand il parle, 30 au repos.
@@ -353,7 +355,9 @@ Visage reprend les conventions du dépôt :
 - l'identifiant `com.devinthehood.visage` et une signature ad hoc (`codesign --sign -`) : pas de DMG
   notarisé, une source qu'on assemble soi-même ;
 - une interface en anglais, comme Awake et Siphon, traduite en français (`Localizable.strings` en et fr,
-  selon la langue du système) ;
+  selon la langue du système), dans la police du système : l'app n'embarque aucune police (charte, § 4) ;
+- une icône d'app dessinée par le code au moment de la construction (`brand/generate.sh --iconset`) : pas
+  de bitmap dans le dépôt ;
 - des messages de commit en français, comme le reste du dépôt ; le code et les commentaires en anglais.
 
 Deux adaptations du dépôt, au lot 1 :
@@ -388,7 +392,9 @@ Resources/
   en.lproj/, fr.lproj/
 Tests/             un dossier par module
 tools/faces/       la chaîne Blender (§ 8.1)
+brand/             le kit de marque (kit/) et les fichiers qu'il écrit : logos, animations, icône
 docs/specs.md      cette spécification
+docs/charte.md     la charte
 build.sh           construit Visage.app : Info.plist, ressources, signature
 ```
 
