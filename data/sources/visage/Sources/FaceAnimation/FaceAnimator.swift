@@ -208,6 +208,13 @@ public final class FaceAnimator: @unchecked Sendable {
 
     // MARK: - Moments
 
+    /// The upper lids at rest, over the top of the iris as in a relaxed face: wide open, MakeHuman's eyes
+    /// stared.
+    static let restingLid: Float = 0.1
+    /// A hint of a smile, waiting or listening: a neutral face reads as sullen. Not while thinking (the lips
+    /// press) nor speaking (the voice moves them).
+    static let restingSmile: Float = 0.4
+
     private func momentTargets(_ moment: ConversationMoment, heard: Bool?, targets: inout [Int: Float]) {
         switch moment {
         case .thinking:
@@ -230,6 +237,11 @@ public final class FaceAnimator: @unchecked Sendable {
             }
         case .waiting, .speaking:
             break
+        }
+        if moment == .waiting || moment == .listening {
+            for shape in [FaceShape.mouthSmileLeft, .mouthSmileRight] {
+                targets[shape.rawValue] = max(targets[shape.rawValue] ?? 0, Self.restingSmile)
+            }
         }
     }
 
@@ -282,8 +294,8 @@ public final class FaceAnimator: @unchecked Sendable {
         case ..<0.15: closed = 1 - (elapsed - 0.08) / 0.07
         default: closed = 0
         }
-        pose[.eyeBlinkLeft] = Float(closed)
-        pose[.eyeBlinkRight] = Float(closed)
+        pose[.eyeBlinkLeft] = max(Float(closed), Self.restingLid)
+        pose[.eyeBlinkRight] = max(Float(closed), Self.restingLid)
     }
 
     private func gaze(moment: ConversationMoment, dt: Float) {

@@ -133,3 +133,17 @@ struct RestTests {
         #expect(longestStill < 1)
     }
 }
+
+@Suite("The face at rest")
+struct RestingFaceTests {
+    @Test("waiting, a hint of a smile and relaxed lids; thinking, the lips press instead")
+    func restingLook() {
+        let animator = FaceAnimator(seed: 3)
+        var pose = FacePose()
+        for _ in 0..<120 { pose = animator.update(dt: 1.0 / 60, voice: nil, moment: .waiting) }
+        #expect(pose[.mouthSmileLeft] > 0.3 && pose[.mouthSmileRight] > 0.3)
+        #expect(pose[.eyeBlinkLeft] >= FaceAnimator.restingLid && pose[.eyeBlinkRight] >= FaceAnimator.restingLid)
+        for _ in 0..<180 { pose = animator.update(dt: 1.0 / 60, voice: nil, moment: .thinking) }
+        #expect(pose[.mouthSmileLeft] < 0.1)
+    }
+}
