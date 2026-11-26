@@ -89,9 +89,13 @@ officielle**, déjà connectée à ton compte.
 3. macOS demande, une seule fois, l'autorisation d'enregistrer l'audio du système.
 4. Visage se branche. Son état devient **« Connecté à Claude — lance le mode vocal »**, et la tête se
    matérialise (§ 8.2), puis s'anime au repos (respiration, clignements).
-5. Dans Claude Desktop, on dicte sa question, puis « Lire à voix haute » sur la réponse : dès la première
-   phrase, le visage parle. Claude Desktop ne tient pas de conversation parlée sur Mac (pilote, § 4) ; le
-   mode vocal de ChatGPT, lui, en tient une.
+5. Dans Claude Desktop, le **mode vocal** s'ouvre par le bouton en forme d'onde sonore, en bas à droite de
+   la fenêtre (documentation d'Anthropic) : mains libres, Claude écoute, répond à voix haute, et le visage
+   écoute, réfléchit, puis parle (§ 7.2). Ce n'est pas la **dictée** (le micro), qui remplit seulement la
+   zone de saisie : au premier essai, c'est elle qu'on a prise, avec « Lire à voix haute » sur la réponse,
+   et le visage parle aussi ainsi (pilote, § 4). L'état de Visage le rappelle : « Connecté à Claude.
+   Lancez son mode vocal : le bouton en forme d'onde sonore, en bas à droite de sa fenêtre. » Le mode
+   vocal de ChatGPT tient lui aussi une conversation.
 
 Les choix sont mémorisés : aux lancements suivants, Visage ne montre rien de plus, se rebranche seul et
 remet le visage comme on l'a laissé (affiché ou masqué, même mode, même taille). Il se rebranche aussi
@@ -116,7 +120,9 @@ Seules les apps sont prises en charge : pas de mode navigateur (Q5).
 - **Trouver le bon processus** : la liste `kAudioHardwarePropertyProcessObjectList`, filtrée par
   identifiant de bundle (`kAudioProcessPropertyBundleID`). Claude Desktop est une app Electron, dont le son
   sort d'un processus auxiliaire : on filtre donc par préfixe d'identifiant et par PID responsable. Les
-  identifiants exacts des deux apps sont relevés au pilote (lot 0), pas devinés.
+  identifiants exacts des deux apps sont relevés au pilote (lot 0), pas devinés. Sur macOS 26, Core Audio
+  suit exactement les identifiants donnés au tap : un auxiliaire né après le branchement (le service audio
+  de Claude, qui porte sa voix et son micro) fait refaire le tap.
 - **Couper sans perdre** : tant que le tap est actif, le son de l'app IA n'atteint plus le haut-parleur, et
   c'est Visage qui le rejoue.
 - **Tampon** : un tampon circulaire sans verrou (un producteur : l'`IOProc` ; un consommateur : la
@@ -130,16 +136,22 @@ Seules les apps sont prises en charge : pas de mode navigateur (Q5).
 - **Autorisation manquante** : l'app joue depuis six secondes, et rien de non nul n'en est venu depuis le
   branchement. Visage propose alors le panneau *Enregistrement de l'écran et de l'audio du système* de
   Réglages Système. Ni le silence de l'app ni l'absence de cycle audio ne prouvent rien : sur macOS 26, une
-  capture par identifiant ne tourne pas tant que l'app se tait. Un son entendu prouve l'autorisation. Une
-  autorisation donnée à une version antérieure de l'app (signature ad hoc) laisse le tap inerte : rien de
-  coupé, des zéros (pilote, § 4).
+  capture par identifiant ne tourne pas tant que l'app se tait. Un son entendu prouve l'autorisation. Un
+  tap inerte malgré l'autorisation cochée, rien de coupé et des zéros, a été vu une fois sur le pilote ;
+  sa cause n'est pas établie (pilote, § 4).
 - **Une seule horloge** : tout est daté en temps hôte (`mHostTime`) — capture, relecture, image affichée.
 - **Sûreté** : si Visage quitte ou plante, le son de l'IA doit revenir seul : la coupure ne dure que
   pendant la lecture du tap, et l'agrégat meurt avec le processus. **Bloquant** (critère 6, § 11.3) :
   mesuré au micro par le pilote (tests 2 et 3). Au lancement, Visage détruit tout tap public nommé
   « Visage » laissé par une version qui aurait planté.
-- **Micro (option)** : Visage lit seulement le niveau du micro, pour l'état « écoute ». Il n'enregistre
-  rien.
+- **Le micro de l'app IA** : Core Audio dit, sans autorisation, quand un processus de l'app a le micro
+  ouvert (`kAudioProcessPropertyIsRunningInput`), jamais ce qu'il entend. Visage le lit quatre fois par
+  seconde : son mode vocal ou sa dictée écoute (§ 7.2).
+- **Micro (option)** : seulement pendant que l'app IA tient le sien ouvert, Visage ouvre le micro, mesure
+  chaque tampon de 1 024 trames (moyenne quadratique) et le jette ; il le referme trois secondes après
+  l'app. Une voix, c'est 12 dB au-dessus de la pièce (le plus bas niveau des trois dernières secondes) et
+  −55 dBFS au moins, tenue 250 ms à travers les creux entre les syllabes. Rien n'est enregistré ni
+  envoyé.
 
 ## 6. Analyse de la voix
 
@@ -239,10 +251,16 @@ cohérent, intervalles aléatoires), pour que rien ne se répète.
 
 **Le moment de la conversation**
 
-- *écoute* (ton micro est actif) : le regard reste posé sur toi, la tête hoche aux pauses de ta phrase,
-  les sourcils suivent ton intonation ;
+- *écoute* (l'app IA a son micro ouvert, § 5) : le regard reste posé sur toi, sans s'en aller ; avec
+  l'option micro, la tête hoche souvent aux pauses de ta phrase (après 0,5 s de voix et 0,2 s de silence,
+  jamais pendant que tu parles), sans elle de temps en temps. Les sourcils qui suivent ton intonation
+  attendent : il faudrait analyser ta voix, pas seulement son niveau ;
 - *réflexion* (entre ta fin de phrase et sa réponse) : le regard monte ou s'écarte, la tête s'incline
-  légèrement, les lèvres se pincent ;
+  légèrement, les lèvres se pincent. Ta phrase est finie après 0,7 s de silence, si tu as parlé 0,3 s au
+  moins (option micro) ; une dictée est finie quand l'app referme son micro après 1 à 90 s (plus long,
+  c'était un mode vocal qu'on ferme). Sans réponse, la réflexion s'arrête au bout de 15 s ;
+- *parole* : la voix de l'IA, ses pauses de moins de 0,8 s comprises. Pendant 0,4 s encore, le micro
+  entend sa voix par les haut-parleurs : ce n'est pas toi ;
 - *attente* (personne ne parle) : les mouvements du tableau, seuls.
 
 **L'hologramme**
@@ -451,8 +469,9 @@ change de mode à chaud, depuis la barre des menus ou les réglages.
   dans la barre des menus quand on les ferme.
 - **Les réglages**, dans leur propre fenêtre aux couleurs de la charte, le logo animé en tête : à gauche,
   l'aperçu du visage au repos, tel que les choix le font ; à droite, en cartes, le visage (grille, jauge de
-  réalisme, taille de 50 à 200 %), la fenêtre (les deux modes, expliqués), la synchro (retard, avance,
-  décalage lèvres). À venir : les couches de l'hologramme, la couleur, la caméra et le micro (lot 6).
+  réalisme, taille de 50 à 200 %), l'hologramme (couleur, halo, lignes de balayage, socle et faisceau,
+  scintillement et glitchs), la conversation (l'IA écoute-t-elle ? l'option micro), la caméra, la fenêtre
+  (les deux modes, expliqués), la synchro (retard, avance, décalage lèvres).
 
 ## 10. Architecture technique
 
@@ -543,9 +562,10 @@ check.sh           la porte
 - **Pas de macros SwiftUI qui exigent Xcode** : `@State` et `#Preview` sont, dans ce SDK, des macros dont le
   greffon n'existe que dans Xcode ; la construction par les Command Line Tools échoue (pilote, § 2.5). Le
   modèle est `@Observable` (la macro Observation compile) et tenu par référence.
-- **Signature en développement** : la signature ad hoc change à chaque build, et macOS redemande alors
-  l'autorisation audio. Pour le développement, `VISAGE_SIGN_IDENTITY` permet à `build.sh` de signer avec un
-  certificat local auto-signé (gratuit, Trousseau).
+- **Signature en développement** : `build.sh` signe en ad hoc, avec un identifiant fixe. Visage, recompilé
+  à plusieurs reprises le 2026-11-26, a gardé son autorisation audio ; le pilote l'a perdue une fois, sans
+  cause établie (pilote, § 4). En cas de besoin, `VISAGE_SIGN_IDENTITY` permet à `build.sh` de signer avec
+  un certificat local auto-signé (gratuit, Trousseau).
 - **Réseau** : aucun. App Sandbox sans droit réseau, si la sandbox est compatible avec les taps (à vérifier
   au pilote).
 
@@ -596,7 +616,7 @@ reste du temps, comme sur les autres dépôts.
 
 | # | Risque | Parade |
 |---|---|---|
-| R1 | **Écho** : rejoué 150 ms plus tard, le son peut tromper l'annulation d'écho de l'app IA, qui s'entendrait elle-même et se couperait. | Au casque, aucun souci. En haut-parleurs, on mesure, puis on réduit D ou on conseille le casque. |
+| R1 | **Écho** : rejoué 150 ms plus tard, le son peut tromper l'annulation d'écho de l'app IA, qui s'entendrait elle-même et se couperait. | Au casque, aucun souci. En haut-parleurs, on mesure, puis on réduit D ou on conseille le casque. Ne se pose pas avec « Lire à voix haute » (pilote, § 4) ; se pose avec les modes vocaux mains libres de Claude et de ChatGPT, qui écoutent pendant qu'ils parlent. |
 | R2 | **Processus audio** : il faut trouver celui qui joue la voix (Claude Desktop est une app Electron) et le suivre quand l'app redémarre. | macOS 26 tape une app par son identifiant et la retrouve quand elle redémarre (pilote, tests 4 et 5) ; sinon, filtrer par préfixe et par PID responsable. |
 | R3 | **Sûreté de la coupure** : le son de l'IA doit revenir si Visage s'arrête. | Critère 6, bloquant. Tap privé ; mesure au micro par le pilote (tests 2 et 3). |
 | R4 | **Analyse sans modèle** insuffisante en français. | V2 Core ML (§ 6.2). |
@@ -632,8 +652,12 @@ reste du temps, comme sur les autres dépôts.
   au changement de visage, jauge de réalisme (§ 8.3). Reste le test à l'aveugle (R6) avec l'utilisateur.
 - **Lot 6** commencé le 2026-11-26, après le premier essai de l'app avec Claude : fenêtres au premier plan,
   deux modes, accueil et réglages à la charte avec le logo animé et l'aperçu, taille du visage, retour à
-  l'état laissé, fausse alerte d'autorisation corrigée. Restent la caméra, les couches de l'hologramme,
-  la robustesse (veille, changement de sortie) et la mesure de R1 avec ChatGPT.
+  l'état laissé, fausse alerte d'autorisation corrigée. Puis la robustesse (relance après la veille ou
+  quand la capture se fige, auxiliaire né après le branchement), les couches et la couleur de l'hologramme,
+  la caméra (regard et parallaxe, sens à confirmer avec l'utilisateur) et la conversation : le visage
+  écoute quand l'app IA a son micro ouvert, réfléchit après une phrase ou une dictée, et, avec l'option
+  micro, hoche la tête aux pauses. Restent l'essai du mode vocal de Claude Desktop avec l'utilisateur,
+  R1 (au casque d'abord, puis en haut-parleurs), et les mesures du § 11.3.
 - **Lot 7** à venir : doc et publication.
 
 ## 14. Hors périmètre

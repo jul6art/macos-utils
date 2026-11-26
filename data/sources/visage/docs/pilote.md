@@ -78,10 +78,10 @@ Le SDK de macOS 26 ajoute à `CATapDescription` `bundleIDs` (taper une app par s
 3. **Une autorisation manquante se détecte**, mais pas comme on le croyait : l'app joue depuis six secondes
    et rien de non nul n'en est venu depuis le branchement (§ 4). Trois secondes sans cycle audio ne
    prouvaient rien : sur macOS 26, une capture par identifiant ne tourne pas tant que l'app se tait.
-4. **Signature stable pendant le développement** (`VISAGE_SIGN_IDENTITY`, spécification § 10.2), sinon
-   chaque build perd l'autorisation, sans le dire (§ 4). Aucun certificat sur le Mac de développement au
-   2026-11-26 : `tccutil reset AudioCapture <identifiant>` puis une nouvelle demande, après une
-   recompilation.
+4. **Si l'autorisation devient inerte** (§ 4) : `tccutil reset AudioCapture <identifiant>` puis une
+   nouvelle demande, avec l'accord de l'utilisateur. On a d'abord cru qu'il fallait une signature stable
+   (`VISAGE_SIGN_IDENTITY`, spécification § 10.2), sinon chaque build perdrait l'autorisation ; Visage,
+   signé en ad hoc et recompilé à plusieurs reprises le même soir, l'a gardée.
 5. **Pas de macros SwiftUI** qui exigent Xcode (`@State`, `#Preview`) : un modèle `@Observable` tenu par
    référence.
 6. **macOS 15 minimum** : le test 4 confirme `bundleIDs` et `processRestoreEnabled` sur macOS 26, que Visage
@@ -106,11 +106,16 @@ Ce que les mesures ont appris :
   parler), il répond en texte, et « Lire à voix haute » lit la réponse, avec la voix et la vitesse choisies.
   Le visage parle donc quand Claude lit. R1, l'écho, ne se pose pas avec lui : il n'écoute pas pendant qu'il
   lit. Il reste à mesurer avec le mode vocal de ChatGPT.
+  *Rectificatif du même soir* : selon la documentation d'Anthropic, Claude Desktop a bien un mode vocal
+  mains libres, ouvert par le bouton en forme d'onde sonore, en bas à droite de la fenêtre ; ce qu'on a
+  pris pour lui est la dictée. Le mode vocal reste à essayer avec Visage, et R1 avec lui.
 - **R2, les identifiants** : l'app `com.anthropic.claudefordesktop`, sa voix dans un auxiliaire
   `….helper`. Le branchement par préfixe d'identifiant prend les deux.
-- **Une recompilation perd l'autorisation, sans un mot** : avec une signature ad hoc, macOS garde la coche
-  dans Réglages Système, mais le tap devient inerte. Il ne coupe plus l'app, et ne livre que des zéros. Il a
-  fallu `tccutil reset AudioCapture com.devinthehood.visage.pilot` et une nouvelle demande.
+- **Une fois, l'autorisation du pilote est devenue inerte, sans un mot** : macOS gardait la coche dans
+  Réglages Système, mais le tap ne coupait plus l'app et ne livrait que des zéros. Il a fallu
+  `tccutil reset AudioCapture com.devinthehood.visage.pilot` et une nouvelle demande. La cause n'est pas
+  établie : on l'a d'abord mise sur la recompilation, mais Visage a gardé son autorisation à chaque
+  recompilation du même soir.
 - **La fausse alerte d'autorisation** : l'app Visage disait « autorisation manquante » tant que Claude se
   taisait (§ 3, point 3), corrigé le soir même.
 - **Les mesures se gênent** : une copie du pilote restée d'une série précédente coupait la voix de test ;
