@@ -2,6 +2,7 @@ import CoreGraphics
 import FaceAnimation
 import Foundation
 import Metal
+import MetalKit
 import simd
 
 /// What the hologram looks like (spec, § 8.2, § 9.2).
@@ -11,6 +12,9 @@ public struct HoloSettings: Sendable {
     public var projector = true
     /// Transparent (alpha 0) for the floating windows; the charter's charbon for the classic one.
     public var background = SIMD4<Float>(0, 0, 0, 0)
+    /// From 0, the hologram of points, to 1, the face as a lit, textured surface (§ 8.3). Only the heads
+    /// that have surfaces take it.
+    public var realism: Float = 0
 
     public init() {}
 
@@ -34,12 +38,39 @@ public final class HoloRenderer: @unchecked Sendable {
     private var occluderBuffer: MTLBuffer?
     private var scene: MTLTexture?
     private var depth: MTLTexture?
+    private let surfacePipeline: MTLRenderPipelineState
+    /// The surfaces' depth alone, cut-outs included, before their colour: a translucent face shows its
+    /// nearest layer only, not the inside of the skull behind it.
+    private let surfaceDepthPipeline: MTLRenderPipelineState
+    private let nearest: MTLDepthStencilState
+    /// The surfaces' buffers and textures, made the first time the realism asks for them.
+    private var surfaceDraws: [SurfaceDraw]?
+    private var uvBuffer: MTLBuffer?
+
+    private struct SurfaceDraw {
+        let indices: MTLBuffer
+        let count: Int
+        let texture: MTLTexture
+        let look: SurfaceLook
+        /// Closed surfaces show their outer side only (else the inside of the cut neck shows under the
+        /// chin); strands, brows and lashes are cards seen from either side.
+        let cull: MTLCullMode
+    }
+
+    /// Same layout as `SurfaceLook` in the shaders.
+    private struct SurfaceLook {
+        var shine: Float
+        var sharpness: Float
+        var warmth: Float
+        var opacity: Float
+    }
     /// The head drawn: the charter's point head, or a MakeHuman face. Set, it shows at once; `fade(to:)`
     /// changes it gently.
     public var model: HeadModel {
         didSet {
             outgoing = nil
             occluderBuffer = Self.occluderBuffer(model, device: device)
+            surfaceDraws = nil
         }
     }
     /// The head fading out, and when it began to (the first frame drawn after the change).
@@ -79,13 +110,14 @@ public final class HoloRenderer: @unchecked Sendable {
         var pointScale: Float
         var glitch: Float
         var projector: Float
+        var realism: Float
         var background: SIMD4<Float>
     }
 
     public init?(model: HeadModel = PointHeadModel(), pixelFormat: MTLPixelFormat = .bgra8Unorm) {
         self.model = model
         guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue(),
-            let library = try? device.makeLibrary(source: HoloShaders.source, options: nil)
+            let library = try? device.makeLibrary(source: HoloShaders.source, options: Self.compileOptions)
         else { return nil }
         self.device = device
         self.queue = queue
@@ -118,6 +150,23 @@ public final class HoloRenderer: @unchecked Sendable {
         let hidden = MTLDepthStencilDescriptor()
         hidden.depthCompareFunction = .lessEqual
         hidden.isDepthWriteEnabled = false
+        // Surfaces are painted over what is behind them, a little or wholly as the realism grows.
+        let surfaces = MTLRenderPipelineDescriptor()
+        surfaces.vertexFunction = library.makeFunction(name: "surfaceVertex")
+        surfaces.fragmentFunction = library.makeFunction(name: "surfaceFragment")
+        surfaces.colorAttachments[0].pixelFormat = .rgba16Float
+        surfaces.colorAttachments[0].isBlendingEnabled = true
+        surfaces.colorAttachments[0].sourceRGBBlendFactor = .one
+        surfaces.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha
+        surfaces.colorAttachments[0].sourceAlphaBlendFactor = .one
+        surfaces.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha
+        surfaces.depthAttachmentPixelFormat = .depth32Float
+        let surfaceDepth = surfaces.copy() as! MTLRenderPipelineDescriptor
+        surfaceDepth.colorAttachments[0].writeMask = []
+        let nearest = MTLDepthStencilDescriptor()
+        nearest.depthCompareFunction = .lessEqual
+        nearest.isDepthWriteEnabled = false
+
         let unhidden = MTLDepthStencilDescriptor()
         unhidden.depthCompareFunction = .always
         unhidden.isDepthWriteEnabled = false
@@ -130,6 +179,9 @@ public final class HoloRenderer: @unchecked Sendable {
         guard let pointPipeline = try? device.makeRenderPipelineState(descriptor: points),
             let occluderPipeline = try? device.makeRenderPipelineState(descriptor: occluders),
             let compositePipeline = try? device.makeRenderPipelineState(descriptor: composite),
+            let surfacePipeline = try? device.makeRenderPipelineState(descriptor: surfaces),
+            let surfaceDepthPipeline = try? device.makeRenderPipelineState(descriptor: surfaceDepth),
+            let nearestState = device.makeDepthStencilState(descriptor: nearest),
             let hidingState = device.makeDepthStencilState(descriptor: hiding),
             let hiddenState = device.makeDepthStencilState(descriptor: hidden),
             let unhiddenState = device.makeDepthStencilState(descriptor: unhidden),
@@ -142,8 +194,52 @@ public final class HoloRenderer: @unchecked Sendable {
         self.hiding = hidingState
         self.hidden = hiddenState
         self.unhidden = unhiddenState
+        self.surfacePipeline = surfacePipeline
+        self.surfaceDepthPipeline = surfaceDepthPipeline
+        self.nearest = nearestState
         self.pointBuffer = pointBuffer
         occluderBuffer = Self.occluderBuffer(model, device: device)
+    }
+
+    /// The surfaces' two passes need the same depths to the last bit.
+    private static var compileOptions: MTLCompileOptions {
+        let options = MTLCompileOptions()
+        options.preserveInvariance = true
+        return options
+    }
+
+    /// The model's surfaces, ready to draw: made once per model, the first time they are needed.
+    private func surfaces() -> [SurfaceDraw] {
+        if let surfaceDraws { return surfaceDraws }
+        let loader = MTKTextureLoader(device: device)
+        let options: [MTKTextureLoader.Option: Any] = [.SRGB: false, .generateMipmaps: true, .allocateMipmaps: true]
+        var draws: [SurfaceDraw] = []
+        for surface in model.surfaces where !surface.triangles.isEmpty {
+            guard let texture = try? loader.newTexture(URL: surface.texture, options: options),
+                let indices = surface.triangles.withUnsafeBytes({
+                    device.makeBuffer(bytes: $0.baseAddress!, length: $0.count, options: .storageModeShared)
+                })
+            else { continue }
+            let look: SurfaceLook =
+                switch surface.material {
+                case .skin: SurfaceLook(shine: 0.06, sharpness: 24, warmth: 0.5, opacity: 1)
+                case .eye: SurfaceLook(shine: 0.9, sharpness: 300, warmth: 0, opacity: 1)
+                case .hair: SurfaceLook(shine: 0.1, sharpness: 40, warmth: 0.15, opacity: 1)
+                case .matte: SurfaceLook(shine: 0.02, sharpness: 10, warmth: 0.2, opacity: 1)
+                }
+            let cull: MTLCullMode = surface.material == .skin || surface.material == .eye ? .back : .none
+            draws.append(
+                SurfaceDraw(indices: indices, count: surface.triangles.count, texture: texture, look: look, cull: cull))
+        }
+        let uvs = model.uvs
+        uvBuffer =
+            uvs.isEmpty
+            ? nil
+            : uvs.withUnsafeBytes {
+                device.makeBuffer(bytes: $0.baseAddress!, length: $0.count, options: .storageModeShared)
+            }
+        surfaceDraws = draws
+        return draws
     }
 
     private static func occluderBuffer(_ model: HeadModel, device: MTLDevice) -> MTLBuffer? {
@@ -226,7 +322,8 @@ public final class HoloRenderer: @unchecked Sendable {
             viewport: SIMD2(Float(width), Float(height)), time: Float(time), glow: pose.glow,
             flicker: Self.flicker(time), pointScale: Float(height) * 0.0062 * model.pointScale,
             glitch: elapsed < 0.1 ? 1 : Self.glitch(time),
-            projector: settings.projector ? 1 : 0, background: settings.background)
+            projector: settings.projector ? 1 : 0, realism: model.surfaces.isEmpty ? 0 : settings.realism,
+            background: settings.background)
 
         let light = MTLRenderPassDescriptor()
         light.colorAttachments[0].texture = scene
@@ -240,7 +337,29 @@ public final class HoloRenderer: @unchecked Sendable {
         if let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: light) {
             encoder.setVertexBuffer(pointBuffer, offset: 0, index: 0)
             encoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
-            if let occluderBuffer {
+            let draws = uniforms.realism > 0 ? surfaces() : []
+            if !draws.isEmpty, let uvBuffer {
+                // The surfaces hide what is behind them, as the occluders do: their depth first, then their
+                // colour on the nearest layer only.
+                encoder.setVertexBuffer(uvBuffer, offset: 0, index: 2)
+                encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
+                encoder.setFrontFacing(.counterClockwise)  // glTF's
+                for (pipeline, state) in [(surfaceDepthPipeline, hiding), (surfacePipeline, nearest)] {
+                    encoder.setRenderPipelineState(pipeline)
+                    encoder.setDepthStencilState(state)
+                    for draw in draws {
+                        var look = draw.look
+                        look.opacity = uniforms.realism * weights.incoming
+                        encoder.setCullMode(draw.cull)
+                        encoder.setFragmentTexture(draw.texture, index: 0)
+                        encoder.setFragmentBytes(&look, length: MemoryLayout<SurfaceLook>.stride, index: 2)
+                        encoder.drawIndexedPrimitives(
+                            type: .triangle, indexCount: draw.count, indexType: .uint32, indexBuffer: draw.indices,
+                            indexBufferOffset: 0)
+                    }
+                }
+                encoder.setCullMode(.none)
+            } else if let occluderBuffer {
                 encoder.setRenderPipelineState(occluderPipeline)
                 encoder.setDepthStencilState(hiding)
                 encoder.drawIndexedPrimitives(

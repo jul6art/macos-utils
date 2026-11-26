@@ -17,6 +17,7 @@ enum HoloShaders {
             float pointScale;
             float glitch;
             float projector;
+            float realism;
             float4 background;
         };
 
@@ -39,7 +40,8 @@ enum HoloShaders {
             out.position = u.viewProjection * world;
             out.position.z = (u.viewProjection * tested).z / (u.viewProjection * tested).w * out.position.w;
             out.size = max(p.position.w * u.pointScale * (0.75 + 1.1 * rim * rim) * (0.4 + 0.6 * facing), 0.0);
-            out.light = p.normal.w * (0.55 + 0.65 * rim * facing) * (0.8 + 0.4 * u.glow) * facing;
+            out.light = p.normal.w * (0.55 + 0.65 * rim * facing) * (0.8 + 0.4 * u.glow) * facing
+                * (1.0 - u.realism);
             return out;
         }
 
@@ -47,6 +49,46 @@ enum HoloShaders {
         vertex float4 occluderVertex(uint id [[vertex_id]], const device GPUPoint* points [[buffer(0)]],
                                      constant Uniforms& u [[buffer(1)]]) {
             return u.viewProjection * (u.model * float4(points[id].position.xyz, 1.0));
+        }
+
+        // 0'. The face as a surface, for the realistic end (§ 8.3): textured, lit by a key light from above
+        // and the left, a fill from the right and a rim; tinted like the hologram while it is faint.
+        // Invariant: the depth pass and the colour pass must land on exactly the same depth.
+        struct SurfaceOut { float4 position [[position, invariant]]; float3 normal; float2 uv; float height; };
+        struct SurfaceLook { float shine; float sharpness; float warmth; float opacity; };
+
+        vertex SurfaceOut surfaceVertex(uint id [[vertex_id]], const device GPUPoint* points [[buffer(0)]],
+                                        constant Uniforms& u [[buffer(1)]], const device float2* uvs [[buffer(2)]]) {
+            SurfaceOut out;
+            out.position = u.viewProjection * (u.model * float4(points[id].position.xyz, 1.0));
+            out.normal = (u.model * float4(points[id].normal.xyz, 0.0)).xyz;
+            out.uv = uvs[id];
+            out.height = points[id].position.y;
+            return out;
+        }
+
+        fragment float4 surfaceFragment(SurfaceOut in [[stage_in]], texture2d<float> albedo [[texture(0)]],
+                                        constant Uniforms& u [[buffer(1)]], constant SurfaceLook& look [[buffer(2)]]) {
+            constexpr sampler s(filter::linear, mip_filter::linear, address::repeat);
+            float4 texel = albedo.sample(s, in.uv);
+            if (texel.a < 0.5) discard_fragment();
+            float3 n = normalize(in.normal);
+            if (n.z < 0.0) n = -n;  // cards and folds are seen from either side
+            float3 key = normalize(float3(-0.45, 0.5, 0.75));
+            float3 fill = normalize(float3(0.7, 0.05, 0.45));
+            float3 albedoLinear = texel.rgb * texel.rgb;
+            float wrapped = saturate((dot(n, key) + look.warmth) / (1.0 + look.warmth));
+            float3 lit = albedoLinear * (0.2 + 0.95 * wrapped + 0.3 * saturate(dot(n, fill)));
+            // Light through the skin: warm where light turns to shade.
+            lit += albedoLinear * float3(0.5, 0.12, 0.05) * look.warmth * wrapped * (1.0 - wrapped);
+            lit += pow(saturate(dot(n, normalize(key + float3(0.0, 0.0, 1.0)))), look.sharpness) * look.shine;
+            lit += pow(1.0 - saturate(n.z), 3.0) * 0.12;
+            float3 colour = sqrt(saturate(lit));
+            float3 tinted = u.colour.rgb * dot(colour, float3(0.299, 0.587, 0.114)) * 1.4;
+            float3 rgb = mix(tinted, colour, smoothstep(0.15, 0.9, u.realism));
+            // The neck, cut short, fades out rather than ending on a jagged edge.
+            float opacity = look.opacity * smoothstep(-1.3, -0.85, in.height);
+            return float4(rgb * opacity, opacity);
         }
 
         fragment float4 pointFragment(PointOut in [[stage_in]], float2 coord [[point_coord]],
@@ -91,21 +133,23 @@ enum HoloShaders {
                 halo += scene.sample(s, uv + direction * texel * 13.0) * 0.6;
             }
             halo /= 19.2;
-            float4 col = c + halo * (0.8 + 0.6 * u.glow);
+            // The hologram's layers fade as the face becomes real (§ 8.3).
+            float hologram = 1.0 - u.realism;
+            float4 col = c + halo * (0.8 + 0.6 * u.glow) * hologram;
 
-            float line = 0.76 + 0.24 * step(0.5, fract(in.position.y / 3.0));
+            float line = mix(1.0, 0.76 + 0.24 * step(0.5, fract(in.position.y / 3.0)), hologram);
             float bandAt = fract(u.time / 5.0) * 1.4 - 0.2;
             float band = exp(-pow((uv.y - bandAt) * 10.0, 2.0));
-            col.rgb *= line * u.flicker;
-            col.rgb += u.colour.rgb * band * 0.2 * saturate(col.a);
+            col.rgb *= line * mix(1.0, u.flicker, hologram);
+            col.rgb += u.colour.rgb * band * 0.2 * saturate(col.a) * hologram;
 
-            if (u.projector > 0.5) {
+            if (u.projector > 0.5 && hologram > 0.0) {
                 float2 p = (in.uv - float2(0.5, 0.94)) * float2(1.0, 4.5);
                 float plinth = exp(-pow(length(p) - 0.15, 2.0) * 1200.0) * 0.5 + exp(-dot(p, p) * 25.0) * 0.22;
                 float width = mix(0.12, 0.4, saturate((0.94 - in.uv.y) / 0.8));
                 float beam = saturate(1.0 - abs(in.uv.x - 0.5) / width) * saturate((in.uv.y - 0.15) / 0.79) * 0.09;
-                col.rgb += u.colour.rgb * (plinth + beam);
-                col.a = max(col.a, plinth + beam);
+                col.rgb += u.colour.rgb * (plinth + beam) * hologram;
+                col.a = max(col.a, (plinth + beam) * hologram);
             }
             float alpha = saturate(max(col.a, max(col.r, max(col.g, col.b))));
             float3 rgb = col.rgb + u.background.rgb * u.background.a * (1.0 - alpha);

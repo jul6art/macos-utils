@@ -2,13 +2,15 @@ import Foundation
 import simd
 
 /// A minimal reader of binary glTF 2.0 (.glb), for the faces of tools/faces (spec, § 8.1): positions,
-/// normals, triangles, and morph targets (dense or sparse) with their names. A few hundred lines instead of a library.
+/// normals, texture coordinates, triangles, and morph targets (dense or sparse) with their names. A few hundred lines instead of a library.
 struct GLBFile {
     struct Mesh {
         /// The node's name: `<face>.<part>` (head, eyes, eyebrows, eyelashes, teeth, tongue, hair).
         var name: String
         var positions: [SIMD3<Float>]
         var normals: [SIMD3<Float>]
+        /// Where each vertex takes its colour in the part's texture; empty when the file has none.
+        var uvs: [SIMD2<Float>]
         /// Three vertex indices per triangle.
         var triangles: [UInt32]
         /// Per target, in the order of `targetNames`: the vertices it moves and by how much.
@@ -48,6 +50,7 @@ struct GLBFile {
             else { continue }
             let positions = try reader.vectors(positionAccessor)
             let normals = try attributes["NORMAL"].map { try reader.vectors($0) } ?? []
+            let uvs = try attributes["TEXCOORD_0"].map { try reader.pairs($0) } ?? []
             guard primitive["mode"] as? Int ?? 4 == 4 else { throw Failure.malformed("not triangles") }
             let triangles = try (primitive["indices"] as? Int).map { try reader.integers($0) } ?? []
             var targets: [(indices: [Int32], deltas: [SIMD3<Float>])] = []
@@ -61,7 +64,7 @@ struct GLBFile {
             let names = (mesh["extras"] as? [String: Any])?["targetNames"] as? [String] ?? []
             meshes.append(
                 Mesh(
-                    name: node["name"] as? String ?? "", positions: positions, normals: normals,
+                    name: node["name"] as? String ?? "", positions: positions, normals: normals, uvs: uvs,
                     triangles: triangles.map(UInt32.init(bitPattern:)), targets: targets, targetNames: names))
         }
         self.meshes = meshes
@@ -109,6 +112,16 @@ struct GLBFile {
                 case 5123: Int32(binary.readUInt16(at: offset + item * 2))
                 default: Int32(bitPattern: binary.readUInt32(at: offset + item * 4))
                 }
+            }
+        }
+
+        /// A dense VEC2 float accessor.
+        func pairs(_ index: Int) throws -> [SIMD2<Float>] {
+            let accessor = try accessor(index)
+            guard let view = accessor["bufferView"] as? Int else { throw Failure.malformed("texture coordinates") }
+            let start = try offset(view: view, extra: accessor["byteOffset"] as? Int ?? 0)
+            return (0..<(accessor["count"] as? Int ?? 0)).map { item in
+                SIMD2(binary.readFloat(at: start + item * 8), binary.readFloat(at: start + item * 8 + 4))
             }
         }
 

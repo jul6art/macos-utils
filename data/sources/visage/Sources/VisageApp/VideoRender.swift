@@ -7,7 +7,9 @@ import ImageIO
 import UniformTypeIdentifiers
 import VoiceAnalysis
 
-/// `Visage --render <audio file> <video.mov> [<frames directory>] [--face <id>] [--mute]`: the offline render
+/// `Visage --render <audio file> <video.mov> [<frames directory>] [--face <id>] [--realism <0-100>|<a-b>]
+/// [--mute]`:
+/// the offline render
 /// of the spec (§ 11.2). The face speaks the file at 60 frames a second, its mouth read 60 ms ahead of the
 /// sound, then the file's own sound is laid under the picture — unless `--mute`, for watching in an open
 /// office. With a frames directory, a PNG every half second too.
@@ -16,7 +18,11 @@ enum VideoRender {
     static let fps = 60
     static let anticipation = 0.06
 
-    static func run(input: URL, output: URL, frames directory: URL?, face: String, mute: Bool) -> Int32 {
+    static func run(
+        input: URL, output: URL, frames directory: URL?, face: String, realism: ClosedRange<Float>, mute: Bool
+    )
+        -> Int32
+    {
         do {
             let analysis = try AudioFileAnalysis.analyse(input)
             guard let renderer = HoloRenderer(model: FaceLibrary.model(id: face)) else {
@@ -24,7 +30,7 @@ enum VideoRender {
             }
             let silent = output.deletingLastPathComponent().appending(path: ".\(UUID().uuidString).mov")
             defer { try? FileManager.default.removeItem(at: silent) }
-            try writeVideo(analysis: analysis, renderer: renderer, to: silent, frames: directory)
+            try writeVideo(analysis: analysis, renderer: renderer, realism: realism, to: silent, frames: directory)
             if mute {
                 try? FileManager.default.removeItem(at: output)
                 try FileManager.default.copyItem(at: silent, to: output)
@@ -40,7 +46,8 @@ enum VideoRender {
     }
 
     private static func writeVideo(
-        analysis: AudioFileAnalysis.Result, renderer: HoloRenderer, to url: URL, frames directory: URL?
+        analysis: AudioFileAnalysis.Result, renderer: HoloRenderer, realism: ClosedRange<Float>, to url: URL,
+        frames directory: URL?
     ) throws {
         let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
         let input = AVAssetWriterInput(
@@ -65,6 +72,9 @@ enum VideoRender {
         let frameCount = Int(analysis.duration * Double(fps)) + fps / 2
         for index in 0..<frameCount {
             let time = Double(index) / Double(fps)
+            // The gauge slides across the clip when the realism is a range.
+            let progress = Float(index) / Float(max(frameCount - 1, 1))
+            settings.realism = realism.lowerBound + (realism.upperBound - realism.lowerBound) * progress
             let hop = Int(((time + anticipation) * 100).rounded(.down))
             let voice = hop >= 0 && hop < analysis.frames.count ? analysis.frames[hop] : nil
             let moment: ConversationMoment = voice.map { $0.sound != .silence } == true ? .speaking : .waiting

@@ -57,7 +57,11 @@ enum Snapshots {
         } else {
             failures += 1
         }
-        if !FaceLibrary.faces.isEmpty, !writeFaceSheet(to: directory.appending(path: "faces.png")) {
+        // The faces as holograms, then as real as they get (§ 8.3).
+        for (name, realism) in [("faces", Float(0)), ("faces-real", 1)]
+        where !FaceLibrary.faces.isEmpty
+            && !writeFaceSheet(to: directory.appending(path: "\(name).png"), realism: realism)
+        {
             failures += 1
         }
         // The settings, their thumbnails already made (the window makes them the first time it opens).
@@ -73,7 +77,7 @@ enum Snapshots {
     }
 
     /// The faces side by side, at rest on charbon, five to a row: to compare them at a glance.
-    private static func writeFaceSheet(to url: URL) -> Bool {
+    private static func writeFaceSheet(to url: URL, realism: Float) -> Bool {
         let faces = FaceLibrary.faces
         let (width, height, columns) = (320, 400, 5)
         let rows = (faces.count + columns - 1) / columns
@@ -87,7 +91,7 @@ enum Snapshots {
             guard
                 let image = FaceLibrary.portrait(
                     FaceLibrary.model(id: face.id), renderer: renderer, width: width, height: height,
-                    seed: UInt32(index + 1))
+                    seed: UInt32(index + 1), realism: realism)
             else { return false }
             let (column, row) = (index % columns, index / columns)
             sheet.draw(

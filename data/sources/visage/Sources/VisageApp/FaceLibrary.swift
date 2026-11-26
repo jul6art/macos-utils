@@ -34,15 +34,16 @@ enum FaceLibrary {
     }
 
     /// A head at rest on charbon, as `renderer` draws it: the thumbnails and the snapshots' sheet.
-    static func portrait(_ head: HeadModel, renderer: HoloRenderer, width: Int, height: Int, seed: UInt32)
-        -> CGImage?
-    {
+    static func portrait(
+        _ head: HeadModel, renderer: HoloRenderer, width: Int, height: Int, seed: UInt32, realism: Float = 0
+    ) -> CGImage? {
         renderer.model = head
         let animator = FaceAnimator(seed: seed)
         var pose = FacePose()
         for _ in 0..<90 { pose = animator.update(dt: 1.0 / 60, voice: nil, moment: .waiting) }
         var settings = HoloSettings()
         settings.background = HoloSettings.charbon
+        settings.realism = realism
         return renderer.image(pose: pose, time: 1.5, settings: settings, width: width, height: height)
     }
 

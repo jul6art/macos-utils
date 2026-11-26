@@ -13,12 +13,37 @@ public protocol HeadModel: AnyObject, Sendable {
     /// Triangles between the points, three indices each, drawn first into the depth buffer only: what
     /// lies behind them is hidden, as behind a real head. Empty: nothing hides anything.
     var occluders: [UInt32] { get }
+    /// The head as surfaces, for the realistic end of the hologram (spec, § 8.3); empty: points only.
+    var surfaces: [HeadSurface] { get }
+    /// Per point: where it takes its colour in its surface's texture.
+    var uvs: [SIMD2<Float>] { get }
     /// Per point: the position (xyz) and the size (w), for this pose.
     func shape(_ pose: FacePose, time: Double) -> [SIMD4<Float>]
 }
 
 extension HeadModel {
     public var occluders: [UInt32] { [] }
+    public var surfaces: [HeadSurface] { [] }
+    public var uvs: [SIMD2<Float>] { [] }
+}
+
+/// A part of a head drawn as a surface: its triangles between the points, its texture, and how it takes
+/// the light.
+public struct HeadSurface: Sendable {
+    public enum Material: Sendable {
+        /// Soft, warm in the shade, a faint sheen.
+        case skin
+        /// Wet: a small, sharp highlight.
+        case eye
+        /// Strands: cut out where their texture is transparent, a soft sheen.
+        case hair
+        /// Brows, lashes, teeth, tongue: cut out, matte.
+        case matte
+    }
+
+    public let triangles: [UInt32]
+    public let texture: URL
+    public let material: Material
 }
 
 /// The charter's point head (PointHead).
@@ -43,6 +68,8 @@ public final class MeshHead: HeadModel {
     public var pointCount: Int { base.count }
     public let pointScale: Float = 0.42
     public let occluders: [UInt32]
+    public let surfaces: [HeadSurface]
+    public let uvs: [SIMD2<Float>]
 
     private let base: [SIMD4<Float>]
     /// Per `FaceShape`: the points it moves, and by how much, in head units.
@@ -80,6 +107,9 @@ public final class MeshHead: HeadModel {
         var eyes: [(indices: [Int32], centre: SIMD3<Float>)] = []
         var heads: [Range<Int>] = []
         var occluders: [UInt32] = []
+        var surfaces: [HeadSurface] = []
+        var uvs: [SIMD2<Float>] = []
+        let folder = url.deletingLastPathComponent()
         for mesh in file.meshes {
             let part = String(mesh.name.split(separator: ".").last ?? "")
             let look = Self.parts[part] ?? (1, 0.7)
@@ -88,6 +118,21 @@ public final class MeshHead: HeadModel {
                 base.append(SIMD4(place(position), look.size))
                 let normal = index < mesh.normals.count ? simd_normalize(mesh.normals[index]) : SIMD3(0, 0, 1)
                 normals.append(SIMD4(normal, look.brightness))
+                uvs.append(index < mesh.uvs.count ? mesh.uvs[index] : .zero)
+            }
+            let texture = ["jpg", "png"].map { folder.appending(path: "\(mesh.name).\($0)") }
+                .first { FileManager.default.fileExists(atPath: $0.path) }
+            if let texture {
+                let material: HeadSurface.Material =
+                    switch part {
+                    case "head": .skin
+                    case "eyes": .eye
+                    case "hair": .hair
+                    default: .matte
+                    }
+                surfaces.append(
+                    HeadSurface(
+                        triangles: mesh.triangles.map { $0 + UInt32(offset) }, texture: texture, material: material))
             }
             for (targetIndex, name) in mesh.targetNames.enumerated() {
                 guard let shape = FaceShape.allCases.first(where: { $0.name == name }), targetIndex < mesh.targets.count
@@ -122,6 +167,7 @@ public final class MeshHead: HeadModel {
                     }
                 }
             }
+            Self.dropTwins(Int(offset)..<base.count, base: &base, normals: &normals)
         }
         // MakeHuman's mesh is far denser around the eyes, the lips and the ears than on the cheeks; in
         // additive light, more points make more light. Each point of the head gives up some of its
@@ -134,6 +180,24 @@ public final class MeshHead: HeadModel {
         self.shapes = shapes
         self.eyes = eyes
         self.occluders = occluders
+        // Skin first, then what is cut out of its texture: brows, lashes and strands lie over the skin.
+        self.surfaces =
+            surfaces.filter { $0.material == .skin || $0.material == .eye }
+            + surfaces.filter { $0.material != .skin && $0.material != .eye }
+        self.uvs = uvs
+    }
+
+    /// A vertex on a seam of the texture is exported once per side, at the same place: drawn twice, the
+    /// seams would light up. The twin stays for the surface, not as a point.
+    static func dropTwins(_ range: Range<Int>, base: inout [SIMD4<Float>], normals: inout [SIMD4<Float>]) {
+        var seen = Set<SIMD3<Int32>>()
+        for index in range {
+            let key = SIMD3<Int32>((SIMD3(base[index].x, base[index].y, base[index].z) * 1e4).rounded(.toNearestOrEven))
+            if !seen.insert(key).inserted {
+                base[index].w = 0
+                normals[index].w = 0
+            }
+        }
     }
 
     /// Dims the points of `range` by how crowded they are: `(typical / neighbours)^evenness`, neighbours
@@ -145,7 +209,8 @@ public final class MeshHead: HeadModel {
                 Int32((point.z / crowdRadius).rounded(.down)))
         }
         var grid: [SIMD3<Int32>: [Int]] = [:]
-        for index in range { grid[cell(base[index]), default: []].append(index) }
+        // Twins (size 0) are not neighbours: they are not drawn.
+        for index in range where base[index].w > 0 { grid[cell(base[index]), default: []].append(index) }
         var counts: [Int] = []
         counts.reserveCapacity(range.count)
         for index in range {
