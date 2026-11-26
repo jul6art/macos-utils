@@ -79,7 +79,6 @@ data/
 └── sources/
     ├── appify.sh                   # shell script → .app wrapper
     ├── custom_macos_app.sh         # payload template to adapt
-    ├── custom_sourcetree.app.zip   # finished example
     ├── awake/                      # Swift sources + Info.plist + build.sh + icon/
     └── siphon/                     # Swift sources + Info.plist + build.sh + icon/
 ```

@@ -40,11 +40,6 @@ Only the tip of `master` is maintained. There are no releases to backport to.
   for it, or that writes somewhere only an administrator can, is in scope.
 * **Persistence that outlives uninstallation** — Awake's launch-at-login entry
   surviving the removal of the app, for instance.
-* **The pre-built example.** `data/sources/custom_sourcetree.app.zip` is a
-  finished example committed as a binary: nobody can read it the way they can
-  read a script. If its contents do not match what `custom_macos_app.sh`
-  produces, that is a serious report, and it is the kind of thing worth
-  checking.
 * **A `.app` produced by `appify.sh` being trivially repointed** at a different
   payload once installed, since the bundle is unsigned by construction.
 
@@ -73,8 +68,7 @@ Please include:
 * which utility and which file, with the line number,
 * your macOS version and whether the Mac is Apple silicon or Intel,
 * the exact command you ran and what it did that the documentation does not
-  describe,
-* for the pre-built example: how you inspected it, and what you found.
+  describe.
 
 ## What to expect
 

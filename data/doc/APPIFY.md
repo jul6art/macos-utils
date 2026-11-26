@@ -33,7 +33,6 @@ Sources
 | --- | --- |
 | [appify.sh](/data/sources/appify.sh) | the wrapper — turns a `.sh` into a `.app` |
 | [custom_macos_app.sh](/data/sources/custom_macos_app.sh) | payload template to copy and adapt |
-| [custom_sourcetree.app.zip](/data/sources/custom_sourcetree.app.zip) | a finished example, icon included |
 
 `appify.sh` is vendored from [Thomas Aylott's original gist](https://gist.github.com/subtleGradient/674099)
 so nothing else needs cloning.
