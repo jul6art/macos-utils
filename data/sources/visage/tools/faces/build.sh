@@ -19,5 +19,5 @@ fi;
 
 mkdir -p "${OUT}";
 "${BLENDER}" -b --factory-startup --python "${DIR}/build_faces.py" -- "${DIR}/presets.json" "${OUT}" "$@" 2>&1 \
-	| grep -E "^FACE|^SEEN|Error|Traceback";
+	| grep -E "^FACE|^SEEN|^TIDY|Error|Traceback";
 cp "${DIR}/presets.json" "${OUT}/faces.json";
