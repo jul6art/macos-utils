@@ -210,7 +210,7 @@ public final class FaceAnimator: @unchecked Sendable {
 
     /// The upper lids at rest, over the top of the iris as in a relaxed face: wide open, MakeHuman's eyes
     /// stared.
-    static let restingLid: Float = 0.1
+    public static let restingLid: Float = 0.1
     /// A hint of a smile, waiting or listening: a neutral face reads as sullen. Not while thinking (the lips
     /// press) nor speaking (the voice moves them).
     static let restingSmile: Float = 0.4
