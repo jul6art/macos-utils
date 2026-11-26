@@ -49,6 +49,8 @@ public final class AudioCapture: @unchecked Sendable {
     private let outputStartFrame = Atomic<Int>(0)
     private let outputHostTime = Atomic<UInt64>(0)
     public let callbacks = Atomic<Int>(0)
+    /// Callbacks that brought anything but zeros: proof that macOS lets the app's sound through.
+    public let heardCallbacks = Atomic<Int>(0)
     public let overloads = Atomic<Int>(0)
 
     public init() {
@@ -235,6 +237,7 @@ public final class AudioCapture: @unchecked Sendable {
 
         // 1. Capture into the ring, and measure the level every 10 ms.
         let written = writtenFrames.load(ordering: .relaxed)
+        var heard = false
         for index in 0..<frames {
             var left: Float = 0
             var right: Float = 0
@@ -242,6 +245,7 @@ public final class AudioCapture: @unchecked Sendable {
                 left = source.left[index * source.leftStride]
                 right = source.right[index * source.rightStride]
             }
+            if left != 0 || right != 0 { heard = true }
             ring.write(frame: written + index, left: left, right: right)
             hopSum += 0.5 * (left * left + right * right)
             hopFill += 1
@@ -253,6 +257,8 @@ public final class AudioCapture: @unchecked Sendable {
                 hopFill = 0
             }
         }
+
+        if heard { heardCallbacks.wrappingAdd(1, ordering: .relaxed) }
 
         // 2. Play back `delay` behind what was just captured.
         let start = written - delayFrames.load(ordering: .relaxed)
