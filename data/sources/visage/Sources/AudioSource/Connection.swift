@@ -14,8 +14,9 @@ public final class Connection {
         case notInstalled
         case starting
         case waitingForPermission
-        /// The app has been playing for a while and nothing of it came through: macOS keeps its sound from
-        /// Visage (not allowed, or allowed for an earlier build of the app).
+        /// The app has been playing for a while and nothing of it came through, or the capture would not run
+        /// under it even restarted: macOS keeps its sound from Visage (not allowed, or allowed for an earlier
+        /// build of the app).
         case permissionMissing
         /// Process mode only: the app has no audio process yet; it gets one when it first speaks.
         case waitingForApp
@@ -46,6 +47,12 @@ public final class Connection {
     @ObservationIgnored private var watchdog: Timer?
     /// How long the app has been playing, in watchdog ticks (seconds), while the capture listens.
     @ObservationIgnored private var playingSeconds = 0.0
+    /// The capture's callbacks at the last tick, how long they have not moved while the app plays, and how
+    /// many restarts that has cost since they last moved.
+    @ObservationIgnored private var lastCallbacks = 0
+    @ObservationIgnored private var stalledSeconds = 0.0
+    @ObservationIgnored private var stallRestarts = 0
+    @ObservationIgnored private var wakeObserver: NSObjectProtocol?
     @ObservationIgnored private var outputListener: AudioObjectPropertyListenerBlock?
 
     public init(delayMilliseconds: Int) {
@@ -69,6 +76,12 @@ public final class Connection {
         watchdog = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             MainActor.assumeIsolated { self.watch() }
         }
+        // After sleep, the aggregate device may be gone: start again.
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { self.restart() }
+        }
         start(bundleID: installation.bundleID)
     }
 
@@ -76,6 +89,8 @@ public final class Connection {
         generation += 1
         watchdog?.invalidate()
         watchdog = nil
+        if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }
+        wakeObserver = nil
         unwatchOutputDevice()
         stopCapture()
         app = nil
@@ -131,6 +146,8 @@ public final class Connection {
         }
         self.capture = capture
         playingSeconds = 0
+        lastCallbacks = 0
+        stalledSeconds = 0
         // Connected, and listening: whether macOS lets the sound through shows only once the app plays.
         state = .connected
     }
@@ -144,6 +161,30 @@ public final class Connection {
     }
 
     nonisolated public static let silentPlayLimit = 6.0
+
+    public enum StallVerdict: Sendable, Equatable {
+        case fine
+        /// The app plays and the capture stopped (sleep, a device gone, a stuck IO): start it again.
+        case restart
+        /// Restarts did not bring it back: macOS refuses the capture.
+        case refused
+    }
+
+    /// What the watchdog does about a capture whose callbacks have not moved for `stalled` seconds while the
+    /// app plays: wait `stallLimit` seconds, restart, and after `restartLimit` restarts in vain, give up. A
+    /// silent app tells nothing: on macOS 26, a capture by bundle ID does not run while the app is silent.
+    nonisolated public static func stallVerdict(stalled seconds: Double, restarts: Int) -> StallVerdict {
+        guard seconds >= stallLimit else { return .fine }
+        return restarts >= restartLimit ? .refused : .restart
+    }
+
+    nonisolated public static let stallLimit = 2.0
+    nonisolated public static let restartLimit = 2
+
+    private func restart() {
+        guard let app, capture != nil, let bundleID = app.installation?.bundleID ?? app.bundleIDs.first else { return }
+        start(bundleID: bundleID)
+    }
 
     private func stopCapture() {
         capture?.stop()
@@ -170,7 +211,24 @@ public final class Connection {
             }
             // Is the app's sound coming through? The user may also have allowed it meanwhile.
             guard let capture else { return }
-            playingSeconds = processes.contains(where: \.isRunningOutput) ? playingSeconds + 1 : 0
+            let playing = processes.contains(where: \.isRunningOutput)
+            // Has the capture stopped under a playing app?
+            let callbacks = capture.callbacks.load(ordering: .relaxed)
+            if callbacks != lastCallbacks { stallRestarts = 0 }
+            stalledSeconds = playing && callbacks == lastCallbacks ? stalledSeconds + 1 : 0
+            lastCallbacks = callbacks
+            switch Self.stallVerdict(stalled: stalledSeconds, restarts: stallRestarts) {
+            case .restart:
+                stallRestarts += 1
+                start(bundleID: bundleID)
+                return
+            case .refused:
+                if state != .permissionMissing { state = .permissionMissing }
+                return
+            case .fine:
+                break
+            }
+            playingSeconds = playing ? playingSeconds + 1 : 0
             let missing = Self.permissionLooksMissing(
                 heardSomething: capture.heardCallbacks.load(ordering: .relaxed) > 0, playingFor: playingSeconds)
             if missing != (state == .permissionMissing) { state = missing ? .permissionMissing : .connected }
@@ -197,8 +255,8 @@ public final class Connection {
     }
 
     /// Headphones plugged in, AirPods connected: the aggregate device follows the old output; rebuild it.
+    /// A new default output (headphones plugged in, AirPods): the aggregate is built on the old one.
     private func outputDeviceChanged() {
-        guard let app, capture != nil, let bundleID = app.installation?.bundleID ?? app.bundleIDs.first else { return }
-        start(bundleID: bundleID)
+        restart()
     }
 }
