@@ -2,23 +2,30 @@ import AudioSource
 import Shared
 import SwiftUI
 
-/// The face's window content. Until the hologram renderer (lot 3), the charter's mark stands in for the
-/// face, drawn once, with the connection's state beneath it.
+/// The face's window content: the hologram, and the connection's state beneath it until it speaks. Without
+/// Metal, the charter's mark stands in.
 struct FaceView: View {
     let model: AppModel
 
     var body: some View {
-        VStack(spacing: 14) {
-            Canvas { context, size in
-                MarkDrawing.draw(in: &context, size: size, glow: true)
+        ZStack(alignment: .bottom) {
+            if model.faceDriver.renderer != nil {
+                HoloView(driver: model.faceDriver)
+            } else {
+                Canvas { context, size in
+                    MarkDrawing.draw(in: &context, size: size, glow: true)
+                }
+                .aspectRatio(1, contentMode: .fit)
+                .padding(24)
             }
-            .aspectRatio(1, contentMode: .fit)
-            Text(caption)
-                .font(.callout)
-                .foregroundStyle(Palette.orPale.opacity(0.85))
-                .multilineTextAlignment(.center)
+            if model.connection.state != .connected {
+                Text(caption)
+                    .font(.callout)
+                    .foregroundStyle(Palette.orPale.opacity(0.85))
+                    .multilineTextAlignment(.center)
+                    .padding(.bottom, 16)
+            }
         }
-        .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contextMenu {
             MenuContent(model: model)

@@ -1,5 +1,7 @@
 import AppKit
 import AudioSource
+import FaceAnimation
+import HoloRenderer
 import SwiftUI
 
 /// `Visage --snapshot <directory>`: the screens, rendered offscreen to PNG files, in every state that
@@ -34,6 +36,25 @@ enum Snapshots {
         }
         let face = MarkView(size: 360).padding(20).background(Color(nsColor: Palette.charbon))
         if !write(face, size: NSSize(width: 400, height: 400), to: directory.appending(path: "face.png")) {
+            failures += 1
+        }
+        // The hologram at rest, transparent (the floating windows) and on charbon (the classic one).
+        if let renderer = HoloRenderer() {
+            let animator = FaceAnimator(seed: 1)
+            var pose = FacePose()
+            for _ in 0..<90 { pose = animator.update(dt: 1.0 / 60, voice: nil, moment: .waiting) }
+            var settings = HoloSettings()
+            for (name, background) in [
+                ("hologram-transparent", SIMD4<Float>(0, 0, 0, 0)), ("hologram-classic", HoloSettings.charbon),
+            ] {
+                settings.background = background
+                if let image = renderer.image(pose: pose, time: 1.5, settings: settings, width: 480, height: 600) {
+                    VideoRender.savePNG(image, to: directory.appending(path: "\(name).png"))
+                } else {
+                    failures += 1
+                }
+            }
+        } else {
             failures += 1
         }
         return failures == 0 ? 0 : 1
