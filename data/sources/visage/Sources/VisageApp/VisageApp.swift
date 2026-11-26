@@ -56,9 +56,6 @@ struct VisageApp: App {
         } label: {
             Image(nsImage: MenuBarIcon.image)
         }
-        Settings {
-            SettingsView(model: delegate.model)
-        }
     }
 }
 
