@@ -18,7 +18,9 @@ PILOT_BIN="${PILOT_APP}/Contents/MacOS/VisagePilot";
 STANDIN_APP="${DIR}/build/VoiceStandIn.app";
 LOGS="${HOME}/Library/Logs/VisagePilot";
 OUT="${DIR}/results";
-VOICE="${DIR}/build/voice.aiff";
+# Three times the text (about a minute): a permission prompt answered late no longer outlasts the voice
+# before the last measures (2026-11-26).
+VOICE="${DIR}/build/voice-long.aiff";
 CLAUDE=0;
 
 for arg in "$@"; do
@@ -36,9 +38,13 @@ if osascript -e 'output muted of (get volume settings)' | grep -q true; then
 fi;
 mkdir -p "${OUT}";
 rm -f "${OUT}"/*.json "${OUT}"/*.txt;
+# A pilot left over from an earlier run mutes the test voice and skews every measure (2026-11-26).
+pkill -9 -f "VisagePilot.app/Contents/MacOS/VisagePilot" || true;
+pkill -f "VoiceStandIn.app/Contents/MacOS/VoiceStandIn" || true;
 if [ ! -f "${VOICE}" ]; then
-	say -v Jacques -o "${VOICE}" "Bonjour. Je suis la voix de test du pilote de Visage. Papa boit un bon bol de lait au miel, puis il part promener le petit chien dans le parc, sous la pluie de mai. Maman m'a bien dit : passe par le bout du pont, prends le bus de midi. Bébé, pomme, bambou, papillon, mimosa, problème, possible, immobile." \
-		|| say -o "${VOICE}" "This is the test voice of the Visage pilot.";
+	TEXT="Bonjour. Je suis la voix de test du pilote de Visage. Papa boit un bon bol de lait au miel, puis il part promener le petit chien dans le parc, sous la pluie de mai. Maman m'a bien dit : passe par le bout du pont, prends le bus de midi. Bébé, pomme, bambou, papillon, mimosa, problème, possible, immobile.";
+	say -v Jacques -o "${VOICE}" "${TEXT} ${TEXT} ${TEXT}" \
+		|| say -o "${VOICE}" "This is the test voice of the Visage pilot. This is the test voice of the Visage pilot.";
 fi;
 
 status() { # status <key>: a field of the pilot's status
