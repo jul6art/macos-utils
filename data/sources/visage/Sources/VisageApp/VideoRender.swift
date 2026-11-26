@@ -7,22 +7,30 @@ import ImageIO
 import UniformTypeIdentifiers
 import VoiceAnalysis
 
-/// `Visage --render <audio file> <video.mov> [<frames directory>]`: the offline render of the spec
-/// (§ 11.2). The face speaks the file at 60 frames a second, its mouth read 60 ms ahead of the sound, then
-/// the file's own sound is laid under the picture. With a frames directory, a PNG every half second too.
+/// `Visage --render <audio file> <video.mov> [<frames directory>] [--face <id>] [--mute]`: the offline render
+/// of the spec (§ 11.2). The face speaks the file at 60 frames a second, its mouth read 60 ms ahead of the
+/// sound, then the file's own sound is laid under the picture — unless `--mute`, for watching in an open
+/// office. With a frames directory, a PNG every half second too.
 enum VideoRender {
     static let size = (width: 720, height: 900)
     static let fps = 60
     static let anticipation = 0.06
 
-    static func run(input: URL, output: URL, frames directory: URL?) -> Int32 {
+    static func run(input: URL, output: URL, frames directory: URL?, face: String, mute: Bool) -> Int32 {
         do {
             let analysis = try AudioFileAnalysis.analyse(input)
-            guard let renderer = HoloRenderer() else { throw CocoaError(.featureUnsupported) }
+            guard let renderer = HoloRenderer(model: FaceLibrary.model(id: face)) else {
+                throw CocoaError(.featureUnsupported)
+            }
             let silent = output.deletingLastPathComponent().appending(path: ".\(UUID().uuidString).mov")
             defer { try? FileManager.default.removeItem(at: silent) }
             try writeVideo(analysis: analysis, renderer: renderer, to: silent, frames: directory)
-            try addSound(video: silent, audio: input, to: output)
+            if mute {
+                try? FileManager.default.removeItem(at: output)
+                try FileManager.default.copyItem(at: silent, to: output)
+            } else {
+                try addSound(video: silent, audio: input, to: output)
+            }
             print("\(output.path): \(String(format: "%.2f", analysis.duration)) s, \(fps) fps")
             return 0
         } catch {

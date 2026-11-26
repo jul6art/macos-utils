@@ -17,11 +17,15 @@ enum VisageMain {
             exit(Snapshots.render(into: URL(fileURLWithPath: arguments[index + 1])))
         }
         if let index = arguments.firstIndex(of: "--render"), index + 2 < arguments.count {
-            let frames = index + 3 < arguments.count ? URL(fileURLWithPath: arguments[index + 3]) : nil
+            let framesArgument = index + 3 < arguments.count ? arguments[index + 3] : nil
+            let frames = framesArgument.flatMap { $0.hasPrefix("--") ? nil : URL(fileURLWithPath: $0) }
+            let face = arguments.firstIndex(of: "--face").flatMap { $0 + 1 < arguments.count ? arguments[$0 + 1] : nil }
             exit(
                 VideoRender.run(
                     input: URL(fileURLWithPath: arguments[index + 1]),
-                    output: URL(fileURLWithPath: arguments[index + 2]), frames: frames))
+                    output: URL(fileURLWithPath: arguments[index + 2]), frames: frames,
+                    face: face ?? FaceLibrary.faces.first?.id ?? FaceLibrary.points,
+                    mute: arguments.contains("--mute")))
         }
         if let index = arguments.firstIndex(of: "--analyse"), index + 2 < arguments.count {
             exit(
