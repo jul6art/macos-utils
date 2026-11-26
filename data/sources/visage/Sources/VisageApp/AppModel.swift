@@ -31,6 +31,7 @@ final class AppModel {
     @ObservationIgnored private let defaults = UserDefaults.standard
     @ObservationIgnored private lazy var faceWindow = FaceWindowController(model: self)
     @ObservationIgnored private lazy var connectWindow = ConnectWindowController(model: self)
+    @ObservationIgnored lazy var faceDriver = FaceDriver(model: self)
 
     private enum Key {
         static let app = "app"
