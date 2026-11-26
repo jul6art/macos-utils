@@ -1,8 +1,8 @@
 # Visage — pilote (lot 0)
 
-> **Statut au 2026-11-26** : la capture et la relecture retardée marchent ; trois découvertes changent la
-> conception (§ 3). Restent cinq mesures, qui demandent le son du Mac allumé, deux autorisations, et Claude
-> Desktop installé (§ 4). Le verdict final s'écrira après elles.
+> **Statut au 2026-11-26, au soir** : les cinq mesures sont faites, avec l'utilisateur, son allumé et
+> Claude Desktop installé (§ 4). **Verdict : go** (§ 5). Visage capte la voix de Claude, la relit
+> retardée sans dégât, et la bouche la suit ; l'app elle-même a parlé avec la voix de Claude le soir même.
 
 ## 1. Ce que contient le pilote
 
@@ -75,45 +75,53 @@ Le SDK de macOS 26 ajoute à `CATapDescription` `bundleIDs` (taper une app par s
 1. **Tap privé**, toujours. Au lancement, Visage détruit tout tap public nommé « Visage » laissé par une
    version qui aurait planté.
 2. **La capture démarre hors du fil principal**, et l'interface dit « en attente de ton autorisation ».
-3. **Une autorisation manquante se détecte** : aucun cycle audio dans les 3 s qui suivent le démarrage.
-   Visage ouvre alors le bon panneau de Réglages Système.
+3. **Une autorisation manquante se détecte**, mais pas comme on le croyait : l'app joue depuis six secondes
+   et rien de non nul n'en est venu depuis le branchement (§ 4). Trois secondes sans cycle audio ne
+   prouvaient rien : sur macOS 26, une capture par identifiant ne tourne pas tant que l'app se tait.
 4. **Signature stable pendant le développement** (`VISAGE_SIGN_IDENTITY`, spécification § 10.2), sinon
-   chaque build redemande l'autorisation.
+   chaque build perd l'autorisation, sans le dire (§ 4). Aucun certificat sur le Mac de développement au
+   2026-11-26 : `tccutil reset AudioCapture <identifiant>` puis une nouvelle demande, après une
+   recompilation.
 5. **Pas de macros SwiftUI** qui exigent Xcode (`@State`, `#Preview`) : un modèle `@Observable` tenu par
    référence.
-6. **macOS 26 minimum**, si le test 4 confirme `bundleIDs` et `processRestoreEnabled`, au lieu de 14.2.
+6. **macOS 15 minimum** : le test 4 confirme `bundleIDs` et `processRestoreEnabled` sur macOS 26, que Visage
+   prend quand il les trouve ; sur macOS 15, il suit les processus lui-même. Exiger macOS 26 écarterait
+   presque tous les Mac Intel (quatre modèles seulement le reçoivent), dont celui de l'utilisateur.
 
-## 4. Ce qui reste : cinq mesures, dix minutes
+## 4. Les mesures du 2026-11-26, au soir
 
-Il faut : **le son du Mac allumé** (il était coupé), répondre **Autoriser** aux deux demandes (audio du
-système, micro), et **Claude Desktop** installé et connecté pour le test 5.
+Avec l'utilisateur, haut-parleurs du MacBook Pro à 56 %, micro intégré comme oreille.
 
-```shell
-sh data/sources/visage/pilot/build.sh        # si le pilote n'est pas construit
-sh data/sources/visage/pilot/run-tests.sh --claude
-```
-
-| Test | Mesure | Réussi si |
+| Test | Mesure | Résultat |
 |---|---|---|
-| 1 · capture par processus | niveau capté, avance réelle, écarts de trames, surcharges, CPU | niveau > −60 dBFS, avance ≈ D − latence, 0 surcharge |
-| 2 · plantage, tap privé | micro après `kill -9` | même niveau que la voix directe |
-| 3 · plantage, tap public | micro après `kill -9`, taps restants | même niveau que la voix directe |
-| 4 · par identifiant, puis redémarrage | capture, puis capture retrouvée sans reconnexion | les deux |
-| 5 · Claude Desktop | processus qui jouent la voix, capture de Claude | capture > −60 dBFS |
+| 1 · capture par processus | voix captée −17 dB ; à travers le pilote, la voix sort à −30,7 dB, autant qu'en direct (−29 dB) ; avance 175 ms ; 0 écart de trame, 0 surcharge | **réussi** |
+| 2 · plantage, tap privé | après `kill -9`, la voix revient aussitôt (−31,9 dB) | **réussi** |
+| 3 · plantage, tap public | la voix revient (−30,7 dB) ; le tap orphelin reste listé, et se détruit | **réussi** |
+| 4 · par identifiant, puis redémarrage | captée (−27,5 dB), puis retrouvée seule après le redémarrage de l'app (une seule connexion au journal) | **réussi** |
+| 5 · Claude Desktop | la lecture à voix haute sort de « Claude Helper » (`com.anthropic.claudefordesktop.helper`) ; captée de −17 à −24 dB, des creux à −70/−80 dB entre les phrases ; avance 174 à 184 ms ; à l'œil, la bouche part avec le son ; à l'oreille, la voix relue est normale | **réussi** |
 
-Puis, à l'oreille et à l'œil, en parlant à Claude en haut-parleurs pendant une minute :
+Ce que les mesures ont appris :
 
-- **R1, l'écho** : Claude s'interrompt-il tout seul ?
-- **La synchro** : avec D = 150 ms et 40 ms d'anticipation, la bouche part-elle avec le son, ou un peu
-  avant ? Comparer avec D = 0 (la bouche doit paraître en retard).
+- **Claude Desktop (6.28899.6) ne tient pas de conversation parlée sur Mac** : on lui dicte (maintenir pour
+  parler), il répond en texte, et « Lire à voix haute » lit la réponse, avec la voix et la vitesse choisies.
+  Le visage parle donc quand Claude lit. R1, l'écho, ne se pose pas avec lui : il n'écoute pas pendant qu'il
+  lit. Il reste à mesurer avec le mode vocal de ChatGPT.
+- **R2, les identifiants** : l'app `com.anthropic.claudefordesktop`, sa voix dans un auxiliaire
+  `….helper`. Le branchement par préfixe d'identifiant prend les deux.
+- **Une recompilation perd l'autorisation, sans un mot** : avec une signature ad hoc, macOS garde la coche
+  dans Réglages Système, mais le tap devient inerte. Il ne coupe plus l'app, et ne livre que des zéros. Il a
+  fallu `tccutil reset AudioCapture com.devinthehood.visage.pilot` et une nouvelle demande.
+- **La fausse alerte d'autorisation** : l'app Visage disait « autorisation manquante » tant que Claude se
+  taisait (§ 3, point 3), corrigé le soir même.
+- **Les mesures se gênent** : une copie du pilote restée d'une série précédente coupait la voix de test ;
+  la voix de test (19 s) finissait parfois avant la dernière mesure, retardée par la demande d'autorisation.
+  `run-tests.sh` devra fermer les copies restantes avant de commencer, et jouer la voix en boucle.
+- **Une fois, l'état du pilote s'est figé** cinq secondes après son branchement, sans plantage ni rapport ;
+  pas reproduit. À surveiller dans Visage.
+- **Le pilote prend environ 20 % de processeur**, fenêtre SwiftUI comprise ; Visage se mesurera à part.
 
-Puis l'app elle-même, qui a avancé entre-temps (lots 1 à 4) :
+## 5. Verdict : go
 
-```shell
-sh data/sources/visage/build.sh && open data/sources/visage/build/Visage.app
-```
-
-« Se connecter à mon IA » → Claude → autoriser l'audio du système → mode vocal : le visage en points doit
-parler avec la voix de Claude. Le même soir, `Visage --analyse` sur un enregistrement de la voix de Claude
-(dans un fichier, sans le jouer) dira si les réglages faits sur les voix de macOS lui conviennent
-(spécification, § 6.1).
+La capture, la relecture retardée et la synchro tiennent sur la vraie voix de Claude, sans dégât audible ;
+un plantage rend la voix. Le pilote n'a plus d'autre rôle que de rejouer ces mesures. La suite se fait
+dans l'app (spécification, § 13).

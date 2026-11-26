@@ -14,7 +14,7 @@
 |---|---|---|
 | Q1 | D'où viennent les têtes ? | **MakeHuman**, par son extension Blender **MPFB2** et le pack **faceunits01** (52 formes ARKit) : licence CC0, communauté active, même maillage pour toutes les têtes (§ 8.1). |
 | Q2 | Combien de visages ? | **10** : 5 hommes et 5 femmes, inventés, d'âges et d'origines variés. |
-| Q3 | Quelle fenêtre ? | **Trois modes** : transparente (par défaut), flottante, classique (§ 9). |
+| Q3 | Quelle fenêtre ? | **Deux modes** : flottante (par défaut), classique (§ 9.1). Trois au départ ; la transparente parmi les autres fenêtres est retirée le 2026-11-26 : au premier essai, le visage passait derrière Claude au premier clic. |
 | Q4 | Quel dépôt ? | **Public, sous licence MIT** : un cadeau. Visage rejoint **`macos-utils`** (public, MIT), dans `data/sources/visage/` (§ 10.1). |
 | Q5 | Un mode navigateur ? | **Non** : l'app officielle seulement. |
 | Q6 | Quelle identité ? | **C4 « Poussière »** : un visage en points qui se défait en poussière, en lumière de braise. Charte dans `docs/charte.md`, fichiers dans `brand/`. |
@@ -78,18 +78,24 @@ officielle**, déjà connectée à ton compte.
 
 ### 4.2 Le parcours
 
-1. Au premier lancement, l'écran **« Se connecter à mon IA »** affiche deux cartes : **Claude** et
-   **ChatGPT**. Chaque carte dit si l'app est installée et ouverte. Un lien « Autre application… » liste les
-   apps qui jouent du son.
+1. Au premier lancement, **l'accueil** s'ouvre en grand et au premier plan, aux couleurs de la charte, le
+   logo animé en tête. Quatre étapes sur une page : l'IA, le visage (grille, jauge de réalisme, taille, à
+   côté d'un aperçu), l'affichage, et où retrouver Visage dans la barre des menus ; puis « Commencer ».
+   L'étape de l'IA affiche deux cartes, **Claude** et **ChatGPT**, qui disent si l'app est installée et
+   ouverte, et une « Autre app » liste les apps qui jouent du son. Sans accueil, Visage démarrait en simple
+   signe dans la barre des menus, qu'on ne voyait pas.
 2. Clic sur **Claude** : si l'app n'est pas installée, la carte mène à sa page de téléchargement officielle.
    Sinon, Visage l'ouvre.
 3. macOS demande, une seule fois, l'autorisation d'enregistrer l'audio du système.
 4. Visage se branche. Son état devient **« Connecté à Claude — lance le mode vocal »**, et la tête se
    matérialise (§ 8.2), puis s'anime au repos (respiration, clignements).
-5. On lance le mode vocal dans Claude. Dès la première phrase, le visage parle.
+5. Dans Claude Desktop, on dicte sa question, puis « Lire à voix haute » sur la réponse : dès la première
+   phrase, le visage parle. Claude Desktop ne tient pas de conversation parlée sur Mac (pilote, § 4) ; le
+   mode vocal de ChatGPT, lui, en tient une.
 
-Le choix est mémorisé : aux lancements suivants, Visage se rebranche seul, et il se rebranche aussi quand
-l'app IA redémarre.
+Les choix sont mémorisés : aux lancements suivants, Visage ne montre rien de plus, se rebranche seul et
+remet le visage comme on l'a laissé (affiché ou masqué, même mode, même taille). Il se rebranche aussi
+quand l'app IA redémarre.
 
 ### 4.3 Les sources
 
@@ -121,8 +127,12 @@ Seules les apps sont prises en charge : pas de mode navigateur (Q5).
   sortie par défaut change (casque branché, AirPods), Visage reconstruit l'agrégat.
 - **Démarrage hors du fil principal** : tant que l'autorisation n'est pas donnée, `AudioDeviceStart` reste
   bloqué (90 s au pilote). L'interface dit « en attente de ton autorisation ».
-- **Autorisation manquante** : aucun cycle audio dans les 3 s qui suivent le démarrage. Visage ouvre alors
-  le panneau *Enregistrement de l'écran et de l'audio du système* de Réglages Système.
+- **Autorisation manquante** : l'app joue depuis six secondes, et rien de non nul n'en est venu depuis le
+  branchement. Visage propose alors le panneau *Enregistrement de l'écran et de l'audio du système* de
+  Réglages Système. Ni le silence de l'app ni l'absence de cycle audio ne prouvent rien : sur macOS 26, une
+  capture par identifiant ne tourne pas tant que l'app se tait. Un son entendu prouve l'autorisation. Une
+  autorisation donnée à une version antérieure de l'app (signature ad hoc) laisse le tap inerte : rien de
+  coupé, des zéros (pilote, § 4).
 - **Une seule horloge** : tout est daté en temps hôte (`mHostTime`) — capture, relecture, image affichée.
 - **Sûreté** : si Visage quitte ou plante, le son de l'IA doit revenir seul : la coupure ne dure que
   pendant la lecture du tap, et l'agrégat meurt avec le processus. **Bloquant** (critère 6, § 11.3) :
@@ -420,25 +430,29 @@ de 0 %, l'hologramme de points, à 100 %, le visage aussi réel que MakeHuman le
 
 ## 9. Fenêtre et réglages
 
-### 9.1 Trois modes de fenêtre
+### 9.1 Deux modes de fenêtre
 
 | Mode | La fenêtre | Pour quoi faire |
 |---|---|---|
-| **Transparente** (par défaut) | Sans cadre, fond et ombre invisibles : seule la tête flotte sur le bureau. On la déplace en tirant la tête, on la redimensionne par une poignée ou au trackpad. | L'effet hologramme. |
-| **Flottante** | Transparente, toujours au premier plan, sur tous les bureaux et au-dessus des apps en plein écran. Option : les clics la traversent (on la pilote alors par la barre des menus). | L'avoir toujours sous les yeux en travaillant. |
-| **Classique** | Une fenêtre normale avec barre de titre et fond sombre, plein écran possible. | Partage d'écran, enregistrement vidéo, un « caisson ». |
+| **Flottante** (par défaut) | Sans cadre, fond et ombre invisibles : seule la tête flotte, au-dessus de toutes les fenêtres, sur tous les bureaux et au-dessus des apps en plein écran. On la déplace en tirant la tête. | L'effet hologramme, toujours sous les yeux. |
+| **Classique** | Une fenêtre normale avec barre de titre et fond sombre. | Partage d'écran, enregistrement vidéo, un « caisson ». |
 
-On change de mode à chaud, depuis la barre des menus.
+Un troisième mode, transparent parmi les autres fenêtres, a été retiré le 2026-11-26 : le visage passait
+derrière Claude dès qu'on cliquait sur Claude. Un réglage enregistré avec lui se lit « flottante ». On
+change de mode à chaud, depuis la barre des menus ou les réglages.
 
 ### 9.2 Barre des menus et réglages
 
-- **L'icône de la barre des menus** donne l'état (connecté à Claude, en attente, parle), le choix du
-  visage, le mode de fenêtre, les réglages, et Quitter.
-- **Les réglages** :
-  - la source (Claude, ChatGPT, autre) et le visage ;
-  - les couches de l'hologramme (intensité de chacune), la couleur, la taille ;
-  - le décalage lèvres et l'avance d'analyse ;
-  - la caméra (regard et parallaxe) et le micro (écoute).
+- **L'icône de la barre des menus** donne l'état (connecté à Claude, en attente), afficher ou masquer le
+  visage, le choix du visage, le mode de fenêtre, les réglages, et Quitter.
+- **Ses fenêtres s'ouvrent devant** : sans icône dans le Dock, macOS n'amène jamais Visage au premier plan,
+  et ses fenêtres s'ouvraient derrière les autres. Tant que l'accueil, la connexion ou les réglages sont
+  ouverts, Visage devient une app ordinaire, au premier plan, avec une icône dans le Dock ; il retourne
+  dans la barre des menus quand on les ferme.
+- **Les réglages**, dans leur propre fenêtre aux couleurs de la charte, le logo animé en tête : à gauche,
+  l'aperçu du visage au repos, tel que les choix le font ; à droite, en cartes, le visage (grille, jauge de
+  réalisme, taille de 50 à 200 %), la fenêtre (les deux modes, expliqués), la synchro (retard, avance,
+  décalage lèvres). À venir : les couches de l'hologramme, la couleur, la caméra et le micro (lot 6).
 
 ## 10. Architecture technique
 
@@ -479,9 +493,11 @@ Deux adaptations du dépôt, au lot 1 :
 ### 10.2 Le code
 
 **Swift 6, compilé par `swiftc` comme les autres outils de `macos-utils`, macOS 15 au minimum** (les
-compteurs atomiques du module `Synchronization`), **macOS 26 si le pilote confirme** la capture par
-identifiant de bundle (`bundleIDs`, `processRestoreEnabled` : pilote, § 2.6). L'app est développée sur
-macOS 27.
+compteurs atomiques du module `Synchronization`). Le pilote a confirmé la capture par identifiant de
+bundle de macOS 26 (`bundleIDs`, `processRestoreEnabled` : pilote, § 2.6 et § 4) : Visage la prend quand il
+la trouve, et suit les processus lui-même sur macOS 15. Le minimum reste donc macOS 15, qui garde les Mac
+Intel de 2018 et après ; macOS 26 n'en reçoit que quatre modèles. L'app compile pour Intel (`x86_64`,
+vérifié le 2026-11-26), sans y avoir encore tourné. Elle est développée sur macOS 27.
 
 **Pas de SwiftPM.** Avec les Command Line Tools de ce Mac (Swift 6.4.2), SwiftPM ne lie même pas le
 manifeste d'un paquet vierge : sa bibliothèque `PackageDescription` ne correspond pas au compilateur
@@ -604,8 +620,7 @@ reste du temps, comme sur les autres dépôts.
 
 **Avancement au 2026-11-26** :
 
-- **Lot 0** : capture et relecture retardée validées ; restent les mesures qui demandent le son du Mac,
-  deux autorisations et Claude Desktop (pilote, § 4).
+- **Lot 0** fait : les cinq mesures, avec Claude Desktop, le 2026-11-26 au soir ; verdict go (pilote, § 5).
 - **Lot 1** fait : l'app se construit sans Xcode, se branche, se rebranche (SwiftPM écarté, § 10.2).
 - **Lot 2** fait : l'analyse, mesurée sur trois voix françaises (§ 6.1).
 - **Lot 3** fait : Metal, couches de l'hologramme, rendu vidéo hors ligne (`Visage --render`), visage en
@@ -615,7 +630,11 @@ reste du temps, comme sur les autres dépôts.
   choix du visage dans le menu et les réglages, planche des visages (`Visage --snapshot`) et vidéos
   muettes (`--face <id> --mute`), pré-passe de profondeur, cheveux rangés, grille de vignettes et fondu
   au changement de visage, jauge de réalisme (§ 8.3). Reste le test à l'aveugle (R6) avec l'utilisateur.
-- **Lots 6 et 7** à venir : caméra, réglages complets, robustesse ; doc et publication.
+- **Lot 6** commencé le 2026-11-26, après le premier essai de l'app avec Claude : fenêtres au premier plan,
+  deux modes, accueil et réglages à la charte avec le logo animé et l'aperçu, taille du visage, retour à
+  l'état laissé, fausse alerte d'autorisation corrigée. Restent la caméra, les couches de l'hologramme,
+  la robustesse (veille, changement de sortie) et la mesure de R1 avec ChatGPT.
+- **Lot 7** à venir : doc et publication.
 
 ## 14. Hors périmètre
 
