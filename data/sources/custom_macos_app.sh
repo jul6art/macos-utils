@@ -16,6 +16,7 @@
 
 # --- 1. Environment -----------------------------------------------------------
 # Load the same environment your terminal gets. Adapt to your shell/setup.
+# shellcheck source=/dev/null
 [ -f "${HOME}/.bash_profile" ] && . "${HOME}/.bash_profile";
 [ -f "${HOME}/.zprofile" ] && . "${HOME}/.zprofile";
 
