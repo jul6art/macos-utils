@@ -50,9 +50,10 @@ so it is built to be read piece by piece instead, and keeps every other rule:
 ## Ground rules
 
 1. **Source, not binaries.** A utility is contributed as source that the reader
-   compiles or runs. `data/sources/custom_sourcetree.app.zip` is a finished
-   example from before that rule, not a precedent: a committed binary is
-   something nobody can audit, and new ones will be refused.
+   compiles or runs: a committed executable is something nobody can audit, and
+   none will be accepted. The one exception is data a program loads but never
+   runs — Visage's faces in `Resources/Faces/` — and only because a script in
+   the repository (`tools/faces/`) rebuilds it from openly licensed assets.
 
 2. **A script must be readable end to end by someone deciding whether to trust
    it.** Keep it short, keep it linear, and say in a comment why each step
