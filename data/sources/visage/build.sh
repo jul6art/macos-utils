@@ -16,7 +16,7 @@ APPNAME="Visage";
 BUNDLE_ID="com.devinthehood.visage";
 MIN_MACOS="15.0";
 # In dependency order: each module sees those before it.
-MODULES="Shared AudioSource VoiceAnalysis";
+MODULES="Shared AudioSource VoiceAnalysis FaceAnimation";
 
 SRC_DIR="$(cd "$(dirname "${0}")" && pwd)";
 BUILD_DIR="${SRC_DIR}/build";
