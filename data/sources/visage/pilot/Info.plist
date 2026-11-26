@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>VisagePilot</string>
+	<key>CFBundleDisplayName</key>
+	<string>Visage Pilot</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.devinthehood.visage.pilot</string>
+	<key>CFBundleExecutable</key>
+	<string>VisagePilot</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>26.0</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Visage captures the sound of your AI app to play it back in sync with the face it animates. Nothing is recorded or sent anywhere.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>The pilot measures the microphone's level to check that a voice plays through the speakers. Nothing is recorded.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 jul6art — MIT</string>
+</dict>
+</plist>
