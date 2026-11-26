@@ -33,6 +33,20 @@ The README states it, and it is enforced in review:
 with no documentation is not a contribution, because nobody will run an
 undocumented script from a stranger — and they would be right not to.
 
+### The larger one: Visage
+
+Visage (`data/sources/visage/`) is far bigger than the others: several Swift
+modules, a test suite, a brand kit. It cannot be read end to end in one sitting,
+so it is built to be read piece by piece instead, and keeps every other rule:
+
+* each module has one job, stated at the top of its main file, and
+  `docs/specs.md` maps them;
+* no third-party package — Apple's frameworks only, built with plain `swiftc`;
+* source, not binaries: the brand files are SVG text written by code
+  (`brand/generate.sh`), and the app icon is drawn at build time;
+* its own gate, `sh data/sources/visage/check.sh` (build, tests, format), green
+  before any pull request that touches it.
+
 ## Ground rules
 
 1. **Source, not binaries.** A utility is contributed as source that the reader
@@ -73,14 +87,15 @@ undocumented script from a stranger — and they would be right not to.
 
 ## Testing a change
 
-There is no CI here, and no test suite: these are shell scripts and two small
-Swift applications. So the validation is manual, and it is on you to do it:
+There is no CI here. Visage has a test suite; the rest are shell scripts and two
+small Swift applications, validated by hand — and it is on you to do it:
 
 ```bash
 shellcheck data/sources/*.sh data/sources/*/*.sh   # clean
 sh data/sources/appify.sh ~/Desktop/probe.sh "Probe"   # on a throwaway script
 sh data/sources/awake/build.sh                    # builds without --install
 sh data/sources/siphon/build.sh                   # builds without --install
+sh data/sources/visage/check.sh                   # build, tests, format: green
 ```
 
 Say in the pull request which macOS version and which architecture you tested
