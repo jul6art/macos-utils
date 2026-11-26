@@ -128,6 +128,8 @@ def build(preset, data, path):
         human.modifiers.remove(modifier)
     human.name = f"{preset['id']}.head"
     eyes = next(part for part in parts if part.name.endswith(".eyes"))
+    hair = next(part for part in parts if part.name.endswith(".hair"))
+    tidy_hair(hair, human, eyes, cut)
     keep_seen(human, [human, eyes])
 
     bpy.ops.object.select_all(action="DESELECT")
@@ -152,6 +154,36 @@ def keep_head(human, cut):
     bmesh.ops.delete(bm, geom=doomed, context="VERTS")
     bm.to_mesh(mesh)
     bm.free()
+
+
+def tidy_hair(hair, human, eyes, cut):
+    """The hair never covers the face below the brows (a strand of one style crossed it from temple to
+    chin), and nothing hangs behind a neck that is no longer there (a ponytail showed under the chin).
+    Runs while the head is whole, before keep_seen."""
+    world = bmesh.new()
+    world.from_mesh(human.data)
+    world.transform(human.matrix_world)
+    tree = BVHTree.FromBMesh(world)
+    back = sum(vertex.co.y for vertex in world.verts) / len(world.verts)
+    world.free()
+    brows = sum((eyes.matrix_world @ vertex.co).z for vertex in eyes.data.vertices) / len(eyes.data.vertices) + 0.015
+    backwards = Vector((0, 1, 0))
+
+    bm = bmesh.new()
+    bm.from_mesh(hair.data)
+    matrix = hair.matrix_world
+    doomed = []
+    for face in bm.faces:
+        centre = matrix @ face.calc_center_median()
+        over_face = abs(centre.x) < 0.055 and centre.z < brows and tree.ray_cast(centre, backwards, 0.1)[0] is not None
+        behind_neck = centre.z < cut and centre.y > back
+        if over_face or behind_neck:
+            doomed.append(face)
+    bmesh.ops.delete(bm, geom=doomed, context="FACES_ONLY")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bm.to_mesh(hair.data)
+    bm.free()
+    print(f"TIDY {hair.name}: {len(doomed)} faces removed")
 
 
 def keep_seen(obj, occluders):
