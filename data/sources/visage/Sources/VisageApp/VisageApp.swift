@@ -6,7 +6,8 @@ import SwiftUI
 /// Without a window:
 /// - `Visage --snapshot <directory>` renders the screens to PNG files: they can be checked without a
 ///   display (and without the screen recording permission);
-/// - `Visage --analyse <audio file> <frames.json>` runs the voice analysis on a file.
+/// - `Visage --analyse <audio file> <frames.json>` runs the voice analysis on a file;
+/// - `Visage --render <audio file> <video.mov> [<frames directory>]` films the face speaking the file.
 @main
 enum VisageMain {
     @MainActor
@@ -14,6 +15,13 @@ enum VisageMain {
         let arguments = CommandLine.arguments
         if let index = arguments.firstIndex(of: "--snapshot"), index + 1 < arguments.count {
             exit(Snapshots.render(into: URL(fileURLWithPath: arguments[index + 1])))
+        }
+        if let index = arguments.firstIndex(of: "--render"), index + 2 < arguments.count {
+            let frames = index + 3 < arguments.count ? URL(fileURLWithPath: arguments[index + 3]) : nil
+            exit(
+                VideoRender.run(
+                    input: URL(fileURLWithPath: arguments[index + 1]),
+                    output: URL(fileURLWithPath: arguments[index + 2]), frames: frames))
         }
         if let index = arguments.firstIndex(of: "--analyse"), index + 2 < arguments.count {
             exit(
