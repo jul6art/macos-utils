@@ -3,8 +3,10 @@ import SwiftUI
 
 /// Visage: a face for the voice of the AI app you already talk to (docs/specs.md).
 ///
-/// `Visage --snapshot <directory>` renders the screens to PNG files and quits: the screens can be checked
-/// without a display (and without the screen recording permission).
+/// Without a window:
+/// - `Visage --snapshot <directory>` renders the screens to PNG files: they can be checked without a
+///   display (and without the screen recording permission);
+/// - `Visage --analyse <audio file> <frames.json>` runs the voice analysis on a file.
 @main
 enum VisageMain {
     @MainActor
@@ -12,6 +14,12 @@ enum VisageMain {
         let arguments = CommandLine.arguments
         if let index = arguments.firstIndex(of: "--snapshot"), index + 1 < arguments.count {
             exit(Snapshots.render(into: URL(fileURLWithPath: arguments[index + 1])))
+        }
+        if let index = arguments.firstIndex(of: "--analyse"), index + 2 < arguments.count {
+            exit(
+                AnalysisReport.run(
+                    input: URL(fileURLWithPath: arguments[index + 1]),
+                    output: URL(fileURLWithPath: arguments[index + 2])))
         }
         VisageApp.main()
     }
