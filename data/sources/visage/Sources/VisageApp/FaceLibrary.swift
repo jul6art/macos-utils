@@ -41,6 +41,9 @@ enum FaceLibrary {
         let animator = FaceAnimator(seed: seed)
         var pose = FacePose()
         for _ in 0..<90 { pose = animator.update(dt: 1.0 / 60, voice: nil, moment: .waiting) }
+        // A portrait never blinks: caught mid-blink, a face showed in the settings with its eyes shut.
+        pose[.eyeBlinkLeft] = FaceAnimator.restingLid
+        pose[.eyeBlinkRight] = FaceAnimator.restingLid
         var settings = HoloSettings()
         settings.background = HoloSettings.charbon
         settings.realism = realism
