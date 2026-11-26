@@ -26,6 +26,18 @@ final class FaceWindowController: NSObject, NSWindowDelegate {
 
     var isVisible: Bool { window.isVisible }
 
+    /// The face's size, from half to twice the default window, about the window's centre.
+    func resize(scale: Double) {
+        let size = NSSize(width: Self.baseSize.width * scale, height: Self.baseSize.height * scale)
+        let frame = window.frame
+        let centre = NSPoint(x: frame.midX, y: frame.midY)
+        window.setFrame(
+            NSRect(x: centre.x - size.width / 2, y: centre.y - size.height / 2, width: size.width, height: size.height),
+            display: true, animate: window.isVisible)
+    }
+
+    static let baseSize = NSSize(width: 420, height: 520)
+
     func show() {
         window.orderFrontRegardless()
     }

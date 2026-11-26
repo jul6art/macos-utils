@@ -22,6 +22,7 @@ struct SettingsView: View {
                 BrandCard(title: String(localized: "Face")) {
                     FaceGrid(model: model)
                     RealismSlider(model: model)
+                    FaceSizeSlider(model: model)
                 }
                 BrandCard(title: String(localized: "Window")) {
                     WindowModeChoice(model: model)
@@ -104,6 +105,33 @@ struct RealismSlider: View {
             }
             Text("From light alone to skin and eyes: the hologram fades as the face becomes real.")
                 .font(.caption).foregroundStyle(Palette.cendreClaire)
+        }
+    }
+}
+
+/// The face's size, from half to twice its default window.
+struct FaceSizeSlider: View {
+    let model: AppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Face size")
+                Spacer()
+                Text(model.faceScale, format: .percent.precision(.fractionLength(0))).monospacedDigit()
+                    .foregroundStyle(Palette.cendreClaire)
+            }
+            // Rounded to 5 % here rather than by the slider's step, which draws thirty ticks under it.
+            Slider(
+                value: Binding(get: { model.faceScale }, set: { model.faceScale = ($0 * 20).rounded() / 20 }),
+                in: 0.5...2
+            ) {
+                EmptyView()
+            } minimumValueLabel: {
+                Image(systemName: "person.crop.circle").imageScale(.small)
+            } maximumValueLabel: {
+                Image(systemName: "person.crop.circle").imageScale(.large)
+            }
         }
     }
 }

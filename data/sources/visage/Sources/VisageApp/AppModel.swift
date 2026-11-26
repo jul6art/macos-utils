@@ -46,6 +46,14 @@ final class AppModel {
         didSet { defaults.set(realism, forKey: Key.realism) }
     }
 
+    /// The face's size, from 0.5 to 2 times the default window.
+    var faceScale: Double {
+        didSet {
+            defaults.set(faceScale, forKey: Key.faceScale)
+            faceWindow.resize(scale: faceScale)
+        }
+    }
+
     /// Whether the face is on screen: the next launch puts it back as it was left.
     var faceShown: Bool {
         didSet { defaults.set(faceShown, forKey: Key.faceShown) }
@@ -72,12 +80,15 @@ final class AppModel {
         static let face = "face"
         static let realism = "realism"
         static let faceShown = "faceShown"
+        static let faceScale = "faceScale"
         static let welcomed = "welcomed"
     }
 
     init() {
         let defaults = UserDefaults.standard
-        defaults.register(defaults: [Key.delay: 150, Key.anticipation: 60, Key.extraLatency: 0, Key.faceShown: true])
+        defaults.register(defaults: [
+            Key.delay: 150, Key.anticipation: 60, Key.extraLatency: 0, Key.faceShown: true, Key.faceScale: 1.0,
+        ])
         windowMode = WindowMode(rawValue: defaults.string(forKey: Key.windowMode) ?? "") ?? .floating
         delayMilliseconds = defaults.integer(forKey: Key.delay)
         anticipationMilliseconds = defaults.integer(forKey: Key.anticipation)
@@ -85,6 +96,7 @@ final class AppModel {
         faceID = defaults.string(forKey: Key.face) ?? FaceLibrary.faces.first?.id ?? FaceLibrary.points
         realism = defaults.double(forKey: Key.realism)
         faceShown = defaults.bool(forKey: Key.faceShown)
+        faceScale = min(max(defaults.double(forKey: Key.faceScale), 0.5), 2)
         connection = Connection(delayMilliseconds: defaults.integer(forKey: Key.delay))
     }
 
@@ -92,6 +104,7 @@ final class AppModel {
     /// next ones say nothing: Visage reconnects to the last app and puts the face back as it was left.
     func launch() {
         faceWindow.apply(windowMode)
+        faceWindow.resize(scale: faceScale)
         if !defaults.bool(forKey: Key.welcomed) {
             welcomeWindow.show()
         } else if let app = savedApp {

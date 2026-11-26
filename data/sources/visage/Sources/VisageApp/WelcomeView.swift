@@ -39,6 +39,7 @@ struct WelcomeView: View {
                     BrandCard(title: String(localized: "Your face"), number: 2) {
                         FaceGrid(model: model)
                         RealismSlider(model: model)
+                        FaceSizeSlider(model: model)
                     }
                     BrandCard(title: String(localized: "Where it shows"), number: 3) {
                         WindowModeChoice(model: model)
