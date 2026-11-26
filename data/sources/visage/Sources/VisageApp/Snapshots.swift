@@ -68,8 +68,15 @@ enum Snapshots {
         let model = AppModel()
         model.thumbnails = FaceLibrary.makeThumbnails(FaceLibrary.choices.map(\.id))
         if !write(
-            SettingsView(model: model), size: NSSize(width: 460, height: 620),
-            to: directory.appending(path: "settings.png"))
+            SettingsView(model: model), size: NSSize(width: 520, height: 720),
+            to: directory.appending(path: "settings.png"), dark: true)
+        {
+            failures += 1
+        }
+        // The first launch's welcome, its AI not chosen yet.
+        if !write(
+            WelcomeView(model: model), size: NSSize(width: 720, height: 820),
+            to: directory.appending(path: "welcome.png"), dark: true)
         {
             failures += 1
         }
@@ -103,8 +110,9 @@ enum Snapshots {
         return true
     }
 
-    private static func write(_ view: some View, size: NSSize, to url: URL) -> Bool {
+    private static func write(_ view: some View, size: NSSize, to url: URL, dark: Bool = false) -> Bool {
         let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height))
+        if dark { hosting.appearance = NSAppearance(named: .darkAqua) }
         hosting.frame = NSRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         window.contentView = hosting

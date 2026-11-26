@@ -6,6 +6,8 @@ import SwiftUI
 /// line that says what to do next.
 struct ConnectScreen: View {
     let model: AppModel
+    /// Inside the welcome: no header of its own, and the face waits for « Start ».
+    var welcoming = false
 
     var body: some View {
         ConnectView(
@@ -13,8 +15,9 @@ struct ConnectScreen: View {
             connectedApp: model.connection.app,
             apps: AIApp.known.map { AppCardInfo(app: $0) },
             otherApps: model.otherApps(),
-            connect: { model.connect(to: $0) },
-            showFace: { model.showFace() }
+            connect: { model.connect(to: $0, showingFace: !welcoming) },
+            showFace: { model.showFace() },
+            header: !welcoming
         )
     }
 }
@@ -48,18 +51,21 @@ struct ConnectView: View {
     let otherApps: [AIApp]
     let connect: (AIApp) -> Void
     let showFace: () -> Void
+    var header = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            HStack(alignment: .top, spacing: 16) {
-                MarkView(size: 64)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Connect my AI").font(.title2.weight(.semibold))
-                    Text(
-                        "Visage gives a face to the voice of the AI app you already use. It only hears that app's sound, and nothing leaves your Mac."
-                    )
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            if header {
+                HStack(alignment: .top, spacing: 16) {
+                    MarkView(size: 64)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Connect my AI").font(.title2.weight(.semibold))
+                        Text(
+                            "Visage gives a face to the voice of the AI app you already use. It only hears that app's sound, and nothing leaves your Mac."
+                        )
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
 
@@ -87,8 +93,8 @@ struct ConnectView: View {
 
             StatusLine(state: state, app: connectedApp, showFace: showFace)
         }
-        .padding(24)
-        .frame(width: 560, alignment: .leading)
+        .padding(header ? 24 : 0)
+        .frame(width: header ? 560 : nil, alignment: .leading)
     }
 }
 

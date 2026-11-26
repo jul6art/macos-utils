@@ -46,13 +46,21 @@ final class AppModel {
         didSet { defaults.set(realism, forKey: Key.realism) }
     }
 
+    /// Whether the face is on screen: the next launch puts it back as it was left.
+    var faceShown: Bool {
+        didSet { defaults.set(faceShown, forKey: Key.faceShown) }
+    }
+
     /// The settings' thumbnails, per face, made the first time they are shown.
     var thumbnails: [String: CGImage] = [:]
 
     @ObservationIgnored private let defaults = UserDefaults.standard
-    @ObservationIgnored private lazy var faceWindow = FaceWindowController(model: self)
+    @ObservationIgnored private lazy var faceWindow = FaceWindowController(model: self) { [weak self] in
+        self?.faceShown = false
+    }
     @ObservationIgnored private lazy var connectWindow = ConnectWindowController(model: self)
     @ObservationIgnored private lazy var settingsWindow = SettingsWindowController(model: self)
+    @ObservationIgnored private lazy var welcomeWindow = WelcomeWindowController(model: self)
     @ObservationIgnored lazy var faceDriver = FaceDriver(model: self)
 
     private enum Key {
@@ -63,35 +71,48 @@ final class AppModel {
         static let extraLatency = "extraLatencyMilliseconds"
         static let face = "face"
         static let realism = "realism"
+        static let faceShown = "faceShown"
+        static let welcomed = "welcomed"
     }
 
     init() {
         let defaults = UserDefaults.standard
-        defaults.register(defaults: [Key.delay: 150, Key.anticipation: 60, Key.extraLatency: 0])
+        defaults.register(defaults: [Key.delay: 150, Key.anticipation: 60, Key.extraLatency: 0, Key.faceShown: true])
         windowMode = WindowMode(rawValue: defaults.string(forKey: Key.windowMode) ?? "") ?? .floating
         delayMilliseconds = defaults.integer(forKey: Key.delay)
         anticipationMilliseconds = defaults.integer(forKey: Key.anticipation)
         extraLatencyMilliseconds = defaults.integer(forKey: Key.extraLatency)
         faceID = defaults.string(forKey: Key.face) ?? FaceLibrary.faces.first?.id ?? FaceLibrary.points
         realism = defaults.double(forKey: Key.realism)
+        faceShown = defaults.bool(forKey: Key.faceShown)
         connection = Connection(delayMilliseconds: defaults.integer(forKey: Key.delay))
     }
 
-    /// Reconnects to the last app, or asks which one.
+    /// The first launch welcomes, in front: the AI, the face, where it shows, where to find Visage. The
+    /// next ones say nothing: Visage reconnects to the last app and puts the face back as it was left.
     func launch() {
         faceWindow.apply(windowMode)
-        if let app = savedApp {
-            connect(to: app)
+        if !defaults.bool(forKey: Key.welcomed) {
+            welcomeWindow.show()
+        } else if let app = savedApp {
+            connect(to: app, showingFace: faceShown)
         } else {
             showConnectWindow()
         }
     }
 
-    func connect(to app: AIApp) {
+    /// The welcome is done: the face comes out, and the welcome will not be shown again.
+    func finishWelcome() {
+        defaults.set(true, forKey: Key.welcomed)
+        welcomeWindow.close()
+        showFace()
+    }
+
+    func connect(to app: AIApp, showingFace: Bool = true) {
         defaults.set(
             app.id == AIApp.claude.id || app.id == AIApp.chatGPT.id ? app.id : app.bundleIDs.first, forKey: Key.app)
         connection.connect(to: app)
-        faceWindow.show()
+        if showingFace { showFace() }
     }
 
     func disconnect() {
@@ -105,6 +126,12 @@ final class AppModel {
 
     func showFace() {
         faceWindow.show()
+        faceShown = true
+    }
+
+    func hideFace() {
+        faceWindow.hide()
+        faceShown = false
     }
 
     func showSettings() {
@@ -140,9 +167,10 @@ final class AppModel {
     }
 }
 
-/// How the face's window sits on the desktop (spec, § 9.1). Two modes since the first test with Claude
-/// (2026-11-26): a third, transparent among the other windows, let the face vanish behind Claude as soon
-/// as Claude was clicked. A setting saved with it reads as `floating`.
+/// How the face's window sits on the desktop (spec, § 9.1).
+/// Two modes since the first test with Claude (2026-11-26): a third, transparent among the other windows,
+/// let the face vanish behind Claude as soon as Claude was clicked. A setting saved with it reads as
+/// `floating`.
 enum WindowMode: String, CaseIterable, Identifiable {
     /// No frame, no background, above every window, on every desktop: always in sight.
     case floating
@@ -155,6 +183,15 @@ enum WindowMode: String, CaseIterable, Identifiable {
         switch self {
         case .floating: String(localized: "Floating")
         case .classic: String(localized: "Classic")
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .floating: String(localized: "Transparent, above every window, on every desktop: always in sight.")
+        case .classic:
+            String(
+                localized: "A plain window, with a title bar and a dark background: to share your screen or record it.")
         }
     }
 }
