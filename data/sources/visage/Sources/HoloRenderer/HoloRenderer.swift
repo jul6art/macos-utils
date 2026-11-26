@@ -28,16 +28,38 @@ public final class HoloRenderer: @unchecked Sendable {
     /// Occluders write the depth; points are tested against it without writing it.
     private let hiding: MTLDepthStencilState
     private let hidden: MTLDepthStencilState
+    /// For the head that fades out: shown whole, whatever the new one hides.
+    private let unhidden: MTLDepthStencilState
     private var pointBuffer: MTLBuffer
     private var occluderBuffer: MTLBuffer?
     private var scene: MTLTexture?
     private var depth: MTLTexture?
-    /// The head drawn: the charter's point head, or a MakeHuman face. Swappable at any frame.
+    /// The head drawn: the charter's point head, or a MakeHuman face. Set, it shows at once; `fade(to:)`
+    /// changes it gently.
     public var model: HeadModel {
         didSet {
-            reserve(points: model.pointCount)
+            outgoing = nil
             occluderBuffer = Self.occluderBuffer(model, device: device)
         }
+    }
+    /// The head fading out, and when it began to (the first frame drawn after the change).
+    private var outgoing: (model: HeadModel, start: Double?)?
+
+    /// How long a change of face takes (spec, § 8.1: a fade, even while it speaks).
+    public static let fadeDuration = 0.6
+
+    /// Changes the head over `fadeDuration`: the new one rises as the old one fades, after a brief glitch.
+    public func fade(to newModel: HeadModel) {
+        let old = model
+        model = newModel
+        outgoing = (old, nil)
+    }
+
+    /// How much of each head shows, `elapsed` seconds into a change.
+    static func fade(elapsed: Double) -> (incoming: Float, outgoing: Float) {
+        let progress = Float(min(max(elapsed / fadeDuration, 0), 1))
+        let eased = progress * progress * (3 - 2 * progress)
+        return (eased, 1 - eased)
     }
 
     private struct GPUPoint {
@@ -96,6 +118,9 @@ public final class HoloRenderer: @unchecked Sendable {
         let hidden = MTLDepthStencilDescriptor()
         hidden.depthCompareFunction = .lessEqual
         hidden.isDepthWriteEnabled = false
+        let unhidden = MTLDepthStencilDescriptor()
+        unhidden.depthCompareFunction = .always
+        unhidden.isDepthWriteEnabled = false
 
         let composite = MTLRenderPipelineDescriptor()
         composite.vertexFunction = library.makeFunction(name: "fullscreenVertex")
@@ -107,6 +132,7 @@ public final class HoloRenderer: @unchecked Sendable {
             let compositePipeline = try? device.makeRenderPipelineState(descriptor: composite),
             let hidingState = device.makeDepthStencilState(descriptor: hiding),
             let hiddenState = device.makeDepthStencilState(descriptor: hidden),
+            let unhiddenState = device.makeDepthStencilState(descriptor: unhidden),
             let pointBuffer = device.makeBuffer(
                 length: MemoryLayout<GPUPoint>.stride * max(model.pointCount, 1), options: .storageModeShared)
         else { return nil }
@@ -115,6 +141,7 @@ public final class HoloRenderer: @unchecked Sendable {
         self.compositePipeline = compositePipeline
         self.hiding = hidingState
         self.hidden = hiddenState
+        self.unhidden = unhiddenState
         self.pointBuffer = pointBuffer
         occluderBuffer = Self.occluderBuffer(model, device: device)
     }
@@ -156,11 +183,41 @@ public final class HoloRenderer: @unchecked Sendable {
         }
         guard let scene, let depth else { return }
 
+        var weights: (incoming: Float, outgoing: Float) = (1, 0)
+        var elapsed = Double.infinity
+        if let change = outgoing {
+            let start = change.start ?? time
+            elapsed = time - start
+            weights = Self.fade(elapsed: elapsed)
+            outgoing = elapsed < Self.fadeDuration ? (change.model, start) : nil
+        }
+        let fadingOut = weights.outgoing > 0 ? outgoing?.model : nil
+        reserve(points: model.pointCount + (fadingOut?.pointCount ?? 0))
+
         let shaped = model.shape(pose, time: time)
         let normals = model.normals
-        let gpu = pointBuffer.contents().bindMemory(to: GPUPoint.self, capacity: shaped.count)
-        for index in 0..<min(shaped.count, normals.count) {
-            gpu[index] = GPUPoint(position: shaped[index], normal: normals[index])
+        let count = min(shaped.count, normals.count)
+        let gpu = pointBuffer.contents().bindMemory(
+            to: GPUPoint.self, capacity: pointBuffer.length / MemoryLayout<GPUPoint>.stride)
+        for index in 0..<count {
+            var normal = normals[index]
+            normal.w *= weights.incoming
+            gpu[index] = GPUPoint(position: shaped[index], normal: normal)
+        }
+        // The old head, after the new one in the same buffer, at its own point size.
+        var outgoingCount = 0
+        if let fadingOut {
+            let oldShaped = fadingOut.shape(pose, time: time)
+            let oldNormals = fadingOut.normals
+            let sizeRatio = fadingOut.pointScale / model.pointScale
+            outgoingCount = min(oldShaped.count, oldNormals.count)
+            for index in 0..<outgoingCount {
+                var position = oldShaped[index]
+                position.w *= sizeRatio
+                var normal = oldNormals[index]
+                normal.w *= weights.outgoing
+                gpu[count + index] = GPUPoint(position: position, normal: normal)
+            }
         }
 
         var uniforms = Uniforms(
@@ -168,7 +225,7 @@ public final class HoloRenderer: @unchecked Sendable {
             model: Self.model(head: pose.head), colour: SIMD4(settings.colour, 1),
             viewport: SIMD2(Float(width), Float(height)), time: Float(time), glow: pose.glow,
             flicker: Self.flicker(time), pointScale: Float(height) * 0.0062 * model.pointScale,
-            glitch: Self.glitch(time),
+            glitch: elapsed < 0.1 ? 1 : Self.glitch(time),
             projector: settings.projector ? 1 : 0, background: settings.background)
 
         let light = MTLRenderPassDescriptor()
@@ -193,7 +250,11 @@ public final class HoloRenderer: @unchecked Sendable {
             encoder.setRenderPipelineState(pointPipeline)
             encoder.setDepthStencilState(hidden)
             encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
-            encoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: shaped.count)
+            encoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: count)
+            if outgoingCount > 0 {
+                encoder.setDepthStencilState(unhidden)
+                encoder.drawPrimitives(type: .point, vertexStart: count, vertexCount: outgoingCount)
+            }
             encoder.endEncoding()
         }
 
