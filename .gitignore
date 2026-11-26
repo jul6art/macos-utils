@@ -1,4 +1,3 @@
-# Created by .ignore support plugin (hsz.mobi)
 ### JetBrains template
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
@@ -35,6 +34,10 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+### Python
+# Bytecode left by running or checking a script (tools/faces/build_faces.py)
+__pycache__/
+*.pyc
 
 # Build artefacts
 data/sources/awake/build/
