@@ -77,6 +77,22 @@ TEXTURES = {
 # stays as it is.
 IRIS = {"brown": (24 / 360, 0.7)}
 
+# MakeHuman's afro is all but black (its curls a dark red, at a tenth of full brightness): lit, it read as a
+# helmet. Lifted, its curls show; less saturated, they stay dark brown rather than red.
+HAIR = {"afro01": (1.6, 0.6)}
+
+
+def lift_hair(image, gain, keep):
+    """A hair texture `gain` times brighter, `keep` of its saturation, its transparency untouched."""
+    width, height = image.size
+    pixels = numpy.empty(width * height * 4, dtype=numpy.float32)
+    image.pixels.foreach_get(pixels)
+    pixels = pixels.reshape(-1, 4)
+    rgb = numpy.clip(pixels[:, :3] * gain, 0, 1)
+    grey = rgb.mean(1, keepdims=True)
+    pixels[:, :3] = grey + (rgb - grey) * keep
+    image.pixels.foreach_set(pixels.ravel())
+
 
 def recolour_iris(image, hue, keep):
     """The saturated pixels of an eye texture (the iris) to `hue`, `keep` of their saturation, same value."""
@@ -164,6 +180,8 @@ def write_textures(preset, data, output, skin_box):
             image.scale(size, size)
         if part == "eyes" and preset["eyes"] in IRIS:
             recolour_iris(image, *IRIS[preset["eyes"]])
+        if part == "hair" and preset["hair"] in HAIR:
+            lift_hair(image, *HAIR[preset["hair"]])
         target = os.path.join(output, f"{preset['id']}.{part}.{'png' if alpha else 'jpg'}")
         settings = bpy.context.scene.render.image_settings
         settings.file_format = "PNG" if alpha else "JPEG"

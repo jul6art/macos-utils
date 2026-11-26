@@ -57,7 +57,7 @@ enum HoloShaders {
         // and the left, a fill from the right and a rim; tinted like the hologram while it is faint.
         // Invariant: the depth pass and the colour pass must land on exactly the same depth.
         struct SurfaceOut { float4 position [[position, invariant]]; float3 normal; float2 uv; float height; };
-        struct SurfaceLook { float shine; float sharpness; float warmth; float opacity; };
+        struct SurfaceLook { float shine; float sharpness; float warmth; float opacity; float rim; };
 
         vertex SurfaceOut surfaceVertex(uint id [[vertex_id]], const device GPUPoint* points [[buffer(0)]],
                                         constant Uniforms& u [[buffer(1)]], const device float2* uvs [[buffer(2)]]) {
@@ -84,7 +84,7 @@ enum HoloShaders {
             // Light through the skin: warm where light turns to shade.
             lit += albedoLinear * float3(0.5, 0.12, 0.05) * look.warmth * wrapped * (1.0 - wrapped);
             lit += pow(saturate(dot(n, normalize(key + float3(0.0, 0.0, 1.0)))), look.sharpness) * look.shine;
-            lit += pow(1.0 - saturate(n.z), 3.0) * 0.12;
+            lit += pow(1.0 - saturate(n.z), 3.0) * look.rim;
             float3 colour = sqrt(saturate(lit));
             float3 tinted = u.colour.rgb * dot(colour, float3(0.299, 0.587, 0.114)) * 1.4;
             float3 rgb = mix(tinted, colour, smoothstep(0.15, 0.9, u.realism));
