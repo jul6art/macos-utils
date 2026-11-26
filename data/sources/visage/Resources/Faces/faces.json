@@ -1,12 +1,12 @@
 [
-  {"id": "lea",     "name": "Léa",     "gender": 0.0, "age": 24, "race": [0.05, 0.85, 0.10], "weight": 0.45, "muscle": 0.45, "hair": "long01",     "eyebrows": "eyebrow010", "eyelashes": "eyelashes02"},
-  {"id": "amara",   "name": "Amara",   "gender": 0.0, "age": 31, "race": [0.05, 0.10, 0.85], "weight": 0.50, "muscle": 0.50, "hair": "afro01",     "eyebrows": "eyebrow009", "eyelashes": "eyelashes03"},
-  {"id": "mei",     "name": "Mei",     "gender": 0.0, "age": 28, "race": [0.85, 0.10, 0.05], "weight": 0.40, "muscle": 0.45, "hair": "bob01",      "eyebrows": "eyebrow011", "eyelashes": "eyelashes02"},
-  {"id": "ines",    "name": "Inès",    "gender": 0.0, "age": 45, "race": [0.10, 0.50, 0.40], "weight": 0.55, "muscle": 0.50, "hair": "ponytail01", "eyebrows": "eyebrow012", "eyelashes": "eyelashes01"},
-  {"id": "helene",  "name": "Hélène",  "gender": 0.0, "age": 63, "race": [0.05, 0.90, 0.05], "weight": 0.55, "muscle": 0.40, "hair": "bob02",      "eyebrows": "eyebrow008", "eyelashes": "eyelashes01"},
-  {"id": "hugo",    "name": "Hugo",    "gender": 1.0, "age": 25, "race": [0.05, 0.90, 0.05], "weight": 0.45, "muscle": 0.55, "hair": "short02",    "eyebrows": "eyebrow001", "eyelashes": "eyelashes04"},
-  {"id": "kofi",    "name": "Kofi",    "gender": 1.0, "age": 34, "race": [0.05, 0.05, 0.90], "weight": 0.50, "muscle": 0.60, "hair": "short01",    "eyebrows": "eyebrow002", "eyelashes": "eyelashes04"},
-  {"id": "kenji",   "name": "Kenji",   "gender": 1.0, "age": 30, "race": [0.90, 0.05, 0.05], "weight": 0.45, "muscle": 0.50, "hair": "short03",    "eyebrows": "eyebrow003", "eyelashes": "eyelashes04"},
-  {"id": "malik",   "name": "Malik",   "gender": 1.0, "age": 47, "race": [0.10, 0.45, 0.45], "weight": 0.60, "muscle": 0.55, "hair": "short04",    "eyebrows": "eyebrow004", "eyelashes": "eyelashes04"},
-  {"id": "bernard", "name": "Bernard", "gender": 1.0, "age": 65, "race": [0.05, 0.90, 0.05], "weight": 0.60, "muscle": 0.45, "hair": "short01",    "eyebrows": "eyebrow006", "eyelashes": "eyelashes04"}
+  {"id": "lea",     "name": "Léa",     "gender": 0.0, "age": 24, "race": [0.05, 0.85, 0.10], "weight": 0.45, "muscle": 0.45, "hair": "long01",     "eyebrows": "eyebrow010", "eyelashes": "eyelashes02", "eyes": "bluegreen"},
+  {"id": "amara",   "name": "Amara",   "gender": 0.0, "age": 31, "race": [0.05, 0.10, 0.85], "weight": 0.50, "muscle": 0.50, "hair": "afro01",     "eyebrows": "eyebrow009", "eyelashes": "eyelashes03", "eyes": "brown"},
+  {"id": "mei",     "name": "Mei",     "gender": 0.0, "age": 28, "race": [0.85, 0.10, 0.05], "weight": 0.40, "muscle": 0.45, "hair": "bob01",      "eyebrows": "eyebrow011", "eyelashes": "eyelashes02", "eyes": "brown"},
+  {"id": "ines",    "name": "Inès",    "gender": 0.0, "age": 45, "race": [0.10, 0.50, 0.40], "weight": 0.55, "muscle": 0.50, "hair": "ponytail01", "eyebrows": "eyebrow012", "eyelashes": "eyelashes01", "eyes": "brownlight"},
+  {"id": "helene",  "name": "Hélène",  "gender": 0.0, "age": 63, "race": [0.05, 0.90, 0.05], "weight": 0.55, "muscle": 0.40, "hair": "bob02",      "eyebrows": "eyebrow008", "eyelashes": "eyelashes01", "eyes": "blue"},
+  {"id": "hugo",    "name": "Hugo",    "gender": 1.0, "age": 25, "race": [0.05, 0.90, 0.05], "weight": 0.45, "muscle": 0.55, "hair": "short02",    "eyebrows": "eyebrow001", "eyelashes": "eyelashes04", "eyes": "green"},
+  {"id": "kofi",    "name": "Kofi",    "gender": 1.0, "age": 34, "race": [0.05, 0.05, 0.90], "weight": 0.50, "muscle": 0.60, "hair": "short01",    "eyebrows": "eyebrow002", "eyelashes": "eyelashes04", "eyes": "brown"},
+  {"id": "kenji",   "name": "Kenji",   "gender": 1.0, "age": 30, "race": [0.90, 0.05, 0.05], "weight": 0.45, "muscle": 0.50, "hair": "short03",    "eyebrows": "eyebrow003", "eyelashes": "eyelashes04", "eyes": "brown"},
+  {"id": "malik",   "name": "Malik",   "gender": 1.0, "age": 47, "race": [0.10, 0.45, 0.45], "weight": 0.60, "muscle": 0.55, "hair": "short04",    "eyebrows": "eyebrow004", "eyelashes": "eyelashes04", "eyes": "brownlight"},
+  {"id": "bernard", "name": "Bernard", "gender": 1.0, "age": 65, "race": [0.05, 0.90, 0.05], "weight": 0.60, "muscle": 0.45, "hair": "short01",    "eyebrows": "eyebrow006", "eyelashes": "eyelashes04", "eyes": "grey"}
 ]

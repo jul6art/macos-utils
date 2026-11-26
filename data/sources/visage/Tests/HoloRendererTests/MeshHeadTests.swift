@@ -65,6 +65,31 @@ struct MeshHeadTests {
         #expect(PointHeadModel().occluders.isEmpty)
     }
 
+    @Test("every face has its surfaces: a texture per part, light enough (R7), and coordinates for its points")
+    func surfaces() throws {
+        for id in Self.ids {
+            let head = try head(id)
+            #expect(head.surfaces.count == 7, "\(id)")
+            #expect(head.uvs.count == head.pointCount, "\(id)")
+            var bytes = 0
+            for surface in head.surfaces {
+                bytes += try #require(try surface.texture.resourceValues(forKeys: [.fileSizeKey]).fileSize)
+                #expect(surface.triangles.count % 3 == 0 && surface.triangles.allSatisfy { Int($0) < head.pointCount })
+            }
+            #expect(bytes < 2_500_000, "\(id)")
+            // The skin and the eyes first, then what is cut out of a texture and lies over them.
+            let solid = head.surfaces.map { $0.material == .skin || $0.material == .eye }
+            #expect(solid == solid.sorted { $0 && !$1 }, "\(id)")
+        }
+    }
+
+    @Test("a vertex on a texture seam is drawn once as a point")
+    func twins() throws {
+        let points = try head("lea").shape(FacePose(), time: 0).filter { $0.w > 0 }
+        let places = Set(points.map { SIMD3<Int32>((SIMD3($0.x, $0.y, $0.z) * 1e4).rounded(.toNearestOrEven)) })
+        #expect(places.count == points.count)
+    }
+
     @Test("mouthClose never shuts the lips past the jaw, and a mouth at rest stays shut")
     func lipsShut() throws {
         let head = try head("lea")
