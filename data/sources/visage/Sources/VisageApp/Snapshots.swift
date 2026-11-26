@@ -68,14 +68,14 @@ enum Snapshots {
         let model = AppModel()
         model.thumbnails = FaceLibrary.makeThumbnails(FaceLibrary.choices.map(\.id))
         if !write(
-            SettingsView(model: model), size: NSSize(width: 520, height: 720),
+            SettingsView(model: model), size: NSSize(width: 860, height: 720),
             to: directory.appending(path: "settings.png"), dark: true)
         {
             failures += 1
         }
         // The first launch's welcome, its AI not chosen yet.
         if !write(
-            WelcomeView(model: model), size: NSSize(width: 720, height: 820),
+            WelcomeView(model: model), size: NSSize(width: 860, height: 820),
             to: directory.appending(path: "welcome.png"), dark: true)
         {
             failures += 1

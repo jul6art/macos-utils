@@ -1,55 +1,64 @@
 import SwiftUI
 
-/// The settings (spec, § 9.2), in the charter's colours: the mark alive, the connection, then the face,
-/// the window and the sync, each in its card.
+/// The settings (spec, § 9.2), in the charter's colours: the mark alive, the connection; the face as they
+/// make it, at rest, on the left; the face, the window and the sync, each in its card, on the right.
 struct SettingsView: View {
     let model: AppModel
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .center, spacing: 16) {
-                    AnimatedMark(size: 64)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Settings").font(.title.weight(.semibold))
-                        Text(connection).foregroundStyle(Palette.cendreClaire)
-                    }
-                    Spacer()
-                    Button("Connect my AI…") { model.showConnectWindow() }
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .center, spacing: 16) {
+                AnimatedMark(size: 64)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Settings").font(.title.weight(.semibold))
+                    Text(connection).foregroundStyle(Palette.cendreClaire)
                 }
-                .padding(.top, 28)
+                Spacer()
+                Button("Connect my AI…") { model.showConnectWindow() }
+            }
+            .padding(.top, 28)
+            .padding(.horizontal, 24)
 
-                BrandCard(title: String(localized: "Face")) {
-                    FaceGrid(model: model)
-                    RealismSlider(model: model)
-                    FaceSizeSlider(model: model)
-                }
-                BrandCard(title: String(localized: "Window")) {
-                    WindowModeChoice(model: model)
-                }
-                BrandCard(title: String(localized: "Sync")) {
-                    MillisecondsSlider(
-                        title: String(localized: "Delay"), value: model.delayMilliseconds, range: 80...300,
-                        help: String(
-                            localized:
-                                "How long the voice waits for the face to read ahead. Unnoticeable in a conversation.")
-                    ) { model.delayMilliseconds = $0 }
-                    MillisecondsSlider(
-                        title: String(localized: "Anticipation"), value: model.anticipationMilliseconds, range: 0...120,
-                        help: String(localized: "How early the lips move before the sound, as in a real face.")
-                    ) { model.anticipationMilliseconds = $0 }
-                    MillisecondsSlider(
-                        title: String(localized: "Lip offset"), value: model.extraLatencyMilliseconds,
-                        range: -100...300,
-                        help: String(
-                            localized: "For Bluetooth headphones, which play the sound later than the speakers.")
-                    ) { model.extraLatencyMilliseconds = $0 }
+            HStack(alignment: .top, spacing: 20) {
+                FacePreview(model: model)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        BrandCard(title: String(localized: "Face")) {
+                            FaceGrid(model: model)
+                            RealismSlider(model: model)
+                            FaceSizeSlider(model: model)
+                        }
+                        BrandCard(title: String(localized: "Window")) {
+                            WindowModeChoice(model: model)
+                        }
+                        BrandCard(title: String(localized: "Sync")) {
+                            MillisecondsSlider(
+                                title: String(localized: "Delay"), value: model.delayMilliseconds, range: 80...300,
+                                help: String(
+                                    localized:
+                                        "How long the voice waits for the face to read ahead. Unnoticeable in a conversation."
+                                )
+                            ) { model.delayMilliseconds = $0 }
+                            MillisecondsSlider(
+                                title: String(localized: "Anticipation"), value: model.anticipationMilliseconds,
+                                range: 0...120,
+                                help: String(localized: "How early the lips move before the sound, as in a real face.")
+                            ) { model.anticipationMilliseconds = $0 }
+                            MillisecondsSlider(
+                                title: String(localized: "Lip offset"), value: model.extraLatencyMilliseconds,
+                                range: -100...300,
+                                help: String(
+                                    localized: "For Bluetooth headphones, which play the sound later than the speakers."
+                                )
+                            ) { model.extraLatencyMilliseconds = $0 }
+                        }
+                    }
+                    .padding(.bottom, 24)
                 }
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 24)
         }
-        .frame(width: 520, height: 720)
+        .frame(width: 860, height: 720)
         .background(Color(nsColor: Palette.charbon))
         .foregroundStyle(Palette.orPale)
         .tint(Palette.braise)

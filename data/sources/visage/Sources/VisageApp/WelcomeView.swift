@@ -37,9 +37,14 @@ struct WelcomeView: View {
                         ConnectScreen(model: model, welcoming: true)
                     }
                     BrandCard(title: String(localized: "Your face"), number: 2) {
-                        FaceGrid(model: model)
-                        RealismSlider(model: model)
-                        FaceSizeSlider(model: model)
+                        HStack(alignment: .top, spacing: 18) {
+                            FacePreview(model: model, width: 220)
+                            VStack(alignment: .leading, spacing: 14) {
+                                FaceGrid(model: model)
+                                RealismSlider(model: model)
+                                FaceSizeSlider(model: model)
+                            }
+                        }
                     }
                     BrandCard(title: String(localized: "Where it shows"), number: 3) {
                         WindowModeChoice(model: model)
@@ -82,7 +87,7 @@ struct WelcomeView: View {
             .background(Palette.surface)
             .overlay(alignment: .top) { Rectangle().fill(Palette.brou).frame(height: 1) }
         }
-        .frame(width: 720, height: 820)
+        .frame(width: 860, height: 820)
         .background(Color(nsColor: Palette.charbon))
         .foregroundStyle(Palette.orPale)
         .tint(Palette.braise)

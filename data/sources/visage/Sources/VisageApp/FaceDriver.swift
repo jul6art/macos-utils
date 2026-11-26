@@ -8,19 +8,22 @@ import SwiftUI
 import VoiceAnalysis
 
 /// Drives the face on screen: at each displayed frame, which sound will be heard at that instant, the voice
-/// read `anticipation` ahead of it, the animation, the hologram (spec, § 7.1, point 9).
+/// read `anticipation` ahead of it, the animation, the hologram (spec, § 7.1, point 9). As a `preview`
+/// (the settings', the welcome's), it hears nothing: the face at rest, on charbon, as the settings make it.
 @MainActor
 final class FaceDriver: NSObject, MTKViewDelegate {
     let renderer: HoloRenderer?
     private let model: AppModel
+    private let preview: Bool
     private let voice = LiveVoice()
     private let animator = FaceAnimator(seed: UInt32(truncatingIfNeeded: Int(Date().timeIntervalSince1970)))
     private weak var attached: AudioCapture?
     private var lastDraw: CFTimeInterval = 0
     private let start = CACurrentMediaTime()
 
-    init(model: AppModel) {
+    init(model: AppModel, preview: Bool = false) {
         self.model = model
+        self.preview = preview
         renderer = HoloRenderer(model: FaceLibrary.model(id: model.faceID))
     }
 
@@ -31,13 +34,15 @@ final class FaceDriver: NSObject, MTKViewDelegate {
     }
 
     private func render(in view: MTKView) {
+        // A preview whose window is closed draws nothing.
+        if preview, view.window?.isVisible != true { return }
         guard let renderer, let drawable = view.currentDrawable, let commandBuffer = renderer.makeCommandBuffer()
         else { return }
         let now = CACurrentMediaTime()
         let dt = lastDraw == 0 ? 1.0 / 60 : min(now - lastDraw, 0.1)
         lastDraw = now
 
-        let capture = model.connection.capture
+        let capture = preview ? nil : model.connection.capture
         if capture !== attached {
             attached = capture
             voice.attach(capture)
@@ -60,7 +65,7 @@ final class FaceDriver: NSObject, MTKViewDelegate {
         view.preferredFramesPerSecond = speaking ? 60 : 30
 
         var settings = HoloSettings()
-        if model.windowMode == .classic { settings.background = HoloSettings.charbon }
+        if model.windowMode == .classic || preview { settings.background = HoloSettings.charbon }
         settings.realism = Float(model.realism)
         renderer.encode(
             pose: pose, time: now - start, settings: settings, into: drawable.texture, commandBuffer: commandBuffer)
