@@ -250,21 +250,34 @@ them from a hologram of light points to a lit face:
 </p>
 
 They come from MakeHuman, through its Blender extension
-[MPFB](https://extensions.blender.org/add-ons/mpfb/) and the
-[CC0 assets](https://static.makehumancommunity.org/about/license.html) it uses (skins, eyes, hair, and the
-`faceunits01` pack of 52 ARKit face shapes). Everything the faces are made of
-can be redistributed freely. [tools/faces/](/data/sources/visage/tools/faces/)
-rebuilds them:
+[MPFB](https://extensions.blender.org/add-ons/mpfb/) and its
+[CC0 assets](https://static.makehumancommunity.org/about/license.html) (the
+heads, eyes, brows, lashes, teeth, hair, and the `faceunits01` pack of 52 ARKit
+face shapes), dressed from the community's
+[asset packs](https://static.makehumancommunity.org/assets/assetpacks/index.html):
+skins (`skins01`, `skins02`), irises (`system_eye_materials01`) and hair
+materials (`system_hair_materials01`, `system_hair_materials02`), all CC0, and
+two hairstyles by Elvaerwyn, from the `hair02` pack, under CC-BY:
+
+- Léa's: [Ashley May hair](http://www.makehumancommunity.org/node/1861)
+  (`elvs_ashley_may_hair`), by Elvaerwyn, CC-BY;
+- Inès's: [Hazel hair](http://www.makehumancommunity.org/node/2816)
+  (`elvs_hazel_hair`), by Elvaerwyn, CC-BY.
+
+Both are fitted to the faces' heads, trimmed and recoloured here. Everything
+else the faces are made of can be redistributed freely, without attribution.
+[tools/faces/](/data/sources/visage/tools/faces/) rebuilds them:
 
 ```shell
 sh data/sources/visage/tools/faces/build.sh            # the ten faces
 sh data/sources/visage/tools/faces/build.sh lea hugo   # only these
 ```
 
-It needs Blender with MPFB and the MakeHuman assets, only to rebuild the faces:
-the app itself never needs Blender. Each face is a set of values in
+It needs Blender with MPFB and these packs, only to rebuild the faces: the app
+itself never needs Blender. Each face is a set of values in
 [presets.json](/data/sources/visage/tools/faces/presets.json): MakeHuman's
-weighted targets, proportions, hair, brow and skin colours. Every clone of this
+weighted targets, proportions, skin, irises, hair and its material, hair and
+brow colours. Every clone of this
 repository carries all ten, so a face's mesh stays under 3 MB and its textures
 under 2.5 MB.
 
