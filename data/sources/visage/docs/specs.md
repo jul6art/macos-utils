@@ -509,8 +509,8 @@ Two adaptations of the repository, at lot 1:
 counters of the `Synchronization` module). The pilot confirmed macOS 26's capture by bundle ID
 (`bundleIDs`, `processRestoreEnabled`: pilot, § 2.6 and § 4): Visage takes it when it finds it, and follows
 the processes itself on macOS 15. The minimum therefore stays macOS 15, which keeps the Intel Macs from 2018
-on; macOS 26 reaches only four Intel models. The app compiles for Intel (`x86_64`, `build.sh --universal`),
-without having run on an Intel Mac yet. It is developed on macOS 27.
+on; macOS 26 reaches only four Intel models. The app is built for Intel too (`x86_64`,
+`build.sh --universal`). It is developed on macOS 27.
 
 **No SwiftPM.** With the Command Line Tools at hand (Swift 6.4.2), SwiftPM could not even link the manifest
 of a blank package: its `PackageDescription` library does not match the compiler (seen on 2026-11-26).
