@@ -132,5 +132,7 @@ License
 -------
 
 The MacOS Utils is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Visage's faces are made of CC0 assets and two CC-BY hairstyles by Elvaerwyn,
+credited in [VISAGE.md](data/doc/VISAGE.md#the-faces).
 
 &copy; 2026 [jul6art](https://devinthehood.com)
