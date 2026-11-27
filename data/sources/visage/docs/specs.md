@@ -17,7 +17,7 @@
 | Q3 | Which window? | **Two modes**: floating (the default) and classic (§ 9.1). There were three at first; the one transparent among the other windows went on 2026-11-26: on the first try, the face slipped behind Claude at the first click. |
 | Q4 | Which repository? | **Public, under the MIT licence**: a gift. Visage joins **`macos-utils`** (public, MIT), in `data/sources/visage/` (§ 10.1). |
 | Q5 | A browser mode? | **No**: the official app only. |
-| Q6 | Which identity? | **C4 "Poussière"** (dust): a face of dots that comes apart into dust, in ember light. Charter in `docs/charte.md`, files in `brand/`. |
+| Q6 | Which identity? | **C4 "Poussière"** (dust): a face of dots that comes apart into dust, in ember light. Charter in `docs/charter.md`, files in `brand/`. |
 
 ## 1. The goal
 

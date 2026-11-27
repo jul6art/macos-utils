@@ -118,7 +118,7 @@ cp -R "${SRC_DIR}"/Resources/*.lproj "${APP_DIR}/Contents/Resources/";
 cp -R "${SRC_DIR}/Resources/Faces" "${APP_DIR}/Contents/Resources/Faces";
 
 echo "==> Icon";
-# Drawn by code from the brand's geometry (docs/charte.md, § 2): the repository holds no bitmap.
+# Drawn by code from the brand's geometry (docs/charter.md, § 2): the repository holds no bitmap.
 sh "${SRC_DIR}/brand/generate.sh" --iconset "${BUILD_DIR}/AppIcon.iconset" >/dev/null;
 iconutil -c icns "${BUILD_DIR}/AppIcon.iconset" -o "${APP_DIR}/Contents/Resources/AppIcon.icns";
 rm -rf "${BUILD_DIR}/AppIcon.iconset";

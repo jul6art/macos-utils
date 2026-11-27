@@ -1,6 +1,6 @@
 // HoloRenderer — the face as a hologram (spec, § 8.2): a head of light points, deformed by the animation's
 // ARKit weights, drawn by Metal with the hologram's layers. Until the MakeHuman faces (lot 5), the head is
-// the charter's point face made 3D (docs/charte.md).
+// the charter's point face made 3D (docs/charter.md).
 
 import FaceAnimation
 import Foundation

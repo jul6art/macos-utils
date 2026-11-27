@@ -48,7 +48,7 @@ struct MenuContent: View {
 }
 
 /// The menu bar icon: the charter's glyph, as a template image macOS tints for the menu bar
-/// (docs/charte.md, § 2).
+/// (docs/charter.md, § 2).
 enum MenuBarIcon {
     static let image: NSImage = {
         let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { _ in

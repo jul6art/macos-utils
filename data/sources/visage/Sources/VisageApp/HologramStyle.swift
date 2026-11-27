@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The hologram's colours (spec, § 8.2, point 8): the charter's braise by default (docs/charte.md, § 3), and
+/// The hologram's colours (spec, § 8.2, point 8): the charter's braise by default (docs/charter.md, § 3), and
 /// four other lights.
 enum HoloColour: String, CaseIterable, Identifiable {
     case braise
