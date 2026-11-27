@@ -85,7 +85,12 @@ enum HoloShaders {
             lit += albedoLinear * float3(0.5, 0.12, 0.05) * look.warmth * wrapped * (1.0 - wrapped);
             lit += pow(saturate(dot(n, normalize(key + float3(0.0, 0.0, 1.0)))), look.sharpness) * look.shine;
             lit += pow(1.0 - saturate(n.z), 3.0) * look.rim;
-            float3 colour = sqrt(saturate(lit));
+            // Highlights roll off instead of clipping: lit past white, pale skins went flat, a chalk mask.
+            // Below the knee nothing changes (dark skins kept their modelling).
+            float knee = 0.55;
+            float3 over = max(lit - knee, 0.0);
+            float3 rolled = min(lit, knee) + (1.0 - knee) * (1.0 - exp(-over / (1.0 - knee)));
+            float3 colour = sqrt(saturate(rolled));
             float3 tinted = u.colour.rgb * dot(colour, float3(0.299, 0.587, 0.114)) * 1.4;
             float3 rgb = mix(tinted, colour, smoothstep(0.15, 0.9, u.realism));
             // The neck, cut short, fades out rather than ending on a jagged edge.
