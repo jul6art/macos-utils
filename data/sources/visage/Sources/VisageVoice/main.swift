@@ -26,9 +26,10 @@ let visageBundle = Bundle.main.executableURL.flatMap {
             .deletingLastPathComponent())
 }
 
-/// Visage runs, connected to Claude Code.
+/// Visage runs, connected to Claude Code. Read afresh: the voice lives long, and Visage changes it.
 func visageListens() -> Bool {
-    !NSRunningApplication.runningApplications(withBundleIdentifier: ClaudeCodeVoice.visageDomain).isEmpty
+    CFPreferencesAppSynchronize(ClaudeCodeVoice.visageDomain as CFString)
+    return !NSRunningApplication.runningApplications(withBundleIdentifier: ClaudeCodeVoice.visageDomain).isEmpty
         && visage?.string(forKey: ClaudeCodeVoice.sourceKey) == ClaudeCodeVoice.sourceID
 }
 
@@ -167,7 +168,8 @@ final class Voice: NSObject, AVSpeechSynthesizerDelegate {
     private let synthesizer = AVSpeechSynthesizer()
     private let readyAt = Date().addingTimeInterval(warmUp)
     private var waiting: String?
-    private var speaking = false
+    /// The sentence being read: the voice leaves only when it has none.
+    private var current: AVSpeechUtterance?
     private var lastActivity = Date()
     private var lastCheck = Date()
 
@@ -233,23 +235,23 @@ final class Voice: NSObject, AVSpeechSynthesizerDelegate {
     private func tick() {
         if let text = waiting, Date() >= readyAt {
             waiting = nil
-            speaking = true
             let utterance = AVSpeechUtterance(string: text)
             utterance.voice = voice(for: text)
+            current = utterance
             synthesizer.speak(utterance)
         }
-        guard !speaking, waiting == nil, Date().timeIntervalSince(lastCheck) > 5 else { return }
+        guard current == nil, waiting == nil, Date().timeIntervalSince(lastCheck) > 5 else { return }
         lastCheck = Date()
         if !visageListens() || Date().timeIntervalSince(lastActivity) > Self.idleLimit { exit(0) }
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        speaking = synthesizer.isSpeaking
+        if utterance === current { current = nil }
         lastActivity = Date()
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        speaking = synthesizer.isSpeaking
+        if utterance === current { current = nil }
     }
 }
 
