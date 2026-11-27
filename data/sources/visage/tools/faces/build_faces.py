@@ -74,8 +74,9 @@ TEXTURES = {
 
 # MakeHuman's "brown" iris is a deep, saturated red (hue 7°, saturation 0.99): on a face it reads burgundy.
 # Its iris turns to a natural brown, the hue and the share of its saturation kept below; the white, grey,
-# stays as it is.
-IRIS = {"brown": (24 / 360, 0.7)}
+# stays as it is. Other irises keep their hue (None) and lose some saturation: turquoise, bright green and
+# amber read as lenses, not eyes.
+IRIS = {"brown": (24 / 360, 0.7), "bluegreen": (None, 0.55), "green": (None, 0.65), "brownlight": (None, 0.65)}
 
 def colour_like(image, colour, contrast=0.85):
     """Hair or brows in `colour` (« #rrggbb »): each pixel keeps its brightness relative to the texture's
@@ -95,7 +96,8 @@ def colour_like(image, colour, contrast=0.85):
     image.pixels.foreach_set(pixels.ravel())
 
 def recolour_iris(image, hue, keep):
-    """The saturated pixels of an eye texture (the iris) to `hue`, `keep` of their saturation, same value."""
+    """The saturated pixels of an eye texture (the iris) to `hue` (or their own, if None), `keep` of their
+    saturation, same value."""
     width, height = image.size
     pixels = numpy.empty(width * height * 4, dtype=numpy.float32)
     image.pixels.foreach_get(pixels)
@@ -104,6 +106,10 @@ def recolour_iris(image, hue, keep):
     value = rgb.max(1)
     saturation = numpy.where(value > 0, (value - rgb.min(1)) / numpy.maximum(value, 1e-6), 0)
     iris = numpy.clip((saturation - 0.25) / 0.2, 0, 1)[:, None]
+    if hue is None:
+        pixels[:, :3] = rgb * (1 - iris) + (value[:, None] - (value[:, None] - rgb) * keep) * iris
+        image.pixels.foreach_set(pixels.ravel())
+        return
     chroma = value * saturation * keep
     sector = hue * 6
     second = chroma * (1 - abs(sector % 2 - 1))
@@ -272,6 +278,7 @@ def build(preset, data, path):
     eyes = next(part for part in parts if part.name.endswith(".eyes"))
     hair = next(part for part in parts if part.name.endswith(".hair"))
     tidy_hair(hair, human, eyes, cut)
+    bake_occlusion(human, {part.name.rsplit(".", 1)[1]: part for part in parts})
     keep_seen(human, [human, eyes])
     skin_box = fit_uvs(human)
 
@@ -283,7 +290,9 @@ def build(preset, data, path):
         filepath=path, export_format="GLB", use_selection=True, export_apply=False, export_yup=True,
         export_materials="NONE", export_texcoords=True, export_normals=True, export_morph=True,
         export_morph_normal=False, export_morph_tangent=False, export_try_sparse_sk=True,
-        export_try_omit_sparse_sk=True)
+        export_try_omit_sparse_sk=True, export_all_vertex_colors=False,
+        # Without materials, the exporter writes the render colour attribute: the occlusion, as COLOR_0.
+        export_active_vertex_color_when_no_material=True)
     return skin_box
 
 
@@ -337,6 +346,41 @@ def tidy_hair(hair, human, eyes, cut):
     bm.to_mesh(hair.data)
     bm.free()
     print(f"TIDY {hair.name}: {len(doomed)} faces removed")
+
+
+def bake_occlusion(head, parts):
+    """Contact shadows, per vertex, in a colour attribute « occlusion » that the app darkens the light
+    with: the eye sockets, the sides of the nose, the corners of the lips, the hair's shade on the forehead,
+    the teeth deep in the mouth. Without them, the faces lit evenly looked like masks. Cycles' ambient
+    occlusion within 3 cm. Runs while the head is whole.
+
+    The skin and the hair are baked without the teeth and the tongue, which poke a little through the
+    chin of MakeHuman's mesh and blackened it; those two, inside the mouth, with everything. The eyeballs
+    are left out: ringed by the lids, they came out nearly black. Brows and lashes, laid over the skin,
+    need none."""
+    scene = bpy.context.scene
+    scene.render.engine = "CYCLES"
+    scene.cycles.device = "CPU"
+    scene.cycles.samples = 64
+    if scene.world is None:
+        scene.world = bpy.data.worlds.new("World")
+    scene.world.light_settings.distance = 0.03
+    scene.render.bake.target = "VERTEX_COLORS"
+    inside = [parts[name] for name in ("teeth", "tongue") if name in parts]
+    objects = [head, parts["hair"]] + inside
+    for obj in objects:
+        for hidden in inside:
+            hidden.hide_render = obj not in inside
+        attribute = obj.data.color_attributes.new("occlusion", "FLOAT_COLOR", "POINT")
+        obj.data.color_attributes.active_color = attribute
+        obj.data.color_attributes.render_color_index = obj.data.color_attributes.find("occlusion")
+        bpy.ops.object.select_all(action="DESELECT")
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        bpy.ops.object.bake(type="AO")
+    for hidden in inside:
+        hidden.hide_render = False
+    print("BAKE " + ", ".join(obj.name for obj in objects))
 
 
 def island(face):
