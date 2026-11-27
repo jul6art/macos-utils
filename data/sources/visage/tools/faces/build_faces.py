@@ -130,7 +130,7 @@ def skin_folder(preset):
 
 def diffuse(material):
     """The diffuse texture a MakeHuman material (.mhmat) names, beside it."""
-    for line in open(material, encoding="utf-8"):
+    for line in open(material, encoding="utf-8", errors="replace"):
         if line.startswith("diffuseTexture "):
             return os.path.join(os.path.dirname(material), line.split(maxsplit=1)[1].strip())
     raise ValueError(f"no diffuse texture in {material}")
@@ -165,18 +165,20 @@ def crop(image, box, height):
 
 
 def write_textures(preset, data, output, skin_box):
+    # A material is a .mhmat, or a folder holding one: the packs put each of their eye and hair materials
+    # in a folder of its own, the hair's beside the style it dresses ("hairMaterial").
     folders = {
         "head": os.path.join("skins", preset["skin"]) if "skin" in preset else skin_folder(preset),
-        "eyes": os.path.join("eyes", "materials", preset["eyes"] + ".mhmat"),
+        "eyes": os.path.join("eyes", "materials", preset["eyes"]),
         "eyebrows": os.path.join("eyebrows", preset["eyebrows"]),
         "eyelashes": os.path.join("eyelashes", preset["eyelashes"]),
         "teeth": os.path.join("teeth", "teeth_base"),
         "tongue": os.path.join("tongue", "tongue01"),
-        "hair": os.path.join("hair", preset["hair"]),
+        "hair": os.path.join("hair", preset["hair"], preset.get("hairMaterial", "")),
     }
     for part, (size, alpha) in TEXTURES.items():
-        source = os.path.join(data, folders[part])
-        material = source if source.endswith(".mhmat") else next(
+        source = os.path.join(data, folders[part]).rstrip(os.sep)
+        material = source + ".mhmat" if os.path.isfile(source + ".mhmat") else next(
             os.path.join(source, name) for name in sorted(os.listdir(source)) if name.endswith(".mhmat"))
         image = bpy.data.images.load(diffuse(material))
         if part == "head":
