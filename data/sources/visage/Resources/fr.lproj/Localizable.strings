@@ -97,3 +97,9 @@
 "Lip offset" = "Décalage des lèvres";
 "For Bluetooth headphones, which play the sound later than the speakers." = "Pour les écouteurs Bluetooth, qui jouent le son plus tard que les haut-parleurs.";
 "%lld ms" = "%lld ms";
+"How to install" = "Comment l'installer";
+"Talk to Claude Code: Visage connects with your next request." = "Parlez à Claude Code : Visage se connecte à votre prochaine demande.";
+"Connected to Claude Code. Install Visage's plugin in it, once:" = "Connecté à Claude Code. Installez-y le plugin de Visage, une fois :";
+"Copy" = "Copier";
+"Connected to Claude Code. Turn on its dictation with /voice, and talk: it answers aloud." = "Connecté à Claude Code. Activez sa dictée avec /voice, et parlez : il répond à voix haute.";
+"Claude Code is waiting for your answer, in the terminal." = "Claude Code attend votre réponse, dans le terminal.";

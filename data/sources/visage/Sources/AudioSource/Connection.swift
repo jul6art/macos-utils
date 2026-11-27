@@ -2,6 +2,7 @@ import AppKit
 import CoreAudio
 import Foundation
 import Observation
+import Shared
 
 /// « Connect my AI »: finds the app, taps its sound, and keeps the tap alive — when the app restarts, when
 /// the output changes (headphones), when its audio processes change. The capture starts off the main
@@ -42,6 +43,14 @@ public final class Connection {
         return false
     }
 
+    /// Bundle mode for this connection. Claude Code's voice is a helper that comes and goes: a tap by bundle ID
+    /// missed a helper born after it, and stayed blocked once the helper was gone (seen on 2026-11-27).
+    /// Visage follows its process instead, as on macOS 15, and the helper lives while Visage listens to it
+    /// (spec, § 4.4).
+    private var tapsByBundleID: Bool {
+        usesBundleMode && app?.kind != .claudeCode
+    }
+
     /// For the pilot's comparisons, and as a way out if bundle mode misbehaves on some app.
     public static var forceProcessMode: Bool {
         UserDefaults.standard.bool(forKey: "forceProcessMode")
@@ -79,7 +88,7 @@ public final class Connection {
             state = .notInstalled
             return
         }
-        if installation.url.pathExtension == "app", !app.isRunning {
+        if app.opensOnConnect, installation.url.pathExtension == "app", !app.isRunning {
             NSWorkspace.shared.openApplication(at: installation.url, configuration: NSWorkspace.OpenConfiguration())
         }
         watchOutputDevice()
@@ -125,7 +134,7 @@ public final class Connection {
         let processes = AudioProcesses.matching(bundleID, in: AudioProcesses.all())
         appProcesses = processes.map(\.objectID)
         var target = CaptureTarget()
-        if usesBundleMode, bundleID.contains(".") {
+        if tapsByBundleID, bundleID.contains(".") {
             target.bundleIDs = Array(Set(processes.map(\.bundleID).filter { !$0.isEmpty } + [bundleID])).sorted()
             tappedBundleIDs = Set(target.bundleIDs)
         } else {
@@ -228,7 +237,7 @@ public final class Connection {
         case .waitingForApp:
             start(bundleID: bundleID)
         case .connected, .permissionMissing:
-            if usesBundleMode, bundleID.contains(".") {
+            if tapsByBundleID, bundleID.contains(".") {
                 // Bundle mode: a helper whose bundle ID the tap was not given (Claude's audio service, when
                 // it first plays or listens after the connection).
                 if Self.missesHelpers(seen: processes.map(\.bundleID), tapped: tappedBundleIDs) {
@@ -272,7 +281,12 @@ public final class Connection {
     }
 
     private func watchListening() {
-        setListening(appProcesses.contains(where: AudioProcesses.isRunningInput))
+        var processes = appProcesses
+        // Claude Code: the `claude` process holds its dictation's microphone, not the helper that speaks.
+        if let app, app.kind == .claudeCode {
+            processes += AudioProcesses.all().filter(app.listens(through:)).map(\.objectID)
+        }
+        setListening(processes.contains(where: AudioProcesses.isRunningInput))
     }
 
     private func setListening(_ listening: Bool) {

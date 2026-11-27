@@ -1,6 +1,7 @@
 import AppKit
 import AudioSource
 import Observation
+import Shared
 import SwiftUI
 
 /// The app's state: which AI app, the connection, the settings, and the two windows.
@@ -121,12 +122,13 @@ final class AppModel {
     @ObservationIgnored lazy var previewDriver = FaceDriver(model: self, preview: true)
 
     private enum Key {
-        static let app = "app"
+        // Read by Claude Code's voice too (Shared/ClaudeCodeVoice.swift).
+        static let app = ClaudeCodeVoice.sourceKey
         static let windowMode = "windowMode"
         static let delay = "delayMilliseconds"
         static let anticipation = "anticipationMilliseconds"
         static let extraLatency = "extraLatencyMilliseconds"
-        static let face = "face"
+        static let face = ClaudeCodeVoice.faceKey
         static let realism = "realism"
         static let faceShown = "faceShown"
         static let faceScale = "faceScale"
@@ -191,7 +193,7 @@ final class AppModel {
 
     func connect(to app: AIApp, showingFace: Bool = true) {
         defaults.set(
-            app.id == AIApp.claude.id || app.id == AIApp.chatGPT.id ? app.id : app.bundleIDs.first, forKey: Key.app)
+            AIApp.known.contains { $0.id == app.id } ? app.id : app.bundleIDs.first, forKey: Key.app)
         connection.connect(to: app)
         if showingFace { showFace() }
     }
@@ -256,6 +258,11 @@ final class AppModel {
                 microphoneLevel.stop()
             }
         }
+    }
+
+    /// Whether Claude Code's plugin has run on this Mac: its hooks call Visage's helper, which notes it.
+    var claudeCodePluginSeen: Bool {
+        defaults.double(forKey: ClaudeCodeVoice.pluginSeenKey) > 0
     }
 
     func loadThumbnails() async {

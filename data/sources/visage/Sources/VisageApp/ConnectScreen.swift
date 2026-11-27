@@ -14,6 +14,7 @@ struct ConnectScreen: View {
             state: model.connection.state,
             connectedApp: model.connection.app,
             listening: model.connection.appListening,
+            claudeCodePluginSeen: model.claudeCodePluginSeen,
             apps: AIApp.known.map { AppCardInfo(app: $0) },
             otherApps: model.otherApps(),
             connect: { model.connect(to: $0, showingFace: !welcoming) },
@@ -49,6 +50,8 @@ struct ConnectView: View {
     let state: Connection.State
     let connectedApp: AIApp?
     var listening = false
+    /// Whether Claude Code's plugin has run: until then, connecting to Claude Code says how to install it.
+    var claudeCodePluginSeen = false
     let apps: [AppCardInfo]
     let otherApps: [AIApp]
     let connect: (AIApp) -> Void
@@ -93,7 +96,9 @@ struct ConnectView: View {
                 }
             }
 
-            StatusLine(state: state, app: connectedApp, listening: listening, showFace: showFace)
+            StatusLine(
+                state: state, app: connectedApp, listening: listening, pluginSeen: claudeCodePluginSeen,
+                showFace: showFace)
         }
         .padding(header ? 24 : 0)
         .frame(width: header ? 560 : nil, alignment: .leading)
@@ -118,7 +123,10 @@ private struct AppCard: View {
                 .tint(Palette.braise)
                 .foregroundStyle(Color(nsColor: Palette.charbon))
             } else if let url = info.app.downloadURL {
-                Link("Download", destination: url)
+                // Claude Code installs from a command, which its page gives.
+                Link(
+                    info.app.kind == .claudeCode ? String(localized: "How to install") : String(localized: "Download"),
+                    destination: url)
             }
         }
         .padding(14)
@@ -140,11 +148,32 @@ private struct StatusLine: View {
     let state: Connection.State
     let app: AIApp?
     let listening: Bool
+    let pluginSeen: Bool
     let showFace: () -> Void
 
+    /// Installs Visage's plugin in Claude Code, in one step (Claude Code 2.1.275 and later).
+    static let pluginCommand = "/plugin install visage --marketplace jul6art/macos-utils"
+
     var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            line
+            // Claude Code without its plugin: the command, on a line of its own, to copy into Claude Code.
+            if case .connected = state, app?.kind == .claudeCode, !pluginSeen, !listening {
+                HStack(spacing: 8) {
+                    Text(Self.pluginCommand).font(.caption.monospaced()).fixedSize().textSelection(.enabled)
+                    Button("Copy") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(Self.pluginCommand, forType: .string)
+                    }
+                    .controlSize(.small)
+                }
+            }
+        }
+    }
+
+    private var line: some View {
         let name = app?.name ?? ""
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+        return HStack(alignment: .firstTextBaseline, spacing: 10) {
             switch state {
             case .idle:
                 Text("Pick the app you talk to.").foregroundStyle(.secondary)
@@ -168,11 +197,20 @@ private struct StatusLine: View {
                         NSWorkspace.shared.open(url)
                     }
                 }
+            case .waitingForApp where app?.kind == .claudeCode:
+                Text("Talk to Claude Code: Visage connects with your next request.")
             case .waitingForApp:
                 Text("Start voice mode in \(name): Visage connects as soon as it speaks.")
             case .connected:
                 if listening {
                     Text("Connected to \(name), which is listening: talk to it.")
+                } else if app?.kind == .claudeCode, !pluginSeen {
+                    Text("Connected to Claude Code. Install Visage's plugin in it, once:")
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if app?.kind == .claudeCode {
+                    // Its dictation is the microphone: Claude Code answers aloud through the plugin.
+                    Text("Connected to Claude Code. Turn on its dictation with /voice, and talk: it answers aloud.")
+                        .fixedSize(horizontal: false, vertical: true)
                 } else if app?.id == AIApp.claude.id {
                     // Not dictation (the microphone): the sound-wave button opens the spoken conversation.
                     Text(

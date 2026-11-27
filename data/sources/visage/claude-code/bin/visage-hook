@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# Visage's voice for Claude Code (data/doc/VISAGE.md): runs the helper of the Visage that runs now,
+# wherever it was installed. Without Visage, nothing: Claude Code stays silent, as it is without the plugin.
+#
+#   visage-hook prompt | stop | notify    (the hook's JSON on standard input)
+#
+app="$(ps -axo comm= | sed -n 's#^\(.*/Visage\.app\)/Contents/MacOS/Visage$#\1#p' | head -n 1)";
+helper="${app}/Contents/Helpers/visage-voice";
+if [ -z "${app}" ] || [ ! -x "${helper}" ]; then
+	cat >/dev/null;
+	exit 0;
+fi;
+exec "${helper}" "$@";

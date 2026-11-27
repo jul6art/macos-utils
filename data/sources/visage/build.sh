@@ -17,7 +17,7 @@ APPNAME="Visage";
 BUNDLE_ID="com.devinthehood.visage";
 MIN_MACOS="15.0";
 # In dependency order: each module sees those before it.
-MODULES="Shared AudioSource VoiceAnalysis FaceAnimation HoloRenderer";
+MODULES="Shared SpokenReply AudioSource VoiceAnalysis FaceAnimation HoloRenderer";
 
 SRC_DIR="$(cd "$(dirname "${0}")" && pwd)";
 BUILD_DIR="${SRC_DIR}/build";
@@ -88,6 +88,8 @@ APP_DIR="${BUILD_DIR}/${APPNAME}.app";
 ARCHS="$(uname -m)";
 [ "${UNIVERSAL}" -eq 1 ] && ARCHS="arm64 x86_64";
 BINARIES="";
+HELPER="visage-voice";
+HELPERS="";
 # One pass per architecture, the modules included: a static library holds a single one.
 for arch in ${ARCHS}; do
 	TARGET="${arch}-apple-macos${MIN_MACOS}";
@@ -98,19 +100,32 @@ for arch in ${ARCHS}; do
 	swiftc -O -target "${TARGET}" -parse-as-library -module-name VisageApp \
 		-I "${OUT}/${arch}" -L "${OUT}/${arch}" ${LINK_LIBRARIES} \
 		-o "${OUT}/${arch}/${APPNAME}" "${SRC_DIR}/Sources/VisageApp"/*.swift;
+	echo "==> Compiling Claude Code's voice (${arch})";
+	# Its own bundle ID, embedded in the executable: Core Audio names its sound by it, and Visage taps it as
+	# it taps an app (spec, § 4.4).
+	swiftc -O -target "${TARGET}" -module-name VisageVoice \
+		-I "${OUT}/${arch}" -L "${OUT}/${arch}" -lShared -lSpokenReply \
+		-Xlinker -sectcreate -Xlinker __TEXT -Xlinker __info_plist \
+		-Xlinker "${SRC_DIR}/Sources/VisageVoice/Info.plist" \
+		-o "${OUT}/${arch}/${HELPER}" "${SRC_DIR}/Sources/VisageVoice"/*.swift;
 	BINARIES="${BINARIES} ${OUT}/${arch}/${APPNAME}";
+	HELPERS="${HELPERS} ${OUT}/${arch}/${HELPER}";
 done;
 if [ "${UNIVERSAL}" -eq 1 ]; then
 	# shellcheck disable=SC2086
 	lipo -create -output "${OUT}/${APPNAME}" ${BINARIES};
+	# shellcheck disable=SC2086
+	lipo -create -output "${OUT}/${HELPER}" ${HELPERS};
 else
 	cp "${OUT}/${ARCHS}/${APPNAME}" "${OUT}/${APPNAME}";
+	cp "${OUT}/${ARCHS}/${HELPER}" "${OUT}/${HELPER}";
 fi;
 
 echo "==> Assembling the bundle";
 rm -rf "${APP_DIR}";
-mkdir -p "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources";
+mkdir -p "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Helpers" "${APP_DIR}/Contents/Resources";
 cp "${OUT}/${APPNAME}" "${APP_DIR}/Contents/MacOS/${APPNAME}";
+cp "${OUT}/${HELPER}" "${APP_DIR}/Contents/Helpers/${HELPER}";
 cp "${SRC_DIR}/Info.plist" "${APP_DIR}/Contents/Info.plist";
 printf 'APPL????' > "${APP_DIR}/Contents/PkgInfo";
 cp -R "${SRC_DIR}"/Resources/*.lproj "${APP_DIR}/Contents/Resources/";
@@ -124,6 +139,9 @@ iconutil -c icns "${BUILD_DIR}/AppIcon.iconset" -o "${APP_DIR}/Contents/Resource
 rm -rf "${BUILD_DIR}/AppIcon.iconset";
 
 echo "==> Signing";
+# The helper first, under its own identifier: the app's signature seals it.
+codesign --force --sign "${VISAGE_SIGN_IDENTITY:--}" --identifier "${BUNDLE_ID}.voice" \
+	"${APP_DIR}/Contents/Helpers/${HELPER}";
 codesign --force --sign "${VISAGE_SIGN_IDENTITY:--}" --identifier "${BUNDLE_ID}" "${APP_DIR}";
 codesign --verify --strict "${APP_DIR}";
 
