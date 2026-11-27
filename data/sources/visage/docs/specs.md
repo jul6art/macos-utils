@@ -1,688 +1,664 @@
-# Visage — spécification
+# Visage — specification
 
-> **Statut** : proposition du 2026-11-26. Les cinq questions de départ sont tranchées (§ 0) ; restent les
-> risques à lever au pilote (§ 12).
-> **En une phrase** : une app Mac gratuite qui donne un visage hologramme, animé au rythme de sa voix,
-> à l'IA avec laquelle on parle déjà (Claude ou ChatGPT), sans rien payer de plus que son abonnement.
-> L'app est offerte en open source, dans `macos-utils`.
+> **Status**: written on 2026-11-26, the app built from it the same day. The questions it started from are
+> settled (§ 0); the pilot lifted the risks that could stop it (§ 12).
+> **In one sentence**: a free Mac app that gives a hologram face, moving to the rhythm of its voice, to the
+> AI you already talk to (Claude or ChatGPT), for nothing more than your subscription.
+> The app is given away as open source, in `macos-utils`.
 
 ---
 
-## 0. Décisions du 2026-11-26
+## 0. Decisions of 2026-11-26
 
-| # | Question | Décision |
+| # | Question | Decision |
 |---|---|---|
-| Q1 | D'où viennent les têtes ? | **MakeHuman**, par son extension Blender **MPFB2** et le pack **faceunits01** (52 formes ARKit) : licence CC0, communauté active, même maillage pour toutes les têtes (§ 8.1). |
-| Q2 | Combien de visages ? | **10** : 5 hommes et 5 femmes, inventés, d'âges et d'origines variés. |
-| Q3 | Quelle fenêtre ? | **Deux modes** : flottante (par défaut), classique (§ 9.1). Trois au départ ; la transparente parmi les autres fenêtres est retirée le 2026-11-26 : au premier essai, le visage passait derrière Claude au premier clic. |
-| Q4 | Quel dépôt ? | **Public, sous licence MIT** : un cadeau. Visage rejoint **`macos-utils`** (public, MIT), dans `data/sources/visage/` (§ 10.1). |
-| Q5 | Un mode navigateur ? | **Non** : l'app officielle seulement. |
-| Q6 | Quelle identité ? | **C4 « Poussière »** : un visage en points qui se défait en poussière, en lumière de braise. Charte dans `docs/charte.md`, fichiers dans `brand/`. |
+| Q1 | Where do the heads come from? | **MakeHuman**, through its Blender extension **MPFB2** and the **faceunits01** pack (52 ARKit shapes): CC0 licence, an active community, the same mesh for every head (§ 8.1). |
+| Q2 | How many faces? | **10**: 5 men and 5 women, invented, of various ages and origins. |
+| Q3 | Which window? | **Two modes**: floating (the default) and classic (§ 9.1). There were three at first; the one transparent among the other windows went on 2026-11-26: on the first try, the face slipped behind Claude at the first click. |
+| Q4 | Which repository? | **Public, under the MIT licence**: a gift. Visage joins **`macos-utils`** (public, MIT), in `data/sources/visage/` (§ 10.1). |
+| Q5 | A browser mode? | **No**: the official app only. |
+| Q6 | Which identity? | **C4 "Poussière"** (dust): a face of dots that comes apart into dust, in ember light. Charter in `docs/charte.md`, files in `brand/`. |
 
-## 1. Le but
+## 1. The goal
 
-Quand on parle à Claude (ou ChatGPT) en mode vocal sur le Mac, un visage hologramme flotte sur le bureau
-et parle avec sa voix. Il est assez juste pour qu'**on croie que c'est lui qui parle**. On le choisit parmi
-10 visages, 5 hommes et 5 femmes.
+When you talk to Claude (or ChatGPT) in voice mode on the Mac, a hologram face floats on the desktop and
+speaks with its voice. It is accurate enough that **you believe it is the one speaking**. You pick it among
+10 faces, 5 men and 5 women.
 
-## 2. Principes
+## 2. Principles
 
-| Principe | Ce qu'il impose |
+| Principle | What it demands |
 |---|---|
-| **Gratuit à faire tourner** | Aucune API payante, aucun serveur. On se sert du mode vocal de l'app officielle, inclus dans l'abonnement. |
-| **Le moins de dépendances possible** | Aucun paquet tiers : Swift et les frameworks d'Apple uniquement. Les outils de la porte sont fournis avec Swift. Blender ne sert qu'à régénérer les visages, jamais à construire l'app. |
-| **Rien ne sort du Mac** | Visage n'ouvre aucune connexion réseau. Il ne voit ni identifiants, ni jetons, ni texte : seulement le son de l'app choisie. |
-| **On y croit** | La synchro, l'anticipation des lèvres et la vie du visage passent avant tout le reste (§ 7). |
-| **Un vrai hologramme** | Un effet travaillé en couches, pas un simple filtre bleu (§ 8.2). |
-| **Un cadeau** | Code sous MIT dans `macos-utils`, visages issus d'éléments CC0. Tout ce que Visage ajoute au dépôt peut être redistribué librement. |
-| **Claude ou ChatGPT** | Une même mécanique pour les deux : Visage suit le son d'une app, pas son interface. |
+| **Free to run** | No paid API, no server. Visage uses the voice mode of the official app, included in the subscription. |
+| **As few dependencies as possible** | No third-party package: Swift and Apple's frameworks only. The gate's tools come with Swift. Blender only rebuilds the faces, never the app. |
+| **Nothing leaves the Mac** | Visage opens no network connection. It sees no credential, no token, no text: only the sound of the chosen app. |
+| **You believe it** | The sync, the lips' anticipation and the face's life come before everything else (§ 7). |
+| **A real hologram** | An effect built in layers, not a plain blue filter (§ 8.2). |
+| **A gift** | Code under MIT in `macos-utils`, faces made from CC0 assets. Everything Visage adds to the repository can be redistributed freely. |
+| **Claude or ChatGPT** | One mechanism for both: Visage follows an app's sound, not its interface. |
 
-## 3. Comment ça marche
+## 3. How it works
 
 ```
- App officielle (Claude Desktop ou ChatGPT), mode vocal
-        │ son de cette app seule, coupé à la sortie pendant la capture (« tap » Core Audio)
+ Official app (Claude Desktop or ChatGPT), voice mode
+        │ that app's sound only, muted at the output while captured (Core Audio "tap")
         ▼
  ┌──────────────────────── Visage ─────────────────────────┐
- │  tampon circulaire, retard fixe D ≈ 150 ms              │
+ │  ring buffer, fixed delay D ≈ 150 ms                    │
  │      │                                    │             │
- │      ▼ analyse « en avance »              ▼             │
- │  énergie, intonation, formants,     relecture du son    │
- │  fricatives, occlusions             avec le retard D    │
- │      │                                    │             │
- │      ▼                                    │             │
- │  animation : 52 formes ARKit,             │ haut-parleur│
- │  tête, regard, états                      │ ou casque   │
+ │      ▼ analysis "ahead"                   ▼             │
+ │  energy, pitch, formants,           playback of the     │
+ │  fricatives, closures               sound, delayed by D │
  │      │                                    │             │
  │      ▼                                    │             │
- │  rendu Metal hologramme ◀── même horloge ─┘             │
- └──────────────────────────────────────────────────────────┘
+ │  animation: 52 ARKit shapes,              │ speakers    │
+ │  head, gaze, states                       │ or headset  │
+ │      │                                    │             │
+ │      ▼                                    │             │
+ │  Metal hologram rendering ◀── one clock ──┘             │
+ └─────────────────────────────────────────────────────────┘
 ```
 
-**La clé** : Visage coupe le son de l'app IA et le rejoue lui-même avec environ 150 ms de retard. Pendant
-ce temps, l'analyse voit déjà la suite. La bouche peut donc **anticiper** le son, comme chez un humain, au
-lieu d'être toujours en retard, ce que le cerveau repère tout de suite. Dans une conversation, 150 ms de plus
-avant la réponse ne s'entendent pas.
+**The key**: Visage mutes the AI app's sound and plays it back itself about 150 ms later. Meanwhile, the
+analysis already sees what comes next. The mouth can therefore **anticipate** the sound, as a human's does,
+instead of always trailing it, which the brain notices at once. In a conversation, 150 ms more before the
+answer go unheard.
 
-## 4. « Se connecter à mon IA »
+## 4. "Connect my AI"
 
-### 4.1 Pourquoi pas une vraie connexion au compte
+### 4.1 Why not a real connection to the account
 
-- Une clé API serait **payante**, à la minute de conversation.
-- Anthropic n'autorise pas une app tierce à proposer la connexion claude.ai ni à utiliser les limites d'un
-  abonnement (conditions rappelées dans la documentation du Claude Agent SDK).
-- Le mode vocal de chaque app est déjà bien fait (voix, interruption, choix du modèle) : on ne le refait pas.
+- An API key would be **paid**, per minute of conversation.
+- Anthropic does not allow a third-party app to offer the claude.ai sign-in or to use a subscription's limits
+  (terms recalled in the Claude Agent SDK documentation).
+- Each app's voice mode is already well made (voice, interruption, choice of model): it is not redone.
 
-« Se connecter à mon IA » (*Connect my AI* dans l'interface anglaise), c'est donc **se brancher sur l'app
-officielle**, déjà connectée à ton compte.
+"Connect my AI" is therefore **plugging into the official app**, already signed in to your account.
 
-### 4.2 Le parcours
+### 4.2 The path
 
-1. Au premier lancement, **l'accueil** s'ouvre en grand et au premier plan, aux couleurs de la charte, le
-   logo animé en tête. Quatre étapes sur une page : l'IA, le visage (grille, jauge de réalisme, taille, à
-   côté d'un aperçu), l'affichage, et où retrouver Visage dans la barre des menus ; puis « Commencer ».
-   L'étape de l'IA affiche deux cartes, **Claude** et **ChatGPT**, qui disent si l'app est installée et
-   ouverte, et une « Autre app » liste les apps qui jouent du son. Sans accueil, Visage démarrait en simple
-   signe dans la barre des menus, qu'on ne voyait pas.
-2. Clic sur **Claude** : si l'app n'est pas installée, la carte mène à sa page de téléchargement officielle.
-   Sinon, Visage l'ouvre.
-3. macOS demande, une seule fois, l'autorisation d'enregistrer l'audio du système.
-4. Visage se branche. Son état devient **« Connecté à Claude — lance le mode vocal »**, et la tête se
-   matérialise (§ 8.2), puis s'anime au repos (respiration, clignements).
-5. Dans Claude Desktop, le **mode vocal** s'ouvre par le bouton en forme d'onde sonore, en bas à droite de
-   la fenêtre (documentation d'Anthropic) : mains libres, Claude écoute, répond à voix haute, et le visage
-   écoute, réfléchit, puis parle (§ 7.2). Ce n'est pas la **dictée** (le micro), qui remplit seulement la
-   zone de saisie : au premier essai, c'est elle qu'on a prise, avec « Lire à voix haute » sur la réponse,
-   et le visage parle aussi ainsi (pilote, § 4). L'état de Visage le rappelle : « Connecté à Claude.
-   Lancez son mode vocal : le bouton en forme d'onde sonore, en bas à droite de sa fenêtre. » Le mode
-   vocal de ChatGPT tient lui aussi une conversation.
+1. On the first launch, **the welcome** opens large and in front, in the charter's colours, the animated
+   logo at the top. Four steps on one page: the AI, the face (grid, realism gauge, size, next to a preview),
+   where it shows, and where to find Visage in the menu bar; then "Start". The AI step shows two cards,
+   **Claude** and **ChatGPT**, which say whether the app is installed and open, and "Another app" lists the
+   apps playing sound. Without a welcome, Visage started as a mere sign in the menu bar, which nobody saw.
+2. Click on **Claude**: if the app is not installed, the card leads to its official download page.
+   Otherwise, Visage opens it.
+3. macOS asks, once, for the permission to record system audio.
+4. Visage connects. Its state becomes **"Connected to Claude"**, and the head materialises (§ 8.2), then
+   moves at rest (breathing, blinks).
+5. In Claude Desktop, the **voice mode** opens with the sound-wave button at the bottom right of the window
+   (Anthropic's documentation): hands-free, Claude listens and answers aloud, and the face listens, thinks,
+   then speaks (§ 7.2). It is not **dictation** (the microphone), which only fills the input field: on the
+   first try, dictation was taken for it, with "Read aloud" on the answer, and the face speaks that way too
+   (pilot, § 4). Visage's state says it: "Connected to Claude. Start its voice mode: the sound-wave button,
+   at the bottom right of its window." ChatGPT's voice mode holds a conversation too.
 
-Les choix sont mémorisés : aux lancements suivants, Visage ne montre rien de plus, se rebranche seul et
-remet le visage comme on l'a laissé (affiché ou masqué, même mode, même taille). Il se rebranche aussi
-quand l'app IA redémarre.
+The choices are remembered: on the next launches, Visage shows nothing more, reconnects on its own and puts
+the face back as it was left (shown or hidden, same mode, same size). It also reconnects when the AI app
+restarts.
 
-### 4.3 Les sources
+### 4.3 The sources
 
-| Source | Mode vocal sur Mac | À savoir |
+| Source | Voice mode on the Mac | Worth knowing |
 |---|---|---|
-| **Claude Desktop** (source principale) | Oui, en bêta, sur toutes les offres | Les langues autres que l'anglais sont en bêta. La voix compte dans les limites d'usage de l'abonnement. Fable n'est pas disponible en mode vocal. |
-| **ChatGPT** (app Mac) | Oui | L'ancienne app s'appelle désormais « ChatGPT Classic » : les deux sont à reconnaître. |
-| **Autre application** | Selon l'app | Toute app qui joue du son : même mécanique, sans garantie. |
+| **Claude Desktop** (the main source) | Yes, in beta, on every plan | Languages other than English are in beta. Voice counts in the subscription's usage limits. Not every model is available in voice mode. |
+| **ChatGPT** (Mac app) | Yes | Both bundle IDs are recognised, the current app's and the former one's. |
+| **Another app** | Depends on the app | Any app that plays sound: same mechanism, no guarantee. |
 
-Seules les apps sont prises en charge : pas de mode navigateur (Q5).
+Apps only: no browser mode (Q5).
 
-## 5. Capture et relecture du son
+## 5. Capturing and playing back the sound
 
-- **API** : les « taps » Core Audio par processus (macOS 14.2 et plus). On crée un `CATapDescription` sur
-  les processus audio de l'app IA, avec `muteBehavior` à `.mutedWhenTapped`, puis un périphérique agrégé
-  qui porte ce tap, et une fonction de rappel (`IOProc`) qui lit des trames en float 32 bits. Le tap est
-  **privé** : un tap public survit au processus qui l'a créé (pilote, § 2.2).
-- **Trouver le bon processus** : la liste `kAudioHardwarePropertyProcessObjectList`, filtrée par
-  identifiant de bundle (`kAudioProcessPropertyBundleID`). Claude Desktop est une app Electron, dont le son
-  sort d'un processus auxiliaire : on filtre donc par préfixe d'identifiant et par PID responsable. Les
-  identifiants exacts des deux apps sont relevés au pilote (lot 0), pas devinés. Sur macOS 26, Core Audio
-  suit exactement les identifiants donnés au tap : un auxiliaire né après le branchement (le service audio
-  de Claude, qui porte sa voix et son micro) fait refaire le tap.
-- **Couper sans perdre** : tant que le tap est actif, le son de l'app IA n'atteint plus le haut-parleur, et
-  c'est Visage qui le rejoue.
-- **Tampon** : un tampon circulaire sans verrou (un producteur : l'`IOProc` ; un consommateur : la
-  relecture). Le retard **D vaut 150 ms par défaut, réglable de 80 à 300 ms**. Aucune allocation ni aucun
-  verrou sur le fil temps réel.
-- **Relecture** : dans la même `IOProc`, sur la sortie de l'agrégat, dont le périphérique principal est la
-  sortie par défaut : capture et relecture partagent une horloge, sans dérive (validé au pilote). Quand la
-  sortie par défaut change (casque branché, AirPods), Visage reconstruit l'agrégat.
-- **Démarrage hors du fil principal** : tant que l'autorisation n'est pas donnée, `AudioDeviceStart` reste
-  bloqué (90 s au pilote). L'interface dit « en attente de ton autorisation ».
-- **Autorisation manquante** : l'app joue depuis six secondes, et rien de non nul n'en est venu depuis le
-  branchement. Visage propose alors le panneau *Enregistrement de l'écran et de l'audio du système* de
-  Réglages Système. Ni le silence de l'app ni l'absence de cycle audio ne prouvent rien : sur macOS 26, une
-  capture par identifiant ne tourne pas tant que l'app se tait. Un son entendu prouve l'autorisation. Un
-  tap inerte malgré l'autorisation cochée, rien de coupé et des zéros, a été vu une fois sur le pilote ;
-  sa cause n'est pas établie (pilote, § 4).
-- **Une seule horloge** : tout est daté en temps hôte (`mHostTime`) — capture, relecture, image affichée.
-- **Sûreté** : si Visage quitte ou plante, le son de l'IA doit revenir seul : la coupure ne dure que
-  pendant la lecture du tap, et l'agrégat meurt avec le processus. **Bloquant** (critère 6, § 11.3) :
-  mesuré au micro par le pilote (tests 2 et 3). Au lancement, Visage détruit tout tap public nommé
-  « Visage » laissé par une version qui aurait planté.
-- **Le micro de l'app IA** : Core Audio dit, sans autorisation, quand un processus de l'app a le micro
-  ouvert (`kAudioProcessPropertyIsRunningInput`), jamais ce qu'il entend. Visage le lit quatre fois par
-  seconde : son mode vocal ou sa dictée écoute (§ 7.2).
-- **Micro (option)** : seulement pendant que l'app IA tient le sien ouvert, Visage ouvre le micro, mesure
-  chaque tampon de 1 024 trames (moyenne quadratique) et le jette ; il le referme trois secondes après
-  l'app. Une voix, c'est 12 dB au-dessus de la pièce (le plus bas niveau des trois dernières secondes) et
-  −55 dBFS au moins, tenue 250 ms à travers les creux entre les syllabes. Rien n'est enregistré ni
-  envoyé.
+- **API**: Core Audio's per-process "taps" (macOS 14.2 and later). A `CATapDescription` on the AI app's
+  audio processes, with `muteBehavior` set to `.mutedWhenTapped`, then an aggregate device that carries the
+  tap, and a callback (`IOProc`) that reads 32-bit float frames. The tap is **private**: a public tap
+  outlives the process that created it (pilot, § 2.2).
+- **Finding the right process**: the list `kAudioHardwarePropertyProcessObjectList`, filtered by bundle ID
+  (`kAudioProcessPropertyBundleID`). Claude Desktop is an Electron app whose sound comes from a helper
+  process: the filter is a bundle ID prefix and the responsible PID. The exact identifiers of both apps
+  were taken from the pilot (lot 0), not guessed. On macOS 26, Core Audio follows exactly the identifiers
+  given to the tap: a helper born after connecting (Claude's audio service, which carries its voice and its
+  microphone) makes the tap be redone.
+- **Mute without loss**: while the tap is active, the AI app's sound no longer reaches the speakers, and
+  Visage plays it back.
+- **Buffer**: a lock-free ring buffer (one producer: the `IOProc`; one consumer: the playback). The delay
+  **D is 150 ms by default, adjustable from 80 to 300 ms**. No allocation and no lock on the real-time
+  thread.
+- **Playback**: in the same `IOProc`, on the output of the aggregate, whose main device is the default
+  output: capture and playback share a clock, with no drift (validated by the pilot). When the default
+  output changes (headphones plugged in, AirPods), Visage rebuilds the aggregate.
+- **Starting off the main thread**: until the permission is given, `AudioDeviceStart` stays blocked (90 s
+  in the pilot). The interface says it is waiting for the permission.
+- **Missing permission**: the app has been playing for six seconds, and nothing non-zero came from it since
+  connecting. Visage then offers the *Screen & System Audio Recording* pane of System Settings. Neither the
+  app's silence nor the absence of audio cycles proves anything: on macOS 26, a capture by bundle ID does
+  not run while the app is silent. A sound heard proves the permission. A tap inert despite the permission
+  being ticked, nothing muted and zeros, was seen once with the pilot; its cause is not established (pilot,
+  § 4).
+- **One clock**: everything is timed in host time (`mHostTime`): capture, playback, displayed frame.
+- **Safety**: if Visage quits or crashes, the AI's sound must come back on its own: the mute lasts only
+  while the tap is read, and the aggregate dies with the process. **Blocking** (criterion 6, § 11.3):
+  measured at the microphone by the pilot (tests 2 and 3). At launch, Visage destroys any public tap named
+  "Visage" left by a version that crashed.
+- **The AI app's microphone**: Core Audio says, without any permission, when a process of the app has its
+  microphone open (`kAudioProcessPropertyIsRunningInput`), never what it hears. Visage reads it four times
+  a second: its voice mode or its dictation is listening (§ 7.2).
+- **Microphone (option)**: only while the AI app holds its own open, Visage opens the microphone, measures
+  each buffer of 1,024 frames (root mean square) and drops it; it closes it three seconds after the app. A
+  voice is 12 dB above the room (the lowest level of the last three seconds) and at least −55 dBFS, held
+  250 ms through the gaps between syllables. Nothing is recorded or sent.
 
-## 6. Analyse de la voix
+## 6. Analysing the voice
 
-### 6.1 V1 : sans modèle, en traitement du signal
+### 6.1 V1: no model, signal processing
 
-Fenêtres de 25 ms, pas de 10 ms (100 trames par seconde), tout en Accelerate (`vDSP`) :
+Windows of 25 ms, a hop of 10 ms (100 frames a second), all in Accelerate (`vDSP`):
 
-| Mesure | Méthode | Sert à |
+| Measure | Method | Drives |
 |---|---|---|
-| Énergie, voisement | RMS en dB, taux de passage par zéro | parle ou se tait, ouverture de la mâchoire |
-| Intonation (F0) | YIN | sourcils, hochements, questions |
-| Voyelles en continu | formants F1, F2, F3 par LPC (Levinson-Durbin), pics de l'enveloppe | F1 donne l'ouverture ; F2 l'avant ou l'arrière (lèvres étirées ou arrondies) ; un F3 abaissé l'arrondi (le « u » et le « eu » du français) |
-| Fricatives | centre de gravité du spectre, énergie au-dessus de 4 kHz | « s/z » lèvres étirées et dents ; « ch/j » lèvres avancées ; « f/v » lèvre inférieure sous les dents |
-| Occlusions | chute d'énergie suivie d'une explosion ; murmure nasal (basses fortes, aigus faibles) | « b/p » : lèvres fermées avant le son ; « m » : lèvres fermées |
+| Energy, voicing | RMS in dB, zero-crossing rate | speaking or silent, the jaw's opening |
+| Intonation (F0) | YIN | brows, nods, questions |
+| Vowels, continuously | formants F1, F2, F3 by LPC (Levinson-Durbin), peaks of the envelope | F1 gives the opening; F2 front or back (lips spread or rounded); a lowered F3 the rounding (French "u" and "eu") |
+| Fricatives | spectral centroid, energy above 4 kHz | "s/z" lips spread and teeth; "sh/zh" lips forward; "f/v" lower lip under the teeth |
+| Closures | an energy drop followed by a burst; nasal murmur (strong lows, weak highs) | "b/p": lips shut before the sound; "m": lips shut |
 
-**Normalisation automatique** : Visage apprend la plage de F0, F1 et F2 de la voix pendant la première
-minute (percentiles glissants), puis la mémorise par source et par voix. Aucun étalonnage manuel.
+**Automatic normalisation**: Visage learns the range of F0, F1 and F2 of the voice during the first minute
+(sliding percentiles), then remembers it per source and per voice. No manual calibration.
 
-**Pourquoi sans modèle d'abord** : aucune dépendance, aucun fichier lourd, indépendant de la langue (le
-français marche comme l'anglais), et quelques pour cent d'un cœur suffisent.
+**Why no model first**: no dependency, no heavy file, independent of the language (French works as well as
+English), and a few percent of one core are enough.
 
-**Les lèvres ou la langue ?** Ce n'est pas la hauteur de F2 qui distingue p, b, m de t, d, n, k, g : c'est
-son mouvement. Il descend dans une occlusion des lèvres et en remonte ; la langue le tire vers le haut, ou
-le laisse plat. Visage pèse les deux pentes (une dérive de moins de 60 Hz ne compte pas), puis la hauteur
-de F2 aux bords. Il devine dès l'entrée dans l'occlusion, et confirme 60 ms après la sortie, toujours dans
-l'avance que donne le retard. Ses pièges, rencontrés et réglés :
+**Lips or tongue?** It is not the height of F2 that tells p, b, m from t, d, n, k, g: it is its motion. It
+falls into a lip closure and rises out of it; the tongue pulls it up, or leaves it flat. Visage weighs both
+slopes (a drift under 60 Hz does not count), then the height of F2 at the edges. It guesses on entering the
+closure, and confirms 60 ms after leaving it, still within the lead the delay gives. Its traps, met and
+settled:
 
-- F1 et F2 fusionnent quand ils se rapprochent (un « a » avant un « p ») : le pic suivant est alors F3.
-  Aucune voyelle n'a un F1 et un F2 tous deux hauts : une telle paire est une fusion ;
-- la trame collée à une occlusion chevauche le silence : ses formants mentent, elle est écartée ;
-- la barre de voisement d'un « b » clignote entre murmure et voyelle : l'occlusion est recousue ;
-- une voyelle qui s'éteint en fin de phrase n'est pas un murmure : son niveau chute trop vite.
+- F1 and F2 merge when they come close (an "a" before a "p"): the next peak is then F3. No vowel has both a
+  high F1 and a high F2: such a pair is a merge;
+- the frame next to a closure overlaps the silence: its formants lie, it is set aside;
+- the voicing bar of a "b" flickers between murmur and vowel: the closure is stitched back together;
+- a vowel fading at the end of a sentence is not a murmur: its level falls too fast.
 
-**Mesuré le 2026-11-26**, sur des voix de synthèse françaises de macOS (`say`, fichiers seulement, aucun son
-joué), avec `Visage --analyse` :
+**Measured on 2026-11-26**, on macOS's French synthetic voices (`say`, files only, no sound played), with
+`Visage --analyse`:
 
-| Mesure | Résultat |
+| Measure | Result |
 |---|---|
-| Hauteur (YIN) | Jacques 127 Hz, Eddy 112 Hz, Flo 243 Hz : plausibles ; à 3 % près sur signaux synthétiques |
-| Formants de a, i, u synthétisés | F1 à 15–20 % près, F2 à 12–20 % près ; a ouvre, i étire, u arrondit |
-| Occlusions : lèvres ou langue | **46 sur 48** (16 syllabes VCV — apa, aba, ata… amma, anna — × 3 voix), contre 41 avant les réglages ci-dessus. Restent le « m » de Flo et un « ibi » d'Eddy |
+| Pitch (YIN) | Jacques 127 Hz, Eddy 112 Hz, Flo 243 Hz: plausible; within 3 % on synthetic signals |
+| Formants of synthesised a, i, u | F1 within 15–20 %, F2 within 12–20 %; a opens, i spreads, u rounds |
+| Closures: lips or tongue | **46 out of 48** (16 VCV syllables — apa, aba, ata… amma, anna — × 3 voices), against 41 before the tuning above. Left: Flo's "m" and one of Eddy's "ibi" |
 
-La voix de Claude reste à mesurer (ce soir, avec le pilote) : les réglages ne collent pas à des voix de
-synthèse de macOS si elle se comporte autrement.
+These settings were tuned on macOS voices; Claude's own voice was then tried through the pilot (§ 4 of its
+report) and in the app.
 
-### 6.2 V2, seulement si la V1 manque les critères du § 11.3
+### 6.2 V2, only if V1 misses the criteria of § 11.3
 
-Un modèle multilingue de reconnaissance de phonèmes (famille wav2vec2), converti une fois en Core ML hors
-de l'app et exécuté sur le Neural Engine. C'est un fichier de modèle, pas une dépendance de code. Sa licence
-doit permettre la redistribution dans un dépôt MIT. La sortie reste la même (§ 7) : le reste de l'app ne
-change pas.
+A multilingual phoneme recognition model (the wav2vec2 family), converted once to Core ML outside the app
+and run on the Neural Engine. It is a model file, not a code dependency. Its licence must allow
+redistribution in an MIT repository. The output stays the same (§ 7): the rest of the app does not change.
 
-## 7. Animation : ce qui fait qu'on y croit
+## 7. Animation: what makes you believe it
 
-À chaque image, l'animation produit **les 52 poids ARKit**, la **pose de la tête** (trois rotations) et le
-**regard** (rotation des yeux).
+At every frame, the animation produces **the 52 ARKit weights**, the **head's pose** (three rotations) and
+the **gaze** (the eyes' rotation).
 
-### 7.1 Quand il parle
+### 7.1 While it speaks
 
-1. **Anticipation** : la forme de la bouche à l'instant *t* vient de l'analyse de *t* + 60 ms (réglable).
-   Les lèvres se forment avant le son, jamais après.
-2. **Mâchoire et lèvres séparées** : la mâchoire suit l'énergie et F1 ; les lèvres suivent F2, F3, les
-   fricatives et les occlusions.
-3. **Transitions douces** : un ressort amorti par canal, attaque rapide et relâchement plus lent. Aucun saut
-   d'une forme à l'autre.
-4. **Fermetures prioritaires** : sur « b », « p » et « m », la fermeture des lèvres l'emporte sur la
-   mâchoire pendant 40 à 80 ms. C'est ce que l'œil contrôle.
-5. **La voix anime tout le visage** : une intonation qui monte lève les sourcils ; une syllabe accentuée
-   (pic d'énergie et de F0) donne un petit hochement ; en fin de phrase, la tête se pose et un clignement
-   devient probable.
-6. **Quatre états** : *parole* (ce § 7.1), *écoute*, *réflexion* et *attente*, détaillés au § 7.2.
-7. **Regard** : vers la caméra par défaut. En option, Vision détecte ton visage dans l'image de la caméra,
-   et le regard puis la tête te suivent. Rien n'est enregistré.
-8. **Jamais mécanique** : du bruit cohérent (simplex) tiré au hasard à chaque lancement. Deux clignements
-   ne tombent jamais au même intervalle.
-9. **Synchro à l'affichage** : chaque image est calculée pour l'échantillon qui sera **entendu** au moment
-   où l'image sera **affichée**. Ce moment est l'heure d'affichage (le `CADisplayLink` de macOS 14), plus
-   la latence de sortie du périphérique (Core Audio), plus un réglage **« décalage lèvres »** de ±200 ms,
-   utile pour des écouteurs Bluetooth.
+1. **Anticipation**: the mouth's shape at time *t* comes from the analysis of *t* + 60 ms (adjustable). The
+   lips form before the sound, never after.
+2. **Jaw and lips apart**: the jaw follows the energy and F1; the lips follow F2, F3, the fricatives and the
+   closures.
+3. **Smooth transitions**: a damped spring per channel, a fast attack and a slower release. No jump from
+   one shape to the next.
+4. **Closures first**: on "b", "p" and "m", the lips' closure wins over the jaw for 40 to 80 ms. That is
+   what the eye checks.
+5. **The voice moves the whole face**: a rising intonation lifts the brows; a stressed syllable (a peak of
+   energy and F0) gives a small nod; at the end of a sentence, the head settles and a blink becomes likely.
+6. **Four states**: *speaking* (this § 7.1), *listening*, *thinking* and *waiting*, detailed in § 7.2.
+7. **Gaze**: towards the camera by default. As an option, Vision finds your face in the camera's image, and
+   the gaze, then the head, follow you. Nothing is recorded.
+8. **Never mechanical**: coherent noise (simplex), drawn at random at every launch. Two blinks never fall at
+   the same interval.
+9. **Sync to the display**: each frame is computed for the sample that will be **heard** at the moment the
+   frame is **displayed**. That moment is the display time (macOS 14's `CADisplayLink`), plus the device's
+   output latency (Core Audio), plus a **"lip offset"** setting from −100 to 300 ms, for Bluetooth
+   headphones.
 
-### 7.2 Au repos : vivant, même quand il ne parle pas
+### 7.2 At rest: alive, even when it does not speak
 
-Un visage figé trahit la machine tout de suite. Au repos, Visage reste vivant, sur trois plans qui se
-superposent : le visage, le moment de la conversation, et l'hologramme. Tout est tiré au hasard (bruit
-cohérent, intervalles aléatoires), pour que rien ne se répète.
+A frozen face gives the machine away at once. At rest, Visage stays alive on three layers that add up: the
+face, the moment of the conversation, and the hologram. Everything is drawn at random (coherent noise,
+random intervals), so that nothing repeats.
 
-**Le visage**
+**The face**
 
-| Mouvement | Rythme | Détail |
+| Movement | Rhythm | Detail |
 |---|---|---|
-| Respiration | 12 à 16 par minute | la tête monte et descend à peine, les narines s'ouvrent un peu |
-| Clignements | toutes les 2 à 6 s | 100 à 150 ms ; parfois doubles ; plus fréquents juste après une phrase |
-| Micro-saccades | toutes les 0,5 à 2 s | de très petits sauts du regard, qui empêchent l'œil d'avoir l'air peint |
-| Regard qui s'en va | toutes les 5 à 15 s | il se pose ailleurs une ou deux secondes, puis revient vers toi (ou vers la caméra) |
-| Dérive de la tête | en continu | lente, de quelques degrés, jamais périodique |
-| Micro-expressions | toutes les 20 à 60 s | un début de sourire, un sourcil qui bouge, des lèvres pincées ; jamais deux à la fois |
+| Breathing | 12 to 16 a minute | the head barely rises and falls, the nostrils open a little |
+| Blinks | every 2 to 6 s | 100 to 150 ms; sometimes double; more frequent just after a sentence |
+| Micro-saccades | every 0.5 to 2 s | tiny jumps of the gaze, which keep the eye from looking painted |
+| The gaze wanders | every 5 to 15 s | it rests elsewhere for a second or two, then comes back to you (or to the camera) |
+| Head drift | continuous | slow, a few degrees, never periodic |
+| Micro-expressions | every 20 to 60 s | the start of a smile, a moving brow, pressed lips; never two at once |
 
-**Le moment de la conversation**
+**The moment of the conversation**
 
-- *écoute* (l'app IA a son micro ouvert, § 5) : le regard reste posé sur toi, sans s'en aller ; avec
-  l'option micro, la tête hoche souvent aux pauses de ta phrase (après 0,5 s de voix et 0,2 s de silence,
-  jamais pendant que tu parles), sans elle de temps en temps. Les sourcils qui suivent ton intonation
-  attendent : il faudrait analyser ta voix, pas seulement son niveau ;
-- *réflexion* (entre ta fin de phrase et sa réponse) : le regard monte ou s'écarte, la tête s'incline
-  légèrement, les lèvres se pincent. Ta phrase est finie après 0,7 s de silence, si tu as parlé 0,3 s au
-  moins (option micro) ; une dictée est finie quand l'app referme son micro après 1 à 90 s (plus long,
-  c'était un mode vocal qu'on ferme). Sans réponse, la réflexion s'arrête au bout de 15 s ;
-- *parole* : la voix de l'IA, ses pauses de moins de 0,8 s comprises. Pendant 0,4 s encore, le micro
-  entend sa voix par les haut-parleurs : ce n'est pas toi ;
-- *attente* (personne ne parle) : les mouvements du tableau, seuls.
+- *listening* (the AI app has its microphone open, § 5): the gaze stays on you, without wandering; with the
+  microphone option, the head often nods at the pauses in your sentence (after 0.5 s of voice and 0.2 s of
+  silence, never while you speak), without it now and then. Brows that follow your intonation will wait: it
+  would take analysing your voice, not only its level;
+- *thinking* (between the end of your sentence and its answer): the gaze rises or moves aside, the head
+  tilts slightly, the lips press together. Your sentence is over after 0.7 s of silence, if you spoke for
+  0.3 s at least (microphone option); a dictation is over when the app closes its microphone after 1 to
+  90 s (longer, it was a voice mode being closed). With no answer, thinking stops after 15 s;
+- *speaking*: the AI's voice, its pauses under 0.8 s included. For 0.4 s more, the microphone hears its
+  voice through the speakers: that is not you;
+- *waiting* (nobody speaks): the movements of the table, alone.
 
-**L'hologramme**
+**The hologram**
 
-- une lueur plus basse qu'en parole (environ −30 %), un scintillement lent ;
-- les lignes de balayage défilent toujours, mais la bande de balayage ne passe plus que toutes les 6 à
-  12 s ;
-- des poussières flottent dans le faisceau du projecteur ;
-- un glitch très rare, au plus une fois par minute ;
-- en rendu en demi-teintes, la lumière qui tombe sur le visage tourne très lentement : la trame respire.
+- a glow lower than when speaking (about −30 %), a slow flicker;
+- the scanlines always scroll, but the scan band passes only every 6 to 12 s;
+- dust floats in the projector's beam;
+- a very rare glitch, at most once a minute;
+- in halftone rendering, the light falling on the face turns very slowly: the screen breathes.
 
-**Les passages**
+**The transitions**
 
-- *repos → parole* : la bouche s'entrouvre avant le premier son (anticipation, § 7.1), la lueur monte en
-  150 ms ;
-- *parole → repos* : retour en 300 à 500 ms, la bouche se ferme, un clignement devient probable ;
-- *veille* : après 5 minutes sans voix (réglable), les paupières s'alourdissent, la lumière baisse, et le
-  visage se défait en poussière jusqu'à un nuage de points qui respire. Il se reforme dès que la voix
-  revient, ou quand la souris le survole ;
-- *signal perdu* (l'app IA est fermée, ou la capture est tombée) : le visage se fige en un nuage de points
-  éteint, et l'icône de la barre des menus le signale.
+- *rest → speech*: the mouth opens slightly before the first sound (anticipation, § 7.1), the glow rises in
+  150 ms;
+- *speech → rest*: back in 300 to 500 ms, the mouth closes, a blink becomes likely;
+- *standby*: after 5 minutes without a voice (adjustable), the eyelids grow heavy, the light dims, and the
+  face comes apart into dust down to a cloud of points that breathes. It forms again as soon as the voice
+  returns, or when the mouse hovers over it;
+- *signal lost* (the AI app is closed, or the capture dropped): the face freezes into an unlit cloud of
+  points, and the menu bar icon says so.
 
-**Économie** : 30 images par seconde au repos, 15 en veille, aucun rendu quand la fenêtre est cachée.
+**Economy**: 30 frames a second at rest, 15 in standby, no rendering while the window is hidden.
 
-## 8. Visages et rendu hologramme
+## 8. Faces and hologram rendering
 
-### 8.1 Les visages : MakeHuman (MPFB2)
+### 8.1 The faces: MakeHuman (MPFB2)
 
-**Le choix.** On a comparé trois sources :
+**The choice.** Three sources were compared:
 
 | | **MakeHuman (MPFB2)** | MetaHuman (Epic) | Rocketbox (Microsoft) |
 |---|---|---|---|
-| Licence | **CC0** : redistribution libre, sans attribution | Licence d'Unreal Engine. Utilisable hors d'Unreal depuis 2025, mais les fichiers restent sous licence Epic : impossible de les placer sous MIT, et leur redistribution brute dans un dépôt public n'est pas clairement permise. Licence mouvante : une clause sur l'IA ajoutée en juin 2025, levée en octobre 2026. | MIT |
-| Communauté | active : extension Blender officielle, MPFB 2.0.16 en juin 2026 | immense | dépôt archivé le 2026-10-02 |
-| Réalisme | bon pour les formes, moyen pour la peau | le meilleur | faible (années 2010, peu de polygones) |
-| 52 formes ARKit | **natives** (pack faceunits01) | à cuire depuis la pose de correspondance ARKit, dans Unreal | oui (ajoutées en 2022) |
-| Même maillage pour toutes les têtes | oui | oui | oui |
-| Outil | Blender (gratuit) | Unreal Engine (lourd) | Maya ou Unity |
+| Licence | **CC0**: free redistribution, no attribution | Unreal Engine's licence. Usable outside Unreal since 2025, but the files stay under Epic's licence: they cannot be put under MIT, and redistributing them raw in a public repository is not clearly allowed. A moving licence: an AI clause added in June 2025, lifted in October 2026. | MIT |
+| Community | active: official Blender extension, MPFB 2.0.16 in June 2026 | huge | repository archived on 2026-10-02 |
+| Realism | good for shapes, average for skin | the best | low (2010s, few polygons) |
+| 52 ARKit shapes | **native** (faceunits01 pack) | to bake from the ARKit mapping pose, in Unreal | yes (added in 2022) |
+| Same mesh for every head | yes | yes | yes |
+| Tool | Blender (free) | Unreal Engine (heavy) | Maya or Unity |
 
-**Verdict : MakeHuman.** C'est la seule source à la fois assez réaliste et qu'on peut offrir. MetaHuman
-ferait de plus beaux visages, mais on ne peut pas les donner. Et dans un hologramme, la peau disparaît
-presque : le réalisme vient des **formes**, des **yeux** et du **mouvement**. MakeHuman tient les formes,
-l'animation (§ 7) fait le reste.
+**Verdict: MakeHuman.** It is the only source both realistic enough and possible to give away. MetaHuman
+would make finer faces, but they cannot be given. And in a hologram, skin nearly disappears: realism comes
+from the **shapes**, the **eyes** and the **motion**. MakeHuman holds the shapes, the animation (§ 7) does
+the rest.
 
-**Les 10 visages** : 5 hommes et 5 femmes, de 20 à 65 ans, d'origines variées, tous **inventés** (des
-personnes de synthèse, à l'image d'aucune personne réelle). On les choisit dans une grille, et on peut
-changer de visage à chaud, avec un fondu, même pendant qu'il parle.
+**The 10 faces**: 5 men and 5 women, from 20 to 65 years old, of various origins, all **invented**
+(synthetic people, in the image of no real person). They are picked in a grid, and the face can be changed
+live, with a fade, even while it speaks.
 
-**Ce qui pousse le réalisme**, tel que codé au lot 5 (2026-11-26) :
-- des yeux à part qui tournent avec le regard ; des cils et des sourcils ;
-- des cheveux (éléments CC0), rendus en mèches d'hologramme ;
-- des dents et une langue qui suivent la mâchoire : chaque forme faceunits01 est réajustée sur elles et
-  enregistrée comme une forme à elles, elles s'animent donc comme la tête.
+**What pushes the realism**:
+- separate eyes that turn with the gaze; eyelashes and brows, laid softly over the skin;
+- hair (CC0 assets), rendered as hologram strands;
+- teeth and a tongue that follow the jaw: each faceunits01 shape is refitted on them and saved as a shape of
+  their own, so they move like the head;
+- per-face settings in `presets.json`: MakeHuman's weighted targets (`features`), `proportions`, and the
+  colours of the hair, the brows and the skin;
+- at rest, relaxed eyelids and a hint of a smile.
 
-Pas encore faits, et à juger sur le test à l'aveugle (R6) avant de s'y lancer : la subdivision à l'export,
-une carte de normales tirée d'une peau CC0, la cornée et son reflet humide. Les textures du pack, elles,
-servent au bout réaliste de la jauge (§ 8.3).
+Not done yet, to be judged on the blind test (R6) first: subdivision at export, a normal map taken from a
+CC0 skin, the cornea and its wet reflection. The pack's textures serve the realistic end of the gauge
+(§ 8.3).
 
-**La chaîne de fabrication** :
+**The build chain**:
 
 ```
 tools/faces/
-  presets.json         les 10 visages : réglages MakeHuman (genre, âge, origines, poids, muscles),
-                       cheveux, sourcils, cils, couleur des yeux
-  build_faces.py       Blender sans interface (blender -b -P) : crée chaque visage avec MPFB2, cuit sa
-                       morphologie, ajoute yeux, sourcils, cils, dents, langue et cheveux, charge les
-                       52 formes, les enregistre sur chaque objet, garde la tête et le cou (25 cm),
-                       retire les faces cachées, exporte un .glb, puis écrit une texture par
-                       partie à côté (<visage>.<partie>.jpg ou .png, § 8.3)
-  build.sh             le lance (tous les visages, ou ceux qu'on nomme) et copie presets.json
-Resources/Faces/       les fichiers générés, commités : construire l'app ne demande pas Blender
+  presets.json         the 10 faces: MakeHuman settings (gender, age, origins, weight, muscle),
+                       weighted targets, proportions, hair, brows, lashes, colours
+  build_faces.py       Blender with no interface (blender -b -P): creates each face with MPFB2, bakes its
+                       morphology, adds eyes, brows, lashes, teeth, tongue and hair, loads the 52 shapes,
+                       saves them on each object, keeps the head and the neck (25 cm), removes the hidden
+                       faces, exports a .glb, then writes one texture per part next to it
+                       (<face>.<part>.jpg or .png, § 8.3)
+  build.sh             runs it (every face, or the ones named) and copies presets.json
+Resources/Faces/       the generated files, committed: building the app needs no Blender
 ```
 
-**Les faces cachées sont retirées à la fabrication.** La lumière de l'hologramme est additive : elle
-traverse tout. L'intérieur de la bouche et le fond des orbites, derrière les globes oculaires,
-transparaissaient à travers le visage : deux anneaux autour des yeux, comme des lunettes, et un troisième
-autour de la bouche. Une face est gardée si, depuis un millimètre au-dessus de son centre, un rayon vers l'un des 120 points
-de vue (jusqu'à 70° de côté, 35° en haut ou en bas) ne rencontre ni la tête ni les yeux. Le millimètre
-compte : le centre d'un quadrilatère qui n'est pas plan passe sous sa propre surface là où la peau est
-bombée, et le rayon heurtait la face elle-même. Ces faces-là partaient à tort, des trous qui ne se
-voyaient pas en points et criblaient la peau en surface. Environ 1 200 faces sur 8 500 partent, l'arrière
-du crâne compris : on ne le voit jamais.
+**Hidden faces are removed at build time.** The hologram's light is additive: it goes through everything.
+The inside of the mouth and the back of the eye sockets, behind the eyeballs, showed through the face: two
+rings around the eyes, like glasses, and a third around the mouth. A face is kept if, from one millimetre
+above its centre, a ray towards one of 120 viewpoints (up to 70° to the side, 35° up or down) meets neither
+the head nor the eyes. The millimetre matters: the centre of a non-planar quad sinks under its own surface
+where the skin bulges, and the ray hit the face itself. Those faces were wrongly removed, holes invisible as
+points that riddled the skin as a surface. About 1,200 faces out of 8,500 go, the back of the skull
+included: it is never seen.
 
-**Les cheveux sont rangés à la fabrication.** Ils ne couvrent jamais le visage sous les sourcils : une
-mèche de la coupe `bob01` traversait celui de Mei de la tempe au menton. Et rien ne pend derrière un cou
-qui n'existe plus : la queue-de-cheval d'Inès se voyait sous son menton.
+**The hair is tidied at build time.** It never covers the face below the brows: a strand of the `bob01` cut
+crossed Mei's from temple to chin. And nothing hangs behind a neck that no longer exists: Inès's ponytail
+showed under her chin.
 
-**Chaque sommet est un point de lumière.** Le maillage de MakeHuman suit les traits du visage : ses
-boucles dessinent les paupières, les lèvres, les ailes du nez, et l'hologramme les montre. Échantillonner
-la surface uniformément a été essayé et écarté : le grain aléatoire noyait le modelé, et le visage se
-réduisait à son contour. Les sommets se serrent toutefois autour des yeux, de la bouche et des oreilles ;
-chaque point y cède une part de sa lumière selon le nombre de ses voisins (à 4 mm), assez pour que ces
-zones ne brillent pas plus que le reste sans effacer les traits. Du globe oculaire, seule la partie
-visible entre les paupières s'allume : l'iris plus que le blanc, la pupille sombre.
+**Every vertex is a point of light.** MakeHuman's mesh follows the features of the face: its loops draw the
+eyelids, the lips, the wings of the nose, and the hologram shows them. Sampling the surface uniformly was
+tried and dropped: the random grain drowned the modelling, and the face shrank to its outline. Vertices do
+crowd around the eyes, the mouth and the ears; each point there gives up a share of its light according to
+the number of its neighbours (within 4 mm), enough for those areas not to shine more than the rest without
+erasing the features. Of the eyeball, only the part visible between the eyelids lights up: the iris more
+than the white, the pupil dark.
 
-**Ce que contient chaque `.glb`** (glTF 2.0) : les 52 formes ARKit nommées selon la norme (`jawOpen`,
-`mouthClose`, `mouthFunnel`…) dans `extras.targetNames`, en cibles creuses, et les coordonnées de
-texture ; ni matériau ni image (les textures sont à côté). La même nomenclature pour tous, donc une
-animation commune ; le maillage, lui, varie d'un visage à l'autre après le retrait des faces cachées. De
-1,6 à 2,2 Mo par `.glb` (**moins de 3 Mo** exigés) et de 1,4 à 1,9 Mo de textures (moins de 2,5 Mo), parce
-que chaque clone de `macos-utils` les télécharge : 33 Mo pour les dix. Moins de 40 000 points. Un test le
-vérifie (§ 11.2).
+**What each `.glb` holds** (glTF 2.0): the 52 ARKit shapes named after the standard (`jawOpen`,
+`mouthClose`, `mouthFunnel`…) in `extras.targetNames`, as sparse targets, and the texture coordinates; no
+material and no image (the textures sit next to it). The same naming for all, hence one shared animation;
+the mesh itself varies from face to face once the hidden faces are removed. Every clone of `macos-utils`
+downloads them, so each `.glb` must stay **under 3 MB** and each face's textures under 2.5 MB, and fewer
+than 40,000 points. A test checks it (§ 11.2).
 
-**Chargeur glTF maison** (positions, normales, coordonnées de texture, triangles, cibles de morphing
-denses ou creuses) : environ 200 lignes, sans bibliothèque. Un sommet sur une couture de texture est
-exporté une fois par côté, au même endroit : dessiné deux fois, il ferait briller les coutures ; son
-jumeau ne sert qu'à la surface.
+**A home-made glTF loader** (positions, normals, texture coordinates, triangles, dense or sparse morph
+targets): about 200 lines, no library. A vertex on a texture seam is exported once per side, at the same
+place: drawn twice, it would make the seams shine; its twin serves the surface only.
 
-**Le choix du visage** : une grille de vignettes dans les réglages (chaque visage au repos, fabriqué la
-première fois que la fenêtre s'ouvre, hors du fil principal), une liste de noms dans le menu ; la tête
-en points de la charte en plus des dix. Le nouveau visage est lu hors du fil principal, puis remplace
-l'ancien par un fondu de 0,6 s précédé d'un bref glitch, même pendant qu'il parle.
+**Choosing the face**: a grid of thumbnails in the settings (each face at rest, made the first time the
+window opens, off the main thread), a list of names in the menu; the charter's point head besides the ten.
+The new face is read off the main thread, then replaces the old one with a 0.6 s fade after a brief glitch,
+even while it speaks.
 
-### 8.2 Le rendu : un vrai hologramme
+### 8.2 The rendering: a real hologram
 
-Un rendu **Metal maison** : une seule tête à dessiner, un effet sur mesure, et aucun lien avec SceneKit
-(déprécié en 2025) ni avec RealityKit. Les **shaders sont compilés au lancement** depuis leur source
-(`makeLibrary(source:)`) : pas besoin de la chaîne Metal d'Xcode. Le morphing se fait sur le processeur,
-position = base + Σ (poids × écart) sur les seuls sommets de chaque cible creuse : quelques dizaines de
-milliers de points, une fraction de milliseconde.
+A **home-made Metal** renderer: a single head to draw, a tailor-made effect, and no tie to SceneKit
+(deprecated in 2025) nor to RealityKit. The **shaders are compiled at launch** from their source
+(`makeLibrary(source:)`): Xcode's Metal toolchain is not needed. Morphing runs on the processor,
+position = base + Σ (weight × delta) over the vertices of each sparse target only: a few tens of thousands
+of points, a fraction of a millisecond.
 
-L'effet se construit en couches, chacune réglable :
+The effect is built in layers, each adjustable:
 
-1. **Le projecteur** : un socle discret sous la tête, un faisceau de lumière en cône (dégradé additif) et
-   des poussières qui flottent dans le faisceau. On peut le masquer.
-2. **La lumière de la tête** :
-   - une transparence additive, avec une pré-passe de profondeur : la peau et les globes oculaires,
-     dessinés d'abord dans le seul tampon de profondeur, cachent ce qui est derrière eux, sous tous les
-     angles (les cheveux de l'arrière, les dents derrière les lèvres closes, l'œil sous la paupière qui se
-     ferme). Les points y sont testés 1,5 mm en avant, pour que la peau ne cache pas ses propres points.
-     L'intérieur de la tête est en plus retiré à la fabrication (§ 8.1), et les points tournés vers
-     l'arrière s'éteignent ;
-   - un contour lumineux (Fresnel) ;
-   - une luminance tirée de la peau, pour que les yeux, les sourcils et les lèvres restent lisibles ;
-   - les arêtes du maillage, à peine visibles.
-3. **Le signal** :
-   - des lignes de balayage qui défilent, un entrelacement (une ligne sur deux un peu plus sombre,
-     alternée à chaque image) et du grain ;
-   - un léger scintillement ;
-   - un rare glitch : tranches horizontales décalées et aberration chromatique.
-4. **La voix dans la lumière** : la lueur et le scintillement suivent l'énergie de la voix. Le visage
-   s'allume quand il parle.
-5. **L'apparition** : à la connexion, une bande de balayage descend et construit la tête ligne par ligne.
-   À la déconnexion, elle se dissout.
-6. **Le halo** : un bloom en deux passes.
-7. **La parallaxe** (option caméra) : Vision suit la position de ta tête, et la caméra de rendu se déplace
-   avec elle (projection décentrée). La tête paraît avoir un vrai volume derrière l'écran : c'est ce qui
-   fait passer l'écran plat pour un hologramme.
-8. **La couleur** : la braise de la charte (`#FFC978`) par défaut, palette réglable ; un mode nuage de
-   points en option, celui du signe.
+1. **The projector**: a discreet plinth under the head, a cone-shaped beam of light (additive gradient) and
+   dust floating in the beam. It can be hidden.
+2. **The head's light**:
+   - additive transparency, with a depth pre-pass: the skin and the eyeballs, drawn first into the depth
+     buffer only, hide what is behind them from every angle (the hair at the back, the teeth behind closed
+     lips, the eye under a closing eyelid). Points are tested 1.5 mm forward there, so that the skin does
+     not hide its own points. The inside of the head is also removed at build time (§ 8.1), and the points
+     turned backwards go dark;
+   - a glowing outline (Fresnel);
+   - a luminance taken from the skin, so that the eyes, the brows and the lips stay readable;
+   - the mesh's edges, barely visible.
+3. **The signal**:
+   - scrolling scanlines, interlacing (every other line a little darker, alternating at each frame) and
+     grain;
+   - a slight flicker;
+   - a rare glitch: shifted horizontal slices and chromatic aberration.
+4. **The voice in the light**: the glow and the flicker follow the voice's energy. The face lights up when
+   it speaks.
+5. **The appearance**: on connecting, a scan band sweeps down and builds the head line by line. On
+   disconnecting, it dissolves.
+6. **The halo**: a two-pass bloom.
+7. **Parallax** (camera option): Vision follows where your head is, and the rendering camera moves with it
+   (off-axis projection). The head seems to have a real volume behind the screen: that is what makes a flat
+   screen pass for a hologram.
+8. **The colour**: the charter's braise (`#FFC978`) by default, with a palette to choose from; a point cloud
+   mode as an option, the mark's.
 
-Le style reste celui d'un hologramme de science-fiction générique : il n'imite aucune œuvre en particulier.
-On vise 60 images par seconde (120 sur un écran ProMotion) quand il parle, 30 au repos.
+The style stays that of a generic science-fiction hologram: it imitates no work in particular. The target
+is 60 frames a second (120 on a ProMotion display) while it speaks, 30 at rest.
 
-### 8.3 La jauge de réalisme
+### 8.3 The realism gauge
 
-Un curseur « Réalisme » dans les réglages, sous la grille des visages, idée de l'utilisateur (2026-11-26) :
-de 0 %, l'hologramme de points, à 100 %, le visage aussi réel que MakeHuman le permet.
+A "Realism" slider in the settings, under the grid of faces: from 0 %, the hologram of points, to 100 %, the
+face as real as MakeHuman allows.
 
-- **La surface** : les triangles de chaque partie, texturés (peau, iris, cheveux, sourcils, cils, dents,
-  langue : les textures CC0 du pack, réduites ; la peau, texture du corps entier, recadrée sur la tête),
-  éclairés par une lumière principale en haut à gauche, une lumière d'appoint à droite et un liseré. La
-  peau est un peu chaude dans l'ombre, l'œil a un reflet net. Cheveux, sourcils et cils sont découpés là
-  où leur texture est transparente.
-- **Le mélange** : la surface monte avec la jauge, d'abord teintée de la couleur de l'hologramme puis
-  dans ses vraies couleurs ; les points s'éteignent d'autant ; le halo, les lignes de balayage, le
-  scintillement, la bande et le socle s'effacent. Une passe de profondeur des surfaces précède leur
-  couleur : translucide, le visage ne montre que sa couche la plus proche, pas l'intérieur du crâne. Le
-  cou coupé s'estompe au lieu de finir en dents de scie.
-- **La bouche** : le `mouthClose` d'ARKit ferme les lèvres sur une mâchoire ouverte, et au-delà de
-  `jawOpen` elles se traversent (une bosse sous le nez sur « p », « b » et « m », invisible en points).
-  Celui de l'animateur dit à quel point les lèvres sont closes : `MeshHead` le traduit en le multipliant
-  par l'ouverture de la mâchoire. Et une bouche au repos est fermée : les quelques centièmes de mâchoire
-  de la respiration n'entrouvrent plus les lèvres.
-- **Les limites, dites franchement** : 100 % veut dire le niveau de MakeHuman, un personnage de jeu
-  convaincant de loin, pas une personne filmée. En gros plan, la vallée de l'étrange guette : des yeux
-  un peu de poupée, une peau lisse, des sourcils en traits ; chez Amara et Kofi, un filet de dents au repos
-  (`mouthClose` n'est pas calé sur des lèvres plus pleines). L'hologramme pardonne la synchro labiale
-  sans phonèmes, le visage réel moins : la jauge laisse chacun choisir. Le photoréalisme demanderait
-  MetaHuman (pas redistribuable) ou un modèle qui anime une photo (lourd, et trop proche du deepfake) :
-  hors périmètre.
+- **The surface**: the triangles of each part, textured (skin, iris, hair, brows, lashes, teeth, tongue:
+  the pack's CC0 textures, reduced; the skin, a whole-body texture, cropped to the head), lit by a key light
+  at the top left, a fill light on the right and a rim. The skin is a little warm in the shadows, the eye
+  has a sharp highlight. Hair, brows and lashes are cut out where their texture is transparent.
+- **The blend**: the surface rises with the gauge, first tinted with the hologram's colour, then in its true
+  colours; the points fade as much; the halo, the scanlines, the flicker, the band and the plinth fade
+  away. A depth pass of the surfaces precedes their colour: translucent, the face shows only its nearest
+  layer, not the inside of the skull. The cut neck fades out instead of ending in a jagged edge.
+- **The mouth**: ARKit's `mouthClose` closes the lips over an open jaw, and beyond `jawOpen` they pass
+  through each other (a bump under the nose on "p", "b" and "m", invisible as points). The animator's says
+  how closed the lips are: `MeshHead` translates it by multiplying it by the jaw's opening. And a mouth at
+  rest is closed: the few hundredths of jaw that breathing adds no longer part the lips.
+- **The limits, said plainly**: 100 % means MakeHuman's level, a game character convincing from a distance,
+  not a filmed person. In close-up, the uncanny valley lurks: slightly doll-like eyes, smooth skin, brows
+  drawn as strokes. The hologram forgives lip sync without phonemes, the real face less so: the gauge lets
+  everyone choose. Photorealism would need MetaHuman (not redistributable) or a model that animates a photo
+  (heavy, and too close to a deepfake): out of scope.
 
-`Visage --render … --realism <0-100>` filme à un niveau donné, ou en faisant glisser la jauge
-(`--realism 0-100`) ; `--snapshot` ajoute la planche des dix visages à 100 % (`faces-real.png`).
+`Visage --render … --realism <0-100>` films at a given level, or sliding the gauge (`--realism 0-100`);
+`--snapshot` adds the sheet of the ten faces at 100 % (`faces-real.png`).
 
-## 9. Fenêtre et réglages
+## 9. Window and settings
 
-### 9.1 Deux modes de fenêtre
+### 9.1 Two window modes
 
-| Mode | La fenêtre | Pour quoi faire |
+| Mode | The window | What for |
 |---|---|---|
-| **Flottante** (par défaut) | Sans cadre, fond et ombre invisibles : seule la tête flotte, au-dessus de toutes les fenêtres, sur tous les bureaux et au-dessus des apps en plein écran. On la déplace en tirant la tête. | L'effet hologramme, toujours sous les yeux. |
-| **Classique** | Une fenêtre normale avec barre de titre et fond sombre. | Partage d'écran, enregistrement vidéo, un « caisson ». |
+| **Floating** (the default) | No frame, invisible background and shadow: only the head floats, above every window, on every desktop and above full-screen apps. It is moved by dragging the head. | The hologram effect, always in sight. |
+| **Classic** | A normal window with a title bar and a dark background. | Screen sharing, video recording, a "showcase". |
 
-Un troisième mode, transparent parmi les autres fenêtres, a été retiré le 2026-11-26 : le visage passait
-derrière Claude dès qu'on cliquait sur Claude. Un réglage enregistré avec lui se lit « flottante ». On
-change de mode à chaud, depuis la barre des menus ou les réglages.
+A third mode, transparent among the other windows, was removed on 2026-11-26: the face went behind Claude
+as soon as Claude was clicked. A setting saved with it reads as "floating". The mode changes live, from the
+menu bar or the settings.
 
-### 9.2 Barre des menus et réglages
+### 9.2 Menu bar and settings
 
-- **L'icône de la barre des menus** donne l'état (connecté à Claude, en attente), afficher ou masquer le
-  visage, le choix du visage, le mode de fenêtre, les réglages, et Quitter.
-- **Ses fenêtres s'ouvrent devant** : sans icône dans le Dock, macOS n'amène jamais Visage au premier plan,
-  et ses fenêtres s'ouvraient derrière les autres. Tant que l'accueil, la connexion ou les réglages sont
-  ouverts, Visage devient une app ordinaire, au premier plan, avec une icône dans le Dock ; il retourne
-  dans la barre des menus quand on les ferme.
-- **Les réglages**, dans leur propre fenêtre aux couleurs de la charte, le logo animé en tête : à gauche,
-  l'aperçu du visage au repos, tel que les choix le font ; à droite, en cartes, le visage (grille, jauge de
-  réalisme, taille de 50 à 200 %), l'hologramme (couleur, halo, lignes de balayage, socle et faisceau,
-  scintillement et glitchs), la conversation (l'IA écoute-t-elle ? l'option micro), la caméra, la fenêtre
-  (les deux modes, expliqués), la synchro (retard, avance, décalage lèvres).
+- **The menu bar icon** gives the state (connected to Claude, waiting), shows or hides the face, picks the
+  face and the window mode, opens the settings, and quits.
+- **Its windows open in front**: with no icon in the Dock, macOS never brings Visage to the front, and its
+  windows opened behind the others. While the welcome, the connection or the settings are open, Visage
+  becomes an ordinary app, in front, with an icon in the Dock; it goes back to the menu bar when they close.
+- **The settings**, in their own window in the charter's colours, the animated logo at the top: on the
+  left, the preview of the face at rest, as the choices make it; on the right, in cards, the face (grid,
+  realism gauge, size from 50 to 200 %), the hologram (colour, halo, scanlines, plinth and beam, flicker and
+  glitches), the conversation (is the AI listening? the microphone option), the camera, the window (the two
+  modes, explained), the sync (delay, anticipation, lip offset).
 
-## 10. Architecture technique
+## 10. Technical architecture
 
-### 10.1 Dans `macos-utils`
+### 10.1 In `macos-utils`
 
-Visage est un outil de plus de `macos-utils` (public, MIT), rangé comme les autres :
+Visage is one more utility of `macos-utils` (public, MIT), laid out like the others:
 
 ```
 macos-utils/
-  README.md               une ligne de plus dans le tableau des outils, et ses prérequis
-  data/doc/VISAGE.md      la doc utilisateur, en anglais : prérequis, sources, installation, usage
-  data/sources/visage/    les sources de Visage (§ 10.2), dont docs/specs.md, cette spécification
+  README.md               one more row in the utilities table, and its requirements
+  data/doc/VISAGE.md      the user documentation, in English: requirements, sources, installation, usage
+  data/sources/visage/    Visage's sources (§ 10.2), including docs/specs.md, this specification
 ```
 
-Visage reprend les conventions du dépôt :
+Visage follows the repository's conventions:
 
-- un `build.sh` qui construit sans Xcode (les Command Line Tools suffisent), avec `--install` et
-  `--universal` ;
-- l'identifiant `com.devinthehood.visage` et une signature ad hoc (`codesign --sign -`) : pas de DMG
-  notarisé, une source qu'on assemble soi-même ;
-- une interface en anglais, comme Awake et Siphon, traduite en français (`Localizable.strings` en et fr,
-  selon la langue du système), dans la police du système : l'app n'embarque aucune police (charte, § 4) ;
-- une icône d'app dessinée par le code au moment de la construction (`brand/generate.sh --iconset`) : pas
-  de bitmap dans le dépôt ;
-- des messages de commit en français, comme le reste du dépôt ; le code et les commentaires en anglais.
+- a `build.sh` that builds without Xcode (the Command Line Tools are enough), with `--install` and
+  `--universal`;
+- the identifier `com.devinthehood.visage` and an ad hoc signature (`codesign --sign -`): no notarized
+  DMG, a source you assemble yourself;
+- an interface in English, like Awake and Siphon, translated into French (`Localizable.strings` in en and
+  fr, following the system's language), in the system font: the app embeds no font (charter, § 4);
+- an app icon drawn by code at build time (`brand/generate.sh --iconset`): no bitmap in the repository;
+- commit messages in French, like the rest of the repository; code, comments and documentation in English.
 
-Deux adaptations du dépôt, au lot 1 :
+Two adaptations of the repository, at lot 1:
 
-- **`CONTRIBUTING.md`** décrit une collection « délibérément petite », qu'on peut lire de bout en bout
-  avant de la lancer. Visage est bien plus gros qu'Awake ou Siphon. La règle évolue : chaque outil reste
-  lisible et sans paquet tiers, et Visage documente ses modules pour qu'on puisse le relire morceau par
-  morceau.
-- **Le poids** : `macos-utils` pèse environ 1,7 Mo au 2026-11-26, et chaque clone emporte tous les outils.
-  Les 10 visages sont donc limités à 3 Mo chacun (moins de 30 Mo en tout). On ne les régénère qu'en cas
-  de besoin, parce que chaque régénération s'ajoute à l'historique. Le `.gitignore` écarte `build/` de
-  Visage.
+- **`CONTRIBUTING.md`** described a "deliberately small" collection, one you can read end to end before
+  running it. Visage is much bigger than Awake or Siphon. The rule evolves: each utility stays readable and
+  free of third-party packages, and Visage documents its modules so that it can be read piece by piece.
+- **The weight**: `macos-utils` weighed about 1.7 MB on 2026-11-26, and every clone carries every utility.
+  The 10 faces are therefore limited to 3 MB each for the mesh. They are rebuilt only when needed, because
+  every rebuild adds to the history. The `.gitignore` leaves out Visage's `build/`.
 
-### 10.2 Le code
+### 10.2 The code
 
-**Swift 6, compilé par `swiftc` comme les autres outils de `macos-utils`, macOS 15 au minimum** (les
-compteurs atomiques du module `Synchronization`). Le pilote a confirmé la capture par identifiant de
-bundle de macOS 26 (`bundleIDs`, `processRestoreEnabled` : pilote, § 2.6 et § 4) : Visage la prend quand il
-la trouve, et suit les processus lui-même sur macOS 15. Le minimum reste donc macOS 15, qui garde les Mac
-Intel de 2018 et après ; macOS 26 n'en reçoit que quatre modèles. L'app compile pour Intel (`x86_64`,
-vérifié le 2026-11-26), sans y avoir encore tourné. Elle est développée sur macOS 27.
+**Swift 6, compiled by `swiftc` like the other utilities of `macos-utils`, macOS 15 at least** (the atomic
+counters of the `Synchronization` module). The pilot confirmed macOS 26's capture by bundle ID
+(`bundleIDs`, `processRestoreEnabled`: pilot, § 2.6 and § 4): Visage takes it when it finds it, and follows
+the processes itself on macOS 15. The minimum therefore stays macOS 15, which keeps the Intel Macs from 2018
+on; macOS 26 reaches only four Intel models. The app compiles for Intel (`x86_64`, `build.sh --universal`),
+without having run on an Intel Mac yet. It is developed on macOS 27.
 
-**Pas de SwiftPM.** Avec les Command Line Tools de ce Mac (Swift 6.4.2), SwiftPM ne lie même pas le
-manifeste d'un paquet vierge : sa bibliothèque `PackageDescription` ne correspond pas au compilateur
-(constaté le 2026-11-26). `build.sh` compile donc chaque module de `Sources/` en bibliothèque statique, dans
-l'ordre des dépendances, puis lie l'app : moins de pièces mobiles, et la convention du dépôt. Contenu de
-`data/sources/visage/` :
+**No SwiftPM.** With the Command Line Tools at hand (Swift 6.4.2), SwiftPM could not even link the manifest
+of a blank package: its `PackageDescription` library does not match the compiler (seen on 2026-11-26).
+`build.sh` therefore compiles each module of `Sources/` into a static library, in dependency order, then
+links the app: fewer moving parts, and the repository's convention. Contents of `data/sources/visage/`:
 
 ```
 Sources/
-  VisageApp/       SwiftUI + AppKit : fenêtre (3 modes), barre des menus, réglages, « Se connecter à mon IA »
-  AudioSource/     découverte des processus, tap Core Audio, tampon circulaire, relecture retardée
-  VoiceAnalysis/   trames, énergie, F0, LPC et formants, fricatives, occlusions, normalisation
-  FaceAnimation/   mapping vers ARKit, anticipation, ressorts, prosodie, états, regard
-  HoloRenderer/    chargeur glTF, morphing GPU, couches de l'hologramme, halo, parallaxe
-  Shared/          horloge hôte, types communs
+  VisageApp/       SwiftUI + AppKit: the face's window (2 modes), menu bar, settings, "Connect my AI"
+  AudioSource/     process discovery, Core Audio tap, ring buffer, delayed playback
+  VoiceAnalysis/   frames, energy, F0, LPC and formants, fricatives, closures, normalisation
+  FaceAnimation/   mapping to ARKit, anticipation, springs, prosody, states, gaze
+  HoloRenderer/    glTF loader, morphing, the hologram's layers and shaders, halo, parallax
+  Shared/          host clock, the brand's geometry
 Resources/
-  Faces/*.glb      les 10 visages, générés par tools/faces
-  Shaders/*.metal
+  Faces/           the 10 faces (.glb and textures), built by tools/faces
   en.lproj/, fr.lproj/
-Tests/             un dossier par module, et TestRunner.swift, le point d'entrée des tests
-tools/faces/       la chaîne Blender (§ 8.1)
-brand/             le kit de marque (kit/) et les fichiers qu'il écrit : logos, animations, icône
-pilot/             le pilote (lot 0)
-docs/              cette spécification, la charte, le compte rendu du pilote
+Tests/             one folder per module, and TestRunner.swift, the tests' entry point
+tools/faces/       the Blender chain (§ 8.1)
+tools/doc-images.sh  the pictures of data/doc/VISAGE.md, made with --snapshot and --render
+brand/             the brand kit (kit/) and the files it writes: logos, animations, icon
+pilot/             the pilot (lot 0)
+docs/              this specification, the charter, the pilot's report
 Info.plist
-build.sh           construit Visage.app (modules, app, ressources, icône, signature) ; --tests, --install
-check.sh           la porte
+build.sh           builds Visage.app (modules, app, resources, icon, signature); --universal, --tests, --install
+check.sh           the gate
 ```
 
-- **Dépendances : aucun paquet tiers.** Seulement des frameworks d'Apple : SwiftUI, AppKit, CoreAudio,
-  AudioToolbox, AVFAudio, Accelerate, Metal, QuartzCore ; Vision et AVFoundation pour l'option caméra ;
-  Core ML pour la V2 seulement. Les compteurs atomiques viennent du module `Synchronization` de la
-  bibliothèque standard.
-- **Fils d'exécution** : l'`IOProc` sur le fil temps réel (sans allocation ni verrou), l'analyse sur un fil
-  dédié, le rendu sur le display link. Ils échangent par des tampons circulaires sans verrou.
-- **Construire** : `build.sh` compile les modules et l'app, puis assemble le `.app` avec `Info.plist` (dont
-  `NSAudioCaptureUsageDescription` et, pour l'option caméra, `NSCameraUsageDescription`), les traductions et
-  l'icône. Les shaders voyagent dans le code, en chaînes compilées au lancement : pas de paquet de
-  ressources à signer.
-- **Les écrans se vérifient sans écran** : `Visage --snapshot <dossier>` rend chaque écran, dans chaque état
-  qui compte, en PNG, hors écran (une fenêtre hors écran, pas `ImageRenderer`, qui dessine les contrôles
-  AppKit en pointillés). Ni affichage ni autorisation d'enregistrer l'écran ne sont nécessaires.
-- **Pas de macros SwiftUI qui exigent Xcode** : `@State` et `#Preview` sont, dans ce SDK, des macros dont le
-  greffon n'existe que dans Xcode ; la construction par les Command Line Tools échoue (pilote, § 2.5). Le
-  modèle est `@Observable` (la macro Observation compile) et tenu par référence.
-- **Signature en développement** : `build.sh` signe en ad hoc, avec un identifiant fixe. Visage, recompilé
-  à plusieurs reprises le 2026-11-26, a gardé son autorisation audio ; le pilote l'a perdue une fois, sans
-  cause établie (pilote, § 4). En cas de besoin, `VISAGE_SIGN_IDENTITY` permet à `build.sh` de signer avec
-  un certificat local auto-signé (gratuit, Trousseau).
-- **Réseau** : aucun. App Sandbox sans droit réseau, si la sandbox est compatible avec les taps (à vérifier
-  au pilote).
+- **Dependencies: no third-party package.** Only Apple's frameworks: SwiftUI, AppKit, CoreAudio,
+  AudioToolbox, AVFAudio, Accelerate, Metal, QuartzCore; Vision and AVFoundation for the camera option;
+  Core ML for V2 only. The atomic counters come from the standard library's `Synchronization` module.
+- **Threads**: the `IOProc` on the real-time thread (no allocation, no lock), the analysis on a dedicated
+  thread, the rendering on the display link. They exchange through lock-free ring buffers.
+- **Building**: `build.sh` compiles the modules and the app, then assembles the `.app` with `Info.plist`
+  (including `NSAudioCaptureUsageDescription` and, for the options, `NSMicrophoneUsageDescription` and
+  `NSCameraUsageDescription`), the translations and the icon. The shaders travel in the code, as strings
+  compiled at launch: no resource bundle to sign.
+- **The screens are checked without a screen**: `Visage --snapshot <folder>` renders each screen, in each
+  state that matters, to PNG, offscreen (an offscreen window, not `ImageRenderer`, which draws AppKit
+  controls as placeholders). Neither a display nor the screen recording permission is needed.
+- **No SwiftUI macros that need Xcode**: `@State` and `#Preview` are, in this SDK, macros whose plugin
+  ships with Xcode only; building with the Command Line Tools fails (pilot, § 2.5). The model is
+  `@Observable` (the Observation macro compiles) and held by reference.
+- **Signing in development**: `build.sh` signs ad hoc, under a fixed identifier. Visage, rebuilt several
+  times on 2026-11-26, kept its audio permission; the pilot lost it once, with no established cause (pilot,
+  § 4). If needed, `VISAGE_SIGN_IDENTITY` lets `build.sh` sign with a local self-signed certificate (free,
+  Keychain Access).
+- **Network**: none. An App Sandbox without network entitlement, if the sandbox works with the taps (not
+  tried yet).
 
-## 11. Qualité
+## 11. Quality
 
-### 11.1 La porte (avant chaque commit)
+### 11.1 The gate (before every commit)
 
-`sh check.sh` : la construction de l'app, les tests, puis `swift format lint --strict` ; `--fix` met d'abord
-les sources en forme. Les tests sont en Swift Testing, livré avec les Command Line Tools (XCTest ne l'est
-pas) : `build.sh --tests` compile les modules avec `-enable-testing` et lie les tests à un exécutable dont
-`Tests/TestRunner.swift` est le point d'entrée. La porte lit le décompte (« Test run with N tests passed »),
-pas seulement le code de sortie. Rien à installer.
+`sh check.sh`: building the app, the tests, then `swift format lint --strict`; `--fix` formats the sources
+first. The tests are written with Swift Testing, which ships with the Command Line Tools (XCTest does not):
+`build.sh --tests` compiles the modules with `-enable-testing` and links the tests into an executable whose
+entry point is `Tests/TestRunner.swift`. The gate reads the count ("Test run with N tests passed"), not
+only the exit code. Nothing to install.
 
-**Pas de CI au départ** : `macos-utils` n'en a pas. Un workflow GitHub (runner macOS, gratuit pour un
-dépôt public) pourra jouer la même porte. Il rejoindrait alors le passage mensuel, et resterait coupé le
-reste du temps, comme sur les autres dépôts.
+**No CI**: `macos-utils` has none. A GitHub workflow (macOS runner, free for a public repository) could run
+the same gate.
 
-### 11.2 Les tests
+### 11.2 The tests
 
-- **Analyse** : sur des signaux synthétiques (voyelles synthétisées aux formants connus, bruits de
-  fricatives, silences et explosions). On vérifie F1, F2, F0 et la détection des occlusions.
-- **Animation** : mapping et ressorts, de façon déterministe, avec une graine fixe.
-- **Visages et chargeur glTF** : chaque `.glb` de `Resources/Faces` porte ses parties et les 52 noms
-  ARKit, pèse moins de 3 Mo et donne moins de 40 000 points ; ses triangles occultants désignent des
-  points qui existent ; `jawOpen` abaisse la mâchoire sans toucher le front, le regard ne tourne que les
-  yeux.
-- **Tampon circulaire** : en concurrence, producteur contre consommateur.
-- **Mode fichier** : Visage lit un `.wav` au lieu d'une app. Il sert à la mise au point sans IA, aux
-  démos, et au **rendu vidéo hors ligne** (`.mov` via AVAssetWriter), pour comparer deux versions image
-  par image. C'est aussi lui qui produit les vidéos du README.
-- **Enregistrements de référence** : 5 extraits de la voix de Claude en français et 2 de ChatGPT, annotés à
-  la main (instants des « b », « p » et « m »). Ils restent **hors du dépôt**, qui est public.
+- **Analysis**: on synthetic signals (vowels synthesised with known formants, fricative noises, silences
+  and bursts). F1, F2, F0 and the detection of closures are checked.
+- **Animation**: mapping and springs, deterministically, with a fixed seed.
+- **Faces and glTF loader**: each `.glb` of `Resources/Faces` holds its parts and the 52 ARKit names, weighs
+  under 3 MB and gives fewer than 40,000 points; its occluding triangles point to points that exist;
+  `jawOpen` lowers the jaw without touching the forehead, the gaze turns the eyes only.
+- **Ring buffer**: concurrently, producer against consumer.
+- **File mode**: Visage reads an audio file instead of an app. It serves tuning without an AI, demos, and
+  **offline video rendering** (`.mov` through AVAssetWriter), to compare two versions frame by frame. It
+  also makes the pictures of the documentation (`tools/doc-images.sh`).
+- **Reference recordings**: 5 excerpts of Claude's voice in French and 2 of ChatGPT's, annotated by hand
+  (the instants of "b", "p" and "m"). They stay **out of the repository**, which is public.
 
-### 11.3 Critères d'acceptation : « on y croit »
+### 11.3 Acceptance criteria: "you believe it"
 
-1. **Synchro** : la bouche devance le son de 0 à 60 ms et n'est jamais en retard de plus de 20 ms. On le
-   mesure en filmant l'écran au ralenti (240 images par seconde) avec le téléphone.
-2. **Fermetures** : les lèvres se ferment sur au moins 90 % des « b », « p » et « m » des extraits de
-   référence.
-3. **Jamais figé** : aucun intervalle de plus d'une seconde sans mouvement du visage, attente comprise ; et
-   sur deux minutes de repos filmées, on ne repère aucune répétition.
-4. **Test à l'aveugle** : sur 10 extraits, on juge « on y croit » sur au moins 8.
-5. **Budgets** (MacBook Apple Silicon) : capture et analyse sous 10 % d'un cœur, une image sous 4 ms de
-   GPU, moins de 250 Mo de mémoire, aucun craquement audio en une heure.
-6. **Sûreté** : Visage quitté ou planté, le son de l'IA revient en moins d'une seconde.
+1. **Sync**: the mouth leads the sound by 0 to 60 ms and is never more than 20 ms late. Measured by filming
+   the screen in slow motion (240 frames a second) with a phone.
+2. **Closures**: the lips close on at least 90 % of the "b", "p" and "m" of the reference excerpts.
+3. **Never frozen**: no interval of more than one second without the face moving, waiting included; and
+   over two minutes of filmed rest, no repetition can be spotted.
+4. **Blind test**: out of 10 excerpts, "you believe it" on at least 8.
+5. **Budgets** (an Apple silicon MacBook): capture and analysis under 10 % of a core, a frame under 4 ms of
+   GPU, under 250 MB of memory, no audio crackle in an hour.
+6. **Safety**: Visage quit or crashed, the AI's sound comes back in under a second.
 
-## 12. Risques, levés au pilote ou au lot concerné
+## 12. Risks, lifted by the pilot or by the lot concerned
 
-| # | Risque | Parade |
+| # | Risk | Answer |
 |---|---|---|
-| R1 | **Écho** : rejoué 150 ms plus tard, le son peut tromper l'annulation d'écho de l'app IA, qui s'entendrait elle-même et se couperait. | Au casque, aucun souci. En haut-parleurs, on mesure, puis on réduit D ou on conseille le casque. Ne se pose pas avec « Lire à voix haute » (pilote, § 4). **Levé pour Claude le 2026-11-26** : en mode vocal mains libres, en haut-parleurs, avec le retard de 150 ms, Claude ne s'entend pas lui-même. Reste ChatGPT. |
-| R2 | **Processus audio** : il faut trouver celui qui joue la voix (Claude Desktop est une app Electron) et le suivre quand l'app redémarre. | macOS 26 tape une app par son identifiant et la retrouve quand elle redémarre (pilote, tests 4 et 5) ; sinon, filtrer par préfixe et par PID responsable. |
-| R3 | **Sûreté de la coupure** : le son de l'IA doit revenir si Visage s'arrête. | Critère 6, bloquant. Tap privé ; mesure au micro par le pilote (tests 2 et 3). |
-| R4 | **Analyse sans modèle** insuffisante en français. | V2 Core ML (§ 6.2). |
-| R5 | **Mode vocal en bêta** chez Claude (le français aussi) : la voix peut changer. | Visage ne suit que le son : la normalisation automatique réapprend la voix. |
-| R6 | **Réalisme de MakeHuman** trop juste en gros plan. | Subdivision, cartes de normales, yeux soignés ; l'hologramme et la parallaxe portent le reste. Jugé au lot 5 sur le test à l'aveugle. |
-| R7 | **Poids des visages** : chaque clone de `macos-utils` les emporte. | Moins de 3 Mo par `.glb` (cibles creuses) et 2,5 Mo de textures par visage, vérifiés par un test : 33 Mo pour les dix, accepté par l'utilisateur pour la jauge de réalisme (2026-11-26) ; régénération seulement en cas de besoin. |
+| R1 | **Echo**: played back 150 ms later, the sound may fool the AI app's echo cancellation, which would hear itself and stop. | With headphones, no problem. On speakers, measure, then lower D or advise headphones. Does not arise with "Read aloud" (pilot, § 4). **Lifted for Claude on 2026-11-26**: in hands-free voice mode, on speakers, with the 150 ms delay, Claude does not hear itself. ChatGPT remains. |
+| R2 | **Audio processes**: find the one playing the voice (Claude Desktop is an Electron app) and follow it when the app restarts. | macOS 26 taps an app by its bundle ID and finds it again when it restarts (pilot, tests 4 and 5); otherwise, filter by prefix and responsible PID. |
+| R3 | **Safe muting**: the AI's sound must come back if Visage stops. | Criterion 6, blocking. Private tap; measured at the microphone by the pilot (tests 2 and 3). |
+| R4 | **Analysis without a model** not good enough in French. | V2 in Core ML (§ 6.2). |
+| R5 | **Voice mode in beta** at Claude (French too): the voice may change. | Visage follows only the sound: automatic normalisation learns the voice again. |
+| R6 | **MakeHuman's realism** too thin in close-up. | Subdivision, normal maps, careful eyes; the hologram and the parallax carry the rest. Judged on the blind test. |
+| R7 | **The faces' weight**: every clone of `macos-utils` carries them. | Under 3 MB per `.glb` (sparse targets) and 2.5 MB of textures per face, checked by a test, about 30 MB for the ten, accepted for the realism gauge; rebuilt only when needed. |
 
-## 13. Découpage en lots
+## 13. Lots
 
-| Lot | Contenu | Sortie |
+| Lot | Content | Output |
 |---|---|---|
-| **0 — Pilote** (bloquant) | Tap sur Claude Desktop en mode vocal, coupure et relecture retardée ; mesure de R1, R2 et R3 ; une bouche 2D sommaire (la mâchoire suit l'énergie) pour juger la synchro. | Un go ou no-go écrit, les identifiants relevés. |
-| **1 — Socle** | `data/sources/visage/` dans `macos-utils` : modules, `build.sh`, porte, `.gitignore` ; `CONTRIBUTING.md` adapté ; écran « Se connecter à mon IA », barre des menus, rebranchement automatique. | L'app se branche et se rebranche seule. |
-| **2 — Analyse** | § 6.1, mode fichier, tests sur signaux synthétiques. | Les courbes d'analyse sont justes sur les extraits. |
-| **3 — Rendu** | Chargeur glTF, morphing, les huit couches de l'hologramme, trois modes de fenêtre, synchro à l'affichage. | Une tête hologramme à 60 images par seconde. |
-| **4 — Animation** | § 7 en entier. | Critères 1 à 3. |
-| **5 — Visages** | Chaîne Blender, 10 réglages, 10 `.glb`, grille de choix, changement à chaud. | Les 10 visages, tests verts, R6 jugé. |
-| **6 — Finitions** | Caméra (regard et parallaxe), réglages complets, traduction ; robustesse (veille, changement de sortie audio, app IA relancée). | Les six critères du § 11.3 passés. |
-| **7 — Publication** | `data/doc/VISAGE.md` en anglais, avec les vidéos du mode fichier ; une ligne dans le tableau du README de `macos-utils`, et ses prérequis. | Le cadeau est en ligne. |
-| Option | Phonèmes en Core ML (V2) ; téléphone comme écran déporté (pyramide hologramme) ; autres apps. | — |
+| **0 — Pilot** (blocking) | Tap on Claude Desktop, muting and delayed playback; measuring R1, R2 and R3; a rough 2D mouth (the jaw follows the energy) to judge the sync. | A written go or no-go, the identifiers recorded. |
+| **1 — Base** | `data/sources/visage/` in `macos-utils`: modules, `build.sh`, gate, `.gitignore`; `CONTRIBUTING.md` adapted; "Connect my AI" screen, menu bar, automatic reconnection. | The app connects and reconnects on its own. |
+| **2 — Analysis** | § 6.1, file mode, tests on synthetic signals. | The analysis curves are right on the excerpts. |
+| **3 — Rendering** | glTF loader, morphing, the hologram's eight layers, the window modes, sync to the display. | A hologram head at 60 frames a second. |
+| **4 — Animation** | All of § 7. | Criteria 1 to 3. |
+| **5 — Faces** | Blender chain, 10 presets, 10 `.glb`, choice grid, live change. | The 10 faces, tests green, R6 judged. |
+| **6 — Finish** | Camera (gaze and parallax), complete settings, translation; robustness (sleep, change of audio output, AI app relaunched). | The six criteria of § 11.3 passed. |
+| **7 — Release** | `data/doc/VISAGE.md` in English, with pictures made by the file mode; a row in the README table of `macos-utils`, and its requirements. | The gift is online. |
+| Option | Phonemes in Core ML (V2); a phone as a remote screen (hologram pyramid); other apps. | — |
 
-**Avancement au 2026-11-26** :
+**Progress on 2026-11-27**:
 
-- **Lot 0** fait : les cinq mesures, avec Claude Desktop, le 2026-11-26 au soir ; verdict go (pilote, § 5).
-- **Lot 1** fait : l'app se construit sans Xcode, se branche, se rebranche (SwiftPM écarté, § 10.2).
-- **Lot 2** fait : l'analyse, mesurée sur trois voix françaises (§ 6.1).
-- **Lot 3** fait : Metal, couches de l'hologramme, rendu vidéo hors ligne (`Visage --render`), visage en
-  direct dans sa fenêtre.
-- **Lot 4** fait : bouche, prosodie, repos (§ 7) ; jamais immobile plus d'une seconde (critère 3, testé).
-- **Lot 5** fait : chaîne Blender (Blender 5.3, MPFB 2.0.18, packs CC0 de MakeHuman), les 10 visages,
-  choix du visage dans le menu et les réglages, planche des visages (`Visage --snapshot`) et vidéos
-  muettes (`--face <id> --mute`), pré-passe de profondeur, cheveux rangés, grille de vignettes et fondu
-  au changement de visage, jauge de réalisme (§ 8.3). Reste le test à l'aveugle (R6) avec l'utilisateur.
-- **Lot 6** commencé le 2026-11-26, après le premier essai de l'app avec Claude : fenêtres au premier plan,
-  deux modes, accueil et réglages à la charte avec le logo animé et l'aperçu, taille du visage, retour à
-  l'état laissé, fausse alerte d'autorisation corrigée. Puis la robustesse (relance après la veille ou
-  quand la capture se fige, auxiliaire né après le branchement), les couches et la couleur de l'hologramme,
-  la caméra (regard et parallaxe, sens à confirmer avec l'utilisateur) et la conversation : le visage
-  écoute quand l'app IA a son micro ouvert, réfléchit après une phrase ou une dictée, et, avec l'option
-  micro, hoche la tête aux pauses. Le mode vocal de Claude Desktop, essayé en haut-parleurs le soir
-  même : pas d'écho (R1 levé pour Claude). Restent les yeux, les cheveux et les dents des visages, et les
-  mesures du § 11.3.
-- **Lot 7** à venir : doc et publication.
+- **Lot 0** done: the five measurements, with Claude Desktop; verdict go (pilot, § 5).
+- **Lot 1** done: the app builds without Xcode, connects, reconnects (SwiftPM set aside, § 10.2).
+- **Lot 2** done: the analysis, measured on three French voices (§ 6.1).
+- **Lot 3** done: Metal, the hologram's layers, offline video rendering (`Visage --render`), the face live in
+  its window.
+- **Lot 4** done: mouth, prosody, rest (§ 7); never still for more than a second (criterion 3, tested).
+- **Lot 5** done: Blender chain (Blender 5.3, MPFB 2.0.18, MakeHuman's CC0 packs), the 10 faces, choosing
+  the face in the menu and the settings, sheet of the faces (`Visage --snapshot`) and silent videos
+  (`--face <id> --mute`), depth pre-pass, tidied hair, thumbnail grid and fade on changing faces, realism
+  gauge (§ 8.3); then the faces reworked: eyes, hair, teeth, features, soft brows and lashes, a relaxed face
+  at rest. The blind test (R6) remains.
+- **Lot 6** done but for the measurements of § 11.3: windows in front, two modes, welcome and settings in
+  the charter with the animated logo and the preview, face size, back to the state left, false permission
+  alert fixed; robustness (restart after sleep or when the capture freezes, a helper born after
+  connecting), the hologram's layers and colour, the camera (gaze and parallax) and the conversation: the
+  face listens while the AI app has its microphone open, thinks after a sentence or a dictation, and, with
+  the microphone option, nods at the pauses. Claude Desktop's voice mode, tried on speakers: no echo (R1
+  lifted for Claude).
+- **Lot 7** under way: `data/doc/VISAGE.md` and the README.
 
-## 14. Hors périmètre
+## 14. Out of scope
 
-- **iPhone et iPad en autonome** : aucune app ne peut capter et couper le son d'une autre. Windows et Linux
-  non plus.
-- **Le mode navigateur** (Q5).
-- **Une voix ou une IA à nous** : on ne remplace pas le mode vocal officiel.
-- **Lire le texte de la conversation, toute connexion réseau.**
-- **Un DMG notarisé** : comme pour le reste de `macos-utils`, on assemble l'app soi-même.
+- **iPhone and iPad on their own**: no app can capture and mute another's sound. Windows and Linux neither.
+- **The browser mode** (Q5).
+- **A voice or an AI of our own**: the official voice mode is not replaced.
+- **Reading the conversation's text, any network connection.**
+- **A notarized DMG**: as for the rest of `macos-utils`, the app is assembled by whoever runs it.
 
 ## Sources
 
-- [Claude — Use voice mode](https://support.claude.com/en/articles/11101966-use-voice-mode) : offres,
-  plateformes (Desktop, web, mobile), bêta, langues, limites.
-- [MacRumors — le mode vocal de Claude passe à Opus et Sonnet](https://www.macrumors.com/2026/07/24/claude-voice-mode-opus-sonnet-model-support/)
-- [OpenAI — ChatGPT for desktop, notes de version](https://help.openai.com/en/articles/9703738-desktop-app-release-notes)
-- [Neowin — ChatGPT Voice sur les apps desktop](https://www.neowin.net/news/chatgpt-voice-experience-gets-a-massive-upgrade-on-desktop/)
-- [MakeHuman — licence](https://static.makehumancommunity.org/about/license.html) : éléments CC0, code de
-  MPFB sous GPL.
-- [MPFB 2.0.16 — notes de version](https://static.makehumancommunity.org/mpfb/releases/release_2016.html) :
-  formes ARKit du pack faceunits01.
-- [MPFB sur la plateforme d'extensions de Blender](https://extensions.blender.org/add-ons/mpfb/)
-- [CG Channel — MetaHuman utilisable dans Unity ou Godot (2025)](https://www.cgchannel.com/2025/06/you-can-now-sell-metahumans-or-use-them-in-unity-or-godot/)
-- [Unreal Engine — journal des changements de l'EULA](https://www.unrealengine.com/eula-change-log/unreal)
-- [Microsoft Rocketbox](https://github.com/microsoft/Microsoft-Rocketbox) : licence MIT, formes ARKit,
-  dépôt archivé.
+- [Claude — Use voice mode](https://support.claude.com/en/articles/11101966-use-voice-mode): plans,
+  platforms (Desktop, web, mobile), beta, languages, limits.
+- [MacRumors — Claude's voice mode moves to Opus and Sonnet](https://www.macrumors.com/2026/07/24/claude-voice-mode-opus-sonnet-model-support/)
+- [OpenAI — ChatGPT for desktop, release notes](https://help.openai.com/en/articles/9703738-desktop-app-release-notes)
+- [Neowin — ChatGPT Voice on the desktop apps](https://www.neowin.net/news/chatgpt-voice-experience-gets-a-massive-upgrade-on-desktop/)
+- [MakeHuman — licence](https://static.makehumancommunity.org/about/license.html): CC0 assets, MPFB's code
+  under GPL.
+- [MPFB 2.0.16 — release notes](https://static.makehumancommunity.org/mpfb/releases/release_2016.html):
+  the ARKit shapes of the faceunits01 pack.
+- [MPFB on Blender's extensions platform](https://extensions.blender.org/add-ons/mpfb/)
+- [CG Channel — MetaHuman usable in Unity or Godot (2025)](https://www.cgchannel.com/2025/06/you-can-now-sell-metahumans-or-use-them-in-unity-or-godot/)
+- [Unreal Engine — EULA change log](https://www.unrealengine.com/eula-change-log/unreal)
+- [Microsoft Rocketbox](https://github.com/microsoft/Microsoft-Rocketbox): MIT licence, ARKit shapes,
+  repository archived.
