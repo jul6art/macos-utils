@@ -56,15 +56,17 @@ enum HoloShaders {
         // 0'. The face as a surface, for the realistic end (§ 8.3): textured, lit by a key light from above
         // and the left, a fill from the right and a rim; tinted like the hologram while it is faint.
         // Invariant: the depth pass and the colour pass must land on exactly the same depth.
-        struct SurfaceOut { float4 position [[position, invariant]]; float3 normal; float2 uv; float height; };
-        struct SurfaceLook { float shine; float sharpness; float warmth; float opacity; float rim; float tone; float soft; };
+        struct SurfaceOut { float4 position [[position, invariant]]; float3 normal; float2 uv; float height; float occlusion; };
+        struct SurfaceLook { float shine; float sharpness; float warmth; float opacity; float rim; float tone; float soft; float shade; };
 
         vertex SurfaceOut surfaceVertex(uint id [[vertex_id]], const device GPUPoint* points [[buffer(0)]],
-                                        constant Uniforms& u [[buffer(1)]], const device float2* uvs [[buffer(2)]]) {
+                                        constant Uniforms& u [[buffer(1)]], const device float2* uvs [[buffer(2)]],
+                                        const device float* occlusion [[buffer(3)]]) {
             SurfaceOut out;
             out.position = u.viewProjection * (u.model * float4(points[id].position.xyz, 1.0));
             out.normal = (u.model * float4(points[id].normal.xyz, 0.0)).xyz;
             out.uv = uvs[id];
+            out.occlusion = occlusion[id];
             out.height = points[id].position.y;
             return out;
         }
@@ -80,11 +82,14 @@ enum HoloShaders {
             float3 fill = normalize(float3(0.7, 0.05, 0.45));
             float3 albedoLinear = texel.rgb * texel.rgb * look.tone * look.tone;
             float wrapped = saturate((dot(n, key) + look.warmth) / (1.0 + look.warmth));
-            float3 lit = albedoLinear * (0.2 + 0.95 * wrapped + 0.3 * saturate(dot(n, fill)));
+            // Contact shadows (tools/faces bakes them): the soft light from all around, the fill and the
+            // shine fall into them; the key, a lamp, only partly.
+            float ao = mix(1.0, in.occlusion, look.shade);
+            float3 lit = albedoLinear * (0.2 * ao + 0.95 * wrapped * mix(1.0, ao, 0.6) + 0.3 * saturate(dot(n, fill)) * ao);
             // Light through the skin: warm where light turns to shade.
             lit += albedoLinear * float3(0.5, 0.12, 0.05) * look.warmth * wrapped * (1.0 - wrapped);
-            lit += pow(saturate(dot(n, normalize(key + float3(0.0, 0.0, 1.0)))), look.sharpness) * look.shine;
-            lit += pow(1.0 - saturate(n.z), 3.0) * look.rim;
+            lit += pow(saturate(dot(n, normalize(key + float3(0.0, 0.0, 1.0)))), look.sharpness) * look.shine * ao;
+            lit += pow(1.0 - saturate(n.z), 3.0) * look.rim * ao;
             // Highlights roll off instead of clipping: lit past white, pale skins went flat, a chalk mask.
             // Below the knee nothing changes (dark skins kept their modelling).
             float knee = 0.55;
