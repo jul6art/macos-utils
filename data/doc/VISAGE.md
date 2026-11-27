@@ -4,6 +4,7 @@
 
 <p align="center">
     <a href="https://opensource.org/licenses/MIT" target="_blank"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License"></a>
+    <a href="https://github.com/jul6art/macos-utils/releases/tag/visage-v0.1.0"><img src="https://img.shields.io/static/v1?label=version&message=v0.1.0&color=orange" alt="Version"></a>
 </p>
 
 MACOS-UTILS
