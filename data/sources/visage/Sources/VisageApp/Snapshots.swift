@@ -79,27 +79,28 @@ enum Snapshots {
         {
             failures += 1
         }
-        // The hologram's card, below the fold of the settings' snapshot.
-        let hologram = BrandCard(title: String(localized: "Hologram")) { HologramSettings(model: model) }
-            .padding(20).frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(nsColor: Palette.charbon)).foregroundStyle(Palette.orPale)
-            .tint(Palette.braise)
-        if !write(
-            hologram, size: NSSize(width: 560, height: 420), to: directory.appending(path: "settings-hologram.png"),
-            dark: true)
-        {
-            failures += 1
-        }
-        // The conversation's card, below the fold too: no AI connected in a snapshot.
-        let conversation = BrandCard(title: String(localized: "Conversation")) { ConversationSettings(model: model) }
-            .padding(20).frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(nsColor: Palette.charbon)).foregroundStyle(Palette.orPale)
-            .tint(Palette.braise)
-        if !write(
-            conversation, size: NSSize(width: 560, height: 260),
-            to: directory.appending(path: "settings-conversation.png"), dark: true)
-        {
-            failures += 1
+        // The cards below the fold of the settings' snapshot, one each (no AI connected in a snapshot).
+        let cards: [(name: String, title: String, height: CGFloat, content: AnyView)] = [
+            ("settings-hologram", String(localized: "Hologram"), 360, AnyView(HologramSettings(model: model))),
+            (
+                "settings-conversation", String(localized: "Conversation"), 220,
+                AnyView(ConversationSettings(model: model))
+            ),
+            ("settings-camera", String(localized: "Camera"), 190, AnyView(CameraSettings(model: model))),
+            ("settings-window", String(localized: "Window"), 190, AnyView(WindowModeChoice(model: model))),
+            ("settings-sync", String(localized: "Sync"), 300, AnyView(SyncSettings(model: model))),
+        ]
+        for card in cards {
+            let view = BrandCard(title: card.title) { card.content }
+                .padding(20).frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(nsColor: Palette.charbon)).foregroundStyle(Palette.orPale)
+                .tint(Palette.braise)
+            if !write(
+                view, size: NSSize(width: 560, height: card.height),
+                to: directory.appending(path: "\(card.name).png"), dark: true)
+            {
+                failures += 1
+            }
         }
         // The first launch's welcome, its AI not chosen yet.
         if !write(
