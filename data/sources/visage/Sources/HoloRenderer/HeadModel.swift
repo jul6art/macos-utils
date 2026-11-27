@@ -17,6 +17,8 @@ public protocol HeadModel: AnyObject, Sendable {
     var surfaces: [HeadSurface] { get }
     /// Per point: where it takes its colour in its surface's texture.
     var uvs: [SIMD2<Float>] { get }
+    /// Per point, how much light reaches it (contact shadows, baked by tools/faces), 0 to 1; empty: all.
+    var occlusion: [Float] { get }
     /// Per point: the position (xyz) and the size (w), for this pose.
     func shape(_ pose: FacePose, time: Double) -> [SIMD4<Float>]
 }
@@ -25,6 +27,7 @@ extension HeadModel {
     public var occluders: [UInt32] { [] }
     public var surfaces: [HeadSurface] { [] }
     public var uvs: [SIMD2<Float>] { [] }
+    public var occlusion: [Float] { [] }
 }
 
 /// A part of a head drawn as a surface: its triangles between the points, its texture, and how it takes
@@ -75,6 +78,7 @@ public final class MeshHead: HeadModel {
     public let occluders: [UInt32]
     public let surfaces: [HeadSurface]
     public let uvs: [SIMD2<Float>]
+    public let occlusion: [Float]
 
     private let base: [SIMD4<Float>]
     /// Per `FaceShape`: the points it moves, and by how much, in head units.
@@ -125,6 +129,7 @@ public final class MeshHead: HeadModel {
         var occluders: [UInt32] = []
         var surfaces: [HeadSurface] = []
         var uvs: [SIMD2<Float>] = []
+        var occlusion: [Float] = []
         let folder = url.deletingLastPathComponent()
         for mesh in file.meshes {
             let part = String(mesh.name.split(separator: ".").last ?? "")
@@ -135,6 +140,7 @@ public final class MeshHead: HeadModel {
                 let normal = index < mesh.normals.count ? simd_normalize(mesh.normals[index]) : SIMD3(0, 0, 1)
                 normals.append(SIMD4(normal, look.brightness))
                 uvs.append(index < mesh.uvs.count ? mesh.uvs[index] : .zero)
+                occlusion.append(index < mesh.occlusion.count ? mesh.occlusion[index] : 1)
             }
             let texture = ["jpg", "png"].map { folder.appending(path: "\(mesh.name).\($0)") }
                 .first { FileManager.default.fileExists(atPath: $0.path) }
@@ -216,6 +222,7 @@ public final class MeshHead: HeadModel {
             surfaces.filter { $0.material == .skin || $0.material == .eye }
             + surfaces.filter { $0.material != .skin && $0.material != .eye }
         self.uvs = uvs
+        self.occlusion = occlusion
     }
 
     /// A vertex on a seam of the texture is exported once per side, at the same place: drawn twice, the

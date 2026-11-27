@@ -11,6 +11,9 @@ struct GLBFile {
         var normals: [SIMD3<Float>]
         /// Where each vertex takes its colour in the part's texture; empty when the file has none.
         var uvs: [SIMD2<Float>]
+        /// How much light reaches each vertex, 0 to 1 (COLOR_0's red: tools/faces bakes the ambient
+        /// occlusion there); empty when the file has none.
+        var occlusion: [Float]
         /// Three vertex indices per triangle.
         var triangles: [UInt32]
         /// Per target, in the order of `targetNames`: the vertices it moves and by how much.
@@ -51,6 +54,7 @@ struct GLBFile {
             let positions = try reader.vectors(positionAccessor)
             let normals = try attributes["NORMAL"].map { try reader.vectors($0) } ?? []
             let uvs = try attributes["TEXCOORD_0"].map { try reader.pairs($0) } ?? []
+            let occlusion = try attributes["COLOR_0"].map { try reader.reds($0) } ?? []
             guard primitive["mode"] as? Int ?? 4 == 4 else { throw Failure.malformed("not triangles") }
             let triangles = try (primitive["indices"] as? Int).map { try reader.integers($0) } ?? []
             var targets: [(indices: [Int32], deltas: [SIMD3<Float>])] = []
@@ -65,6 +69,7 @@ struct GLBFile {
             meshes.append(
                 Mesh(
                     name: node["name"] as? String ?? "", positions: positions, normals: normals, uvs: uvs,
+                    occlusion: occlusion,
                     triangles: triangles.map(UInt32.init(bitPattern:)), targets: targets, targetNames: names))
         }
         self.meshes = meshes
@@ -122,6 +127,27 @@ struct GLBFile {
             let start = try offset(view: view, extra: accessor["byteOffset"] as? Int ?? 0)
             return (0..<(accessor["count"] as? Int ?? 0)).map { item in
                 SIMD2(binary.readFloat(at: start + item * 8), binary.readFloat(at: start + item * 8 + 4))
+            }
+        }
+
+        /// The first component of a dense colour accessor (VEC3 or VEC4; floats, or normalised unsigned
+        /// bytes or shorts).
+        func reds(_ index: Int) throws -> [Float] {
+            let accessor = try accessor(index)
+            guard let view = accessor["bufferView"] as? Int else { throw Failure.malformed("colours") }
+            let start = try offset(view: view, extra: accessor["byteOffset"] as? Int ?? 0)
+            let components = accessor["type"] as? String == "VEC3" ? 3 : 4
+            let component = accessor["componentType"] as? Int ?? 5126
+            let width = component == 5121 ? 1 : component == 5123 ? 2 : 4
+            let views = gltf["bufferViews"] as? [[String: Any]] ?? []
+            let stride = views[view]["byteStride"] as? Int ?? components * width
+            return (0..<(accessor["count"] as? Int ?? 0)).map { item in
+                let at = start + item * stride
+                switch component {
+                case 5121: return Float(binary[binary.startIndex + at]) / 255
+                case 5123: return Float(binary.readUInt16(at: at)) / 65535
+                default: return binary.readFloat(at: at)
+                }
             }
         }
 

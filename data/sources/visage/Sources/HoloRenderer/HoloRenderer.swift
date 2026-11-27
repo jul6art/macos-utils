@@ -54,6 +54,8 @@ public final class HoloRenderer: @unchecked Sendable {
     /// The surfaces' buffers and textures, made the first time the realism asks for them.
     private var surfaceDraws: [SurfaceDraw]?
     private var uvBuffer: MTLBuffer?
+    /// Per point, the light that reaches it (`HeadModel.occlusion`), all of it when the model has none.
+    private var occlusionBuffer: MTLBuffer?
 
     private struct SurfaceDraw {
         let indices: MTLBuffer
@@ -79,6 +81,9 @@ public final class HoloRenderer: @unchecked Sendable {
         /// 1: laid softly by the texture's transparency, over what is already drawn (brows, lashes); 0: cut
         /// out at half of it, hiding what is behind.
         var soft: Float
+        /// How much the contact shadows darken it: fully the skin, a third of the hair (full, they put out the
+        /// curls of an afro).
+        var shade: Float = 1
     }
     /// The head drawn: the charter's point head, or a MakeHuman face. Set, it shows at once; `fade(to:)`
     /// changes it gently.
@@ -245,7 +250,8 @@ public final class HoloRenderer: @unchecked Sendable {
                 case .eye: SurfaceLook(shine: 0.9, sharpness: 300, warmth: 0, opacity: 1, rim: 0, tone: 1, soft: 0)
                 // A broad, faint sheen: a sharp one made a plastic helmet of the darkest hair, in grey bands.
                 case .hair:
-                    SurfaceLook(shine: 0.012, sharpness: 6, warmth: 0.15, opacity: 1, rim: 0.02, tone: 1, soft: 0)
+                    SurfaceLook(
+                        shine: 0.012, sharpness: 6, warmth: 0.15, opacity: 1, rim: 0.02, tone: 1, soft: 0, shade: 0.3)
                 case .matte:
                     SurfaceLook(shine: 0.02, sharpness: 10, warmth: 0.2, opacity: 1, rim: 0.04, tone: 1, soft: 0)
                 case .teeth:
@@ -261,6 +267,13 @@ public final class HoloRenderer: @unchecked Sendable {
             uvs.isEmpty
             ? nil
             : uvs.withUnsafeBytes {
+                device.makeBuffer(bytes: $0.baseAddress!, length: $0.count, options: .storageModeShared)
+            }
+        let occlusion = model.occlusion.count == uvs.count ? model.occlusion : [Float](repeating: 1, count: uvs.count)
+        occlusionBuffer =
+            occlusion.isEmpty
+            ? nil
+            : occlusion.withUnsafeBytes {
                 device.makeBuffer(bytes: $0.baseAddress!, length: $0.count, options: .storageModeShared)
             }
         surfaceDraws = draws
@@ -368,6 +381,7 @@ public final class HoloRenderer: @unchecked Sendable {
                 // The surfaces hide what is behind them, as the occluders do: their depth first, then their
                 // colour on the nearest layer only.
                 encoder.setVertexBuffer(uvBuffer, offset: 0, index: 2)
+                encoder.setVertexBuffer(occlusionBuffer, offset: 0, index: 3)
                 encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
                 encoder.setFrontFacing(.counterClockwise)  // glTF's
                 // Then the fine hairs, laid over them: tested against their depth, never writing it.
