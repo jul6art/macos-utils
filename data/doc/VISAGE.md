@@ -32,9 +32,7 @@ that app plays, and nothing leaves your Mac.
 Requirements
 ------------
 
-* **macOS 15+** (Sequoia). Built for Apple silicon and Intel. The Intel build
-  compiles but has not yet been tried on an Intel Mac. If you run it on one,
-  please say so in an issue.
+* **macOS 15+** (Sequoia), on Apple silicon or Intel.
 * **Claude Desktop**, installed and signed in, for its
   [voice mode](https://support.claude.com/en/articles/11101966-use-voice-mode).
   The **ChatGPT** app works too, and so does any app that plays a voice, with
