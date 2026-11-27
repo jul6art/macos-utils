@@ -27,13 +27,14 @@ mkdir -p "${OUT}";
 visage() {
 	"${APP}" "$@" -AppleLanguages '(en)' -AppleLocale en_US -face lea -realism 0 -faceScale 1 \
 		-windowMode floating -holoColour braise -halo 1 -scanlines 1 -projector YES -glitches YES \
-		-camera NO -microphone NO;
+		-camera NO -microphone NO -siri NO;
 }
 
 echo "==> Screens";
 visage --snapshot "${WORK}/shots" >/dev/null;
 # <snapshot> <picture>: lossless, text stays sharp. Screens are rendered at twice their size, for Retina.
 for pair in welcome:welcome connect-idle:connect connect-permission:permission connect-connected:connected \
+	connect-claudecode:claude-code \
 	settings:settings settings-hologram:settings-hologram settings-conversation:settings-conversation \
 	settings-camera:settings-camera settings-window:settings-window settings-sync:settings-sync; do
 	cwebp -quiet -lossless -z 9 "${WORK}/shots/${pair%%:*}.png" -o "${OUT}/${pair##*:}.webp";
