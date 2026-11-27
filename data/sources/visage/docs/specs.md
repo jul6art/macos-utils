@@ -34,7 +34,7 @@ speaks with its voice. It is accurate enough that **you believe it is the one sp
 | **Nothing leaves the Mac** | Visage opens no network connection. It sees no credential, no token, no text: only the sound of the chosen app. |
 | **You believe it** | The sync, the lips' anticipation and the face's life come before everything else (§ 7). |
 | **A real hologram** | An effect built in layers, not a plain blue filter (§ 8.2). |
-| **A gift** | Code under MIT in `macos-utils`, faces made from CC0 assets. Everything Visage adds to the repository can be redistributed freely. |
+| **A gift** | Code under MIT in `macos-utils`, faces made from CC0 assets and two CC-BY hairstyles. Everything Visage adds to the repository can be redistributed freely, with the credit those two require (`data/doc/VISAGE.md`). |
 | **Claude or ChatGPT** | One mechanism for both: Visage follows an app's sound, not its interface. |
 
 ## 3. How it works
