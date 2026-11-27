@@ -1,0 +1,18 @@
+{
+  "name": "visage",
+  "version": "0.2.0",
+  "description": "Gives Claude Code a voice and a face: the Mac's voice reads a sentence written for the ear at the end of each reply, and Visage's hologram speaks it. Needs Visage, connected to Claude Code.",
+  "author": {
+    "name": "jul6art",
+    "url": "https://github.com/jul6art"
+  },
+  "homepage": "https://github.com/jul6art/macos-utils/blob/master/data/doc/VISAGE.md",
+  "repository": "https://github.com/jul6art/macos-utils",
+  "license": "MIT",
+  "keywords": [
+    "voice",
+    "speech",
+    "macos",
+    "hologram"
+  ]
+}

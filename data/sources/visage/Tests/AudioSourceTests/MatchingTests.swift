@@ -41,8 +41,32 @@ struct MatchingTests {
 
     @Test("The known apps and their download pages")
     func knownApps() {
-        #expect(AIApp.known.map(\.id) == ["claude", "chatgpt"])
+        #expect(AIApp.known.map(\.id) == ["claude", "chatgpt", "claudecode"])
         #expect(AIApp.claude.downloadURL?.host == "claude.ai")
         #expect(AIApp.other("com.example.voice", name: "Example").id == "other:com.example.voice")
+    }
+
+    @Test("Claude Code is its voice, Visage's helper, which connecting never opens")
+    func claudeCode() {
+        #expect(AIApp.claudeCode.bundleIDs == ["com.devinthehood.visage.voice"])
+        #expect(!AIApp.claudeCode.opensOnConnect)
+        #expect(AIApp.claude.opensOnConnect)
+        // The helper's sound matches it, its bundle ID ending neither a prefix nor Visage's own.
+        let helper = process(
+            "com.devinthehood.visage.voice", executable: "/Applications/Visage.app/Contents/Helpers/visage-voice")
+        #expect(
+            AudioProcesses.matching(AIApp.claudeCode.bundleIDs[0], in: [helper, process("com.devinthehood.visage")])
+                == [helper])
+    }
+
+    @Test("Claude Code's dictation listens through the claude process, whatever installed it")
+    func claudeCodeListens() {
+        let native = process("", executable: "/Users/me/.local/share/claude/versions/2.1.332")
+        let homebrew = process("", executable: "/opt/homebrew/Caskroom/claude-code/2.1.332/claude")
+        let other = process("com.anthropic.claudefordesktop")
+        #expect(AIApp.claudeCode.listens(through: native))
+        #expect(AIApp.claudeCode.listens(through: homebrew))
+        #expect(!AIApp.claudeCode.listens(through: other))
+        #expect(!AIApp.claude.listens(through: native))
     }
 }

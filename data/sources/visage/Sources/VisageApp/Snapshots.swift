@@ -17,6 +17,7 @@ enum Snapshots {
         let apps = [
             AppCardInfo(app: .claude, isInstalled: true, isRunning: true),
             AppCardInfo(app: .chatGPT, isInstalled: false, isRunning: false),
+            AppCardInfo(app: .claudeCode, isInstalled: true, isRunning: false),
         ]
         let others = [AIApp.other("com.example.voice", name: "Example Voice")]
         let states: [(String, Connection.State, AIApp?)] = [
@@ -24,6 +25,8 @@ enum Snapshots {
             ("connect-permission", .permissionMissing, .claude),
             ("connect-waiting", .waitingForApp, .claude),
             ("connect-connected", .connected, .claude),
+            // Claude Code, before its plugin has run: the command that installs it.
+            ("connect-claudecode", .connected, .claudeCode),
         ]
         var failures = 0
         for (name, state, app) in states {

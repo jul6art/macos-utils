@@ -1,0 +1,15 @@
+{
+  "name": "macos-utils",
+  "description": "Claude Code plugins of macos-utils: free and open source Mac utilities.",
+  "owner": {
+    "name": "jul6art",
+    "url": "https://github.com/jul6art"
+  },
+  "plugins": [
+    {
+      "name": "visage",
+      "source": "./data/sources/visage/claude-code",
+      "description": "Gives Claude Code a voice and a face, with Visage: the Mac reads a sentence for the ear at the end of each reply."
+    }
+  ]
+}

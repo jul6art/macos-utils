@@ -3,7 +3,8 @@
 > **Status**: written on 2026-11-26, the app built from it the same day. The questions it started from are
 > settled (§ 0); the pilot lifted the risks that could stop it (§ 12).
 > **In one sentence**: a free Mac app that gives a hologram face, moving to the rhythm of its voice, to the
-> AI you already talk to (Claude or ChatGPT), for nothing more than your subscription.
+> AI you already talk to (Claude, ChatGPT, or Claude Code, given a voice), for nothing more than your
+> subscription.
 > The app is given away as open source, in `macos-utils`.
 
 ---
@@ -18,6 +19,7 @@
 | Q4 | Which repository? | **Public, under the MIT licence**: a gift. Visage joins **`macos-utils`** (public, MIT), in `data/sources/visage/` (§ 10.1). |
 | Q5 | A browser mode? | **No**: the official app only. |
 | Q6 | Which identity? | **C4 "Poussière"** (dust): a face of dots that comes apart into dust, in ember light. Charter in `docs/charter.md`, files in `brand/`. |
+| Q7 | Talking with Claude Code, which acts on the Mac? (2026-11-27) | **Yes, through a plugin**: Claude Code listens (`/voice`) but never speaks. Visage's plugin has the Mac's voice read a sentence written for the ear at the end of each reply, and Visage taps that voice like an app's (§ 4.4). Visage does not drive Claude Code itself (§ 4.4). |
 
 ## 1. The goal
 
@@ -31,11 +33,11 @@ speaks with its voice. It is accurate enough that **you believe it is the one sp
 |---|---|
 | **Free to run** | No paid API, no server. Visage uses the voice mode of the official app, included in the subscription. |
 | **As few dependencies as possible** | No third-party package: Swift and Apple's frameworks only. The gate's tools come with Swift. Blender only rebuilds the faces, never the app. |
-| **Nothing leaves the Mac** | Visage opens no network connection. It sees no credential, no token, no text: only the sound of the chosen app. |
+| **Nothing leaves the Mac** | Visage opens no network connection. It sees no credential, no token, no text: only the sound of the chosen app. Claude Code's voice, the helper its plugin runs, reads only the sentence Claude Code's hook hands it (§ 4.4). |
 | **You believe it** | The sync, the lips' anticipation and the face's life come before everything else (§ 7). |
 | **A real hologram** | An effect built in layers, not a plain blue filter (§ 8.2). |
 | **A gift** | Code under MIT in `macos-utils`, faces made from CC0 assets and two CC-BY hairstyles. Everything Visage adds to the repository can be redistributed freely, with the credit those two require (`data/doc/VISAGE.md`). |
-| **Claude or ChatGPT** | One mechanism for both: Visage follows an app's sound, not its interface. |
+| **Claude, ChatGPT, Claude Code** | One mechanism for all: Visage follows a sound, not an interface. Claude Code's sound is the Mac's voice, which its plugin has read its replies (§ 4.4). |
 
 ## 3. How it works
 
@@ -104,9 +106,54 @@ restarts.
 |---|---|---|
 | **Claude Desktop** (the main source) | Yes, in beta, on every plan | Languages other than English are in beta. Voice counts in the subscription's usage limits. Not every model is available in voice mode. |
 | **ChatGPT** (Mac app) | Yes | Both bundle IDs are recognised, the current app's and the former one's. |
+| **Claude Code** (the terminal, the native installer or Homebrew) | No: it listens (`/voice`), Visage's plugin has the Mac's voice answer | It acts on the Mac, with its own permissions; § 4.4. |
 | **Another app** | Depends on the app | Any app that plays sound: same mechanism, no guarantee. |
 
 Apps only: no browser mode (Q5).
+
+### 4.4 Claude Code (2026-11-27)
+
+Claude Code acts on the Mac (files, commands, apps) and listens: its dictation, `/voice`, writes what you say
+into the prompt, in French among other languages, and its tap mode sends it on its own. It never speaks.
+Visage gives it a voice, then a face:
+
+```
+ you speak ──/voice──▶ Claude Code ── works, asks for its approvals in the terminal ──▶ reply … 🔊 a sentence
+                            │ hooks of Visage's plugin (claude-code/)
+     UserPromptSubmit ──────┤ visage-voice prompt: wakes the voice, tells Claude Code about the 🔊 line
+     Stop ──────────────────┘ visage-voice stop: hands the 🔊 line to the voice
+                            ▼
+ visage-voice serve (com.devinthehood.visage.voice) ── the Mac's voice ──▶ tapped by Visage (§ 5)
+```
+
+- **The plugin**, `claude-code/`, listed by the repository's marketplace (`.claude-plugin/marketplace.json`
+  at its root): `/plugin install visage --marketplace jul6art/macos-utils`. Its hooks run `bin/visage-hook`,
+  which runs the helper of the Visage running now, wherever it is installed; without Visage, nothing.
+- **A sentence for the ear**: Claude Code writes for a terminal (lists, code, paths), which sounds wrong
+  read out. While Visage listens to Claude Code, each prompt carries a short context, worded as facts
+  (Claude Code's hooks documentation warns that imperative wording can trip its defences against prompt
+  injection): Visage reads aloud the line of the final reply that starts with 🔊, one or two sentences in
+  the conversation's language, written to be heard, and only that line. A short reply without it (280
+  characters, no code) is read whole. Tried on 2026-11-27: « Il y a quarante-six fichiers Swift dans les
+  sources de Visage, dont dix-neuf dans le dossier de l'application. »
+- **The voice**, `visage-voice` in `Visage.app/Contents/Helpers`, its bundle ID embedded in the executable:
+  Visage taps it like an app and never sees the text. It speaks with the best voice installed for the
+  sentence's language, of the face's gender when one is installed, premium before enhanced. A new prompt
+  hushes it; a permission prompt has it say that Claude Code waits for an answer in the terminal.
+- **One process, alive while Visage listens**: a helper born with each reply was caught late, as a tap by
+  bundle ID missed it, then stayed blocked once it was gone (2026-11-27). The prompt therefore wakes the
+  voice, which opens the sound output once, so that Core Audio lists it, and waits 2.5 seconds before its
+  first sentence; the hooks hand it the sentences through a socket in the user's temporary folder. It
+  leaves once Visage no longer listens to Claude Code, or after 30 minutes without a sentence. Visage
+  follows its process, as on macOS 15, even on macOS 26: measured, it plays the voice back 0.22 s after
+  its first sound, the delay D included.
+- **The face listens**: the dictation records in the `claude` process
+  (`~/.local/share/claude/versions/<version>` for the native installer), whose open microphone is the AI
+  listening (§ 7.2).
+- **Visage does not drive Claude Code.** It could have run `claude -p` itself, with its own speech
+  recognition: Anthropic does not allow a third-party app to use a claude.ai subscription (Agent SDK
+  documentation), and an API key is paid (§ 2, "Free to run"). The plugin leaves Claude Code as it is,
+  permissions included: nothing runs on the Mac without the user's approval in the terminal.
 
 ## 5. Capturing and playing back the sound
 
@@ -479,6 +526,7 @@ macos-utils/
   README.md               one more row in the utilities table, and its requirements
   data/doc/VISAGE.md      the user documentation, in English: requirements, sources, installation, usage
   data/sources/visage/    Visage's sources (§ 10.2), including docs/specs.md, this specification
+  .claude-plugin/         the repository's Claude Code marketplace: Visage's plugin (§ 4.4)
 ```
 
 Visage follows the repository's conventions:
@@ -524,11 +572,14 @@ Sources/
   VoiceAnalysis/   frames, energy, F0, LPC and formants, fricatives, closures, normalisation
   FaceAnimation/   mapping to ARKit, anticipation, springs, prosody, states, gaze
   HoloRenderer/    glTF loader, morphing, the hologram's layers and shaders, halo, parallax
-  Shared/          host clock, the brand's geometry
+  Shared/          host clock, the brand's geometry, what Visage shares with Claude Code's voice
+  SpokenReply/     Claude Code's voice: the 🔊 line, the hooks' input, the choice of a voice
+  VisageVoice/     visage-voice, Claude Code's voice (Contents/Helpers), and its embedded Info.plist
 Resources/
   Faces/           the 10 faces (.glb and textures), built by tools/faces
   en.lproj/, fr.lproj/
 Tests/             one folder per module, and TestRunner.swift, the tests' entry point
+claude-code/       Claude Code's plugin: its hooks and bin/visage-hook (§ 4.4)
 tools/faces/       the Blender chain (§ 8.1)
 tools/doc-images.sh  the pictures of data/doc/VISAGE.md, made with --snapshot and --render
 brand/             the brand kit (kit/) and the files it writes: logos, animations, icon
@@ -541,7 +592,7 @@ check.sh           the gate
 
 - **Dependencies: no third-party package.** Only Apple's frameworks: SwiftUI, AppKit, CoreAudio,
   AudioToolbox, AVFAudio, Accelerate, Metal, QuartzCore; Vision and AVFoundation for the camera option;
-  Core ML for V2 only. The atomic counters come from the standard library's `Synchronization` module.
+  AVFoundation's speech synthesizer and NaturalLanguage for Claude Code's voice; Core ML for V2 only. The atomic counters come from the standard library's `Synchronization` module.
 - **Threads**: the `IOProc` on the real-time thread (no allocation, no lock), the analysis on a dedicated
   thread, the rendering on the display link. They exchange through lock-free ring buffers.
 - **Building**: `build.sh` compiles the modules and the app, then assembles the `.app` with `Info.plist`
@@ -648,13 +699,16 @@ the same gate.
   the microphone option, nods at the pauses. Claude Desktop's voice mode, tried on speakers: no echo (R1
   lifted for Claude).
 - **Lot 7** under way: `data/doc/VISAGE.md` and the README, the release archive (`data/sources/release.sh visage`).
+- **Claude Code** (2026-11-27): its plugin, its voice and its card (§ 4.4).
 
 ## 14. Out of scope
 
 - **iPhone and iPad on their own**: no app can capture and mute another's sound. Windows and Linux neither.
 - **The browser mode** (Q5).
-- **A voice or an AI of our own**: the official voice mode is not replaced.
-- **Reading the conversation's text, any network connection.**
+- **A voice or an AI of our own**: the official voice mode is not replaced. Claude Code, which has none,
+  speaks with the Mac's own (§ 4.4).
+- **Reading the conversation's text, any network connection**: Visage reads no text; Claude Code's voice
+  reads only the sentence its hook hands it (§ 4.4).
 - **A notarized DMG**: the download is an ad hoc signed, reproducible archive; notarizing would take a paid
   Apple Developer account. The source stays the reference.
 
