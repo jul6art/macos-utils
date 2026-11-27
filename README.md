@@ -16,9 +16,10 @@ installer, no notarized DMG to trust.
 Requirements
 ------------
 
-* **macOS** (13+ for Awake and Siphon)
+* **macOS** (13+ for Awake and Siphon, 15+ for Visage)
 * **Command Line Tools** for the compiled utilities — `xcode-select --install`
 * **yt-dlp** and **ffmpeg** for Siphon — `brew install yt-dlp ffmpeg`
+* **Claude Desktop** or the **ChatGPT** app for Visage — it gives a face to their voice mode
 
 Installation
 ------------
@@ -35,9 +36,10 @@ Utilities
 
 | Utility | What it does | Doc |
 | --- | --- | --- |
-| **Custom macOS App** | Wraps any shell script into a real `.app` — the fix for GUI apps that miss your shell environment (i.e. SourceTree failing on the wrong PHP version) | [APPIFY.md](/data/doc/APPIFY.md) |
+| **Custom macOS App** | Wraps any shell script into a real `.app` — the fix for GUI apps that miss your shell environment (e.g. SourceTree failing on the wrong PHP version) | [APPIFY.md](/data/doc/APPIFY.md) |
 | **Awake** | Native menu bar app that keeps the Mac and its screen awake, with durations and launch-at-login | [AWAKE.md](/data/doc/AWAKE.md) |
 | **Siphon** | Native window on top of yt-dlp: paste a link, get an MP3, M4A or MP4 — whole or just a passage — with its cover art and tags | [SIPHON.md](/data/doc/SIPHON.md) |
+| **Visage** | A hologram face for the voice of Claude or ChatGPT: lips in sync, alive between sentences, and nothing leaves the Mac | [VISAGE.md](/data/doc/VISAGE.md) |
 
 ### Custom macOS App
 
@@ -67,6 +69,16 @@ sh data/sources/siphon/build.sh --install
 
 → [full documentation](data/doc/SIPHON.md)
 
+### Visage
+
+```shell
+sh data/sources/visage/build.sh --install
+```
+
+Then open Visage, pick Claude, allow system audio, and start Claude's voice mode.
+
+→ [full documentation](data/doc/VISAGE.md)
+
 Layout
 ------
 
@@ -75,12 +87,15 @@ data/
 ├── doc/
 │   ├── APPIFY.md                   # custom macOS app, step by step
 │   ├── AWAKE.md                    # Awake, build & install
-│   └── SIPHON.md                   # Siphon, build & install
+│   ├── SIPHON.md                   # Siphon, build & install
+│   ├── VISAGE.md                   # Visage, build, first launch & settings
+│   └── images/visage/              # its screenshots, made by tools/doc-images.sh
 └── sources/
     ├── appify.sh                   # shell script → .app wrapper
     ├── custom_macos_app.sh         # payload template to adapt
     ├── awake/                      # Swift sources + Info.plist + build.sh + icon/
-    └── siphon/                     # Swift sources + Info.plist + build.sh + icon/
+    ├── siphon/                     # Swift sources + Info.plist + build.sh + icon/
+    └── visage/                     # Swift modules + tests + faces + brand kit + build.sh + check.sh
 ```
 
 Contributing
