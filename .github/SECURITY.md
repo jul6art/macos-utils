@@ -2,10 +2,14 @@
 
 ## What this repository asks of you
 
-Every utility here ships as **source you assemble locally** — no installer, no
-notarized DMG. That is the point, and it is also the risk: using this repository
-means running shell scripts and compiling Swift on your own machine, with your
-own privileges. A defect in one of those scripts runs as you.
+Every utility here ships as **source you assemble locally**. That is the point,
+and it is also the risk: using this repository means running shell scripts and
+compiling Swift on your own machine, with your own privileges. A defect in one
+of those scripts runs as you.
+
+The three apps (Awake, Siphon, Visage) also come ready-made. Each archive is
+built from the tagged source by `data/sources/release.sh`, and the build is
+reproducible: anyone can make it again from the tag and compare the checksum.
 
 So the security of this repository is not about a service being attacked. It is
 about whether what you are told to run does only what the documentation says it
@@ -13,12 +17,14 @@ does.
 
 ## Supported versions
 
-Only the tip of `master` is maintained. There are no releases to backport to.
+Only the tip of `master` and the latest release of each app are maintained. A
+fix lands on `master`, then in the next release; older releases are not patched.
 
 | Version | Supported |
 | --- | --- |
 | `master` | ✅ |
-| any older commit or fork | ❌ |
+| the latest release of Awake, Siphon and Visage | ✅ |
+| any older release, older commit or fork | ❌ |
 
 ## What is in scope
 
@@ -39,6 +45,9 @@ Only the tip of `master` is maintained. There are no releases to backport to.
   image, on the Mac. Capturing another app, writing sound or images anywhere,
   opening a network connection — Visage opens none — or leaving the AI app
   muted once Visage has quit or crashed is in scope.
+* **A release archive that does not match its tag.** Built by `release.sh` from
+  the tag, with the same Command Line Tools, an app's archive must match the
+  published SHA-256. A download that differs is a serious report.
 * **A script writing outside its declared scope** — installing into
   `/Applications`, a `LaunchAgents` entry or a preference domain that the doc
   never announced, or leaving a world-writable file behind.
@@ -52,8 +61,9 @@ Only the tip of `master` is maintained. There are no releases to backport to.
 ## What is *not* in scope
 
 * **Unsigned and un-notarized applications.** Everything built here is either
-  unsigned (appify's bundles) or signed ad hoc (the Swift apps), and never
-  notarized; Gatekeeper will say so, and you will have to allow it yourself. That
+  unsigned (appify's bundles) or signed ad hoc (the Swift apps, built here or
+  downloaded), and never notarized; Gatekeeper will say so, and you will have to
+  allow it yourself. That
   is a documented consequence of shipping source instead of a signed installer,
   not a vulnerability. If you need a signed build, sign it yourself.
 * **Vulnerabilities in macOS, Xcode or the Command Line Tools** — report those

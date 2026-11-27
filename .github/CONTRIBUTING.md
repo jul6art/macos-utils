@@ -1,10 +1,11 @@
 # Contributing
 
 Thanks for taking the time. This repository is a small collection of macOS
-utilities that **ship as source you assemble locally** — no installer, no
-notarized DMG to trust. Contributing here means writing something a stranger can
-read end to end before running it on their own machine, and that constraint
-shapes everything below.
+utilities that **ship as source you assemble locally**. The apps' ready-made
+builds come from that same source, through `data/sources/release.sh`,
+reproducibly, so that anyone can check them. Contributing here means writing something a stranger can read end to
+end before running it on their own machine, and that constraint shapes
+everything below.
 
 ## Before you open anything
 

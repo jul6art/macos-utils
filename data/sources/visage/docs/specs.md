@@ -477,7 +477,9 @@ Visage follows the repository's conventions:
 - a `build.sh` that builds without Xcode (the Command Line Tools are enough), with `--install` and
   `--universal`;
 - the identifier `com.devinthehood.visage` and an ad hoc signature (`codesign --sign -`): no notarized
-  DMG, a source you assemble yourself;
+  DMG, a source you assemble yourself. For convenience, `data/sources/release.sh` also packs that source
+  into a universal archive for GitHub's releases page, reproducible byte for byte, so that a download can
+  be checked against its tag;
 - an interface in English, like Awake and Siphon, translated into French (`Localizable.strings` in en and
   fr, following the system's language), in the system font: the app embeds no font (charter, § 4);
 - an app icon drawn by code at build time (`brand/generate.sh --iconset`): no bitmap in the repository;
@@ -636,7 +638,7 @@ the same gate.
   face listens while the AI app has its microphone open, thinks after a sentence or a dictation, and, with
   the microphone option, nods at the pauses. Claude Desktop's voice mode, tried on speakers: no echo (R1
   lifted for Claude).
-- **Lot 7** under way: `data/doc/VISAGE.md` and the README.
+- **Lot 7** under way: `data/doc/VISAGE.md` and the README, the release archive (`data/sources/release.sh visage`).
 
 ## 14. Out of scope
 
@@ -644,7 +646,8 @@ the same gate.
 - **The browser mode** (Q5).
 - **A voice or an AI of our own**: the official voice mode is not replaced.
 - **Reading the conversation's text, any network connection.**
-- **A notarized DMG**: as for the rest of `macos-utils`, the app is assembled by whoever runs it.
+- **A notarized DMG**: the download is an ad hoc signed, reproducible archive; notarizing would take a paid
+  Apple Developer account. The source stays the reference.
 
 ## Sources
 

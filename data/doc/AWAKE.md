@@ -81,6 +81,22 @@ notarize a build.
 Step 7 is what keeps Awake out of the Dock and out of the ⌘-Tab switcher. In the
 raw bundle it is the `LSUIElement` key of [Info.plist](/data/sources/awake/Info.plist).
 
+### Option C — a release
+
+The [Releases](https://github.com/jul6art/macos-utils/releases/tag/awake-v1.0.0)
+page has `Awake-1.0.0.zip`: a universal archive, for Apple silicon and Intel.
+
+1. Download it and its `.sha256`, then check it:
+   `shasum -a 256 -c Awake-1.0.0.zip.sha256`.
+2. Unzip it, and move **Awake** to **Applications**.
+3. Open it. macOS refuses: the app is signed ad hoc, not notarized by Apple.
+   Click **Done**, then **System Settings** → **Privacy & Security** →
+   **Open Anyway**, and confirm. The next launches open normally.
+
+The archive is reproducible: check out its tag and run
+`sh data/sources/release.sh awake`. With the same Command Line Tools, you get
+the same archive, byte for byte, and the same checksum.
+
 Usage
 -----
 
@@ -180,9 +196,9 @@ The Finder caches icons. If the old one lingers after `--install`, run
 Gatekeeper
 ----------
 
-The build is ad-hoc signed, not notarized. On the machine that built it, it just
-runs. If you copy the `.app` to another Mac, macOS will quarantine it — clear the
-flag there:
+Awake is signed ad hoc, not notarized. Built on your Mac, it just runs.
+Downloaded, or copied from another Mac, it is quarantined: allow it once with
+**Open Anyway** (see *Option C*), or clear the flag in a terminal:
 
 ```shell
 xattr -dr com.apple.quarantine /Applications/Awake.app

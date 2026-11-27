@@ -10,8 +10,8 @@ MACOS-UTILS
 </p>
 
 A small collection of macOS utilities and the documentation to build and install
-them yourself. Every one of them ships as source you assemble locally — no
-installer, no notarized DMG to trust.
+them yourself. Every one of them ships as source you can read end to end and
+assemble locally — and the three apps also come ready-made, for convenience.
 
 Requirements
 ------------
@@ -30,6 +30,28 @@ cd macos-utils
 ```
 
 Then follow the doc of the utility you want.
+
+Source or ready-made
+--------------------
+
+The source is the reference: each doc explains how to build its utility with the
+Command Line Tools alone. The three apps also have a **ready-made build** on the
+[Releases](https://github.com/jul6art/macos-utils/releases) page, one universal
+archive each, for Apple silicon and Intel:
+
+| App | Ready-made | From source |
+| --- | --- | --- |
+| **Awake** | [Awake 1.0.0](https://github.com/jul6art/macos-utils/releases/tag/awake-v1.0.0) | `sh data/sources/awake/build.sh --install` |
+| **Siphon** | [Siphon 1.0.0](https://github.com/jul6art/macos-utils/releases/tag/siphon-v1.0.0) | `sh data/sources/siphon/build.sh --install` |
+| **Visage** | [Visage 0.1.0](https://github.com/jul6art/macos-utils/releases/tag/visage-v0.1.0) | `sh data/sources/visage/build.sh --install` |
+
+The ready-made builds are made from the same source, signed ad hoc and **not
+notarized**: macOS blocks each one the first time you open it. Allow it once in
+System Settings → Privacy & Security → **Open Anyway**.
+
+Each archive is **reproducible**. Check out its tag and run
+`sh data/sources/release.sh <app>`: with the same Command Line Tools, you get the
+same archive, byte for byte, and the checksum published next to it.
 
 Utilities
 ---------
@@ -92,6 +114,7 @@ data/
 │   └── images/visage/              # its screenshots, made by tools/doc-images.sh
 └── sources/
     ├── appify.sh                   # shell script → .app wrapper
+    ├── release.sh                  # an app's release archive, reproducible
     ├── custom_macos_app.sh         # payload template to adapt
     ├── awake/                      # Swift sources + Info.plist + build.sh + icon/
     ├── siphon/                     # Swift sources + Info.plist + build.sh + icon/

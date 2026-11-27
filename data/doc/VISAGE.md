@@ -39,7 +39,7 @@ Requirements
   The **ChatGPT** app works too, and so does any app that plays a voice, with
   no guarantee.
 * **Command Line Tools** (`xcode-select --install`) to build it. Xcode is
-  optional.
+  optional, and neither is needed for the download.
 
 Sources
 -------
@@ -71,6 +71,8 @@ No third-party package: Swift and Apple's frameworks only.
 Installation
 ------------
 
+### Option A — from source
+
 ```shell
 sh data/sources/visage/build.sh --install
 ```
@@ -99,6 +101,37 @@ of tests:
 ```shell
 sh data/sources/visage/check.sh
 ```
+
+### Option B — a release
+
+The [Releases](https://github.com/jul6art/macos-utils/releases) page has
+`Visage-<version>.zip`: one universal archive, for Apple silicon and Intel.
+
+1. Download it and its `.sha256`, then check it:
+
+   ```shell
+   shasum -a 256 -c Visage-0.1.0.zip.sha256
+   ```
+
+2. Unzip it, and move **Visage** to **Applications**.
+3. Open it. macOS refuses: the app is signed ad hoc, not notarized by Apple,
+   so Gatekeeper cannot vouch for it. Click **Done**.
+4. Open **System Settings** → **Privacy & Security**, scroll down to the
+   message about Visage, click **Open Anyway**, and confirm. macOS remembers
+   it: the next launches open normally.
+
+The archive is built from the release's tag by
+[data/sources/release.sh](/data/sources/release.sh), and the build is reproducible:
+with the same Command Line Tools, building the tag yourself gives the same
+archive, byte for byte, and the same checksum.
+
+```shell
+git checkout visage-v0.1.0
+sh data/sources/release.sh visage    # prints the SHA-256 to compare
+```
+
+There is no updater: a new version is a new download that replaces the app.
+macOS may then ask for the system audio permission again.
 
 First launch
 ------------
@@ -338,9 +371,9 @@ written by the same kit: change the kit, never the files.
 Gatekeeper
 ----------
 
-The build is ad-hoc signed, not notarized. On the machine that built it, it just
-runs. If you copy the `.app` to another Mac, macOS will quarantine it. Clear the
-flag there:
+Visage is signed ad hoc, not notarized. Built on your Mac, it just runs.
+Downloaded, or copied from another Mac, it is quarantined: allow it once with
+**Open Anyway** (see *Option B*), or clear the flag in a terminal:
 
 ```shell
 xattr -dr com.apple.quarantine /Applications/Visage.app
@@ -351,6 +384,7 @@ Troubleshooting
 
 | Symptom | Fix |
 | --- | --- |
+| *"Apple could not verify Visage is free of malware"* | the download is not notarized: **System Settings** → **Privacy & Security** → **Open Anyway** (see *Option B*) |
 | *"Visage cannot hear Claude yet"* | the system audio permission is missing: **Open System Settings**, then turn Visage on under *Screen & System Audio Recording* |
 | Visage is allowed in System Settings, yet hears nothing | seen once, with no known cause: `tccutil reset AudioCapture com.devinthehood.visage`, relaunch Visage, allow it again |
 | *"Connected to Claude"*, but the face never speaks | Claude is not speaking yet: start its **voice mode**, the sound-wave button at the bottom right of its window |

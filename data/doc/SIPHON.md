@@ -90,6 +90,23 @@ stops if it refuses because a download is still going, rather than killing it.
 
 Step 7 matters: a sandboxed app may not launch `/opt/homebrew/bin/yt-dlp`.
 
+### Option C — a release
+
+The [Releases](https://github.com/jul6art/macos-utils/releases/tag/siphon-v1.0.0)
+page has `Siphon-1.0.0.zip`: a universal archive, for Apple silicon and Intel.
+It still needs yt-dlp and ffmpeg from Homebrew (see *Requirements*).
+
+1. Download it and its `.sha256`, then check it:
+   `shasum -a 256 -c Siphon-1.0.0.zip.sha256`.
+2. Unzip it, and move **Siphon** to **Applications**.
+3. Open it. macOS refuses: the app is signed ad hoc, not notarized by Apple.
+   Click **Done**, then **System Settings** → **Privacy & Security** →
+   **Open Anyway**, and confirm. The next launches open normally.
+
+The archive is reproducible: check out its tag and run
+`sh data/sources/release.sh siphon`. With the same Command Line Tools, you get
+the same archive, byte for byte, and the same checksum.
+
 Usage
 -----
 
@@ -314,9 +331,9 @@ so the repository holds code, not an image. To use your own, drop an
 Gatekeeper
 ----------
 
-The build is ad-hoc signed, not notarized. On the machine that built it, it just
-runs. If you copy the `.app` to another Mac, macOS will quarantine it — clear the
-flag there:
+Siphon is signed ad hoc, not notarized. Built on your Mac, it just runs.
+Downloaded, or copied from another Mac, it is quarantined: allow it once with
+**Open Anyway** (see *Option C*), or clear the flag in a terminal:
 
 ```shell
 xattr -dr com.apple.quarantine /Applications/Siphon.app
