@@ -7,7 +7,7 @@ import simd
 
 /// What the hologram looks like (spec, § 8.2, § 9.2).
 public struct HoloSettings: Sendable {
-    /// The charter's braise by default (docs/charte.md, § 3).
+    /// The charter's braise by default (docs/charter.md, § 3).
     public var colour = SIMD3<Float>(1.0, 0.788, 0.471)
     public var projector = true
     /// Transparent (alpha 0) for the floating windows; the charter's charbon for the classic one.

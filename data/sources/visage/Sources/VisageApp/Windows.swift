@@ -180,7 +180,7 @@ enum Foreground {
     }
 }
 
-/// The charter's colours (docs/charte.md, § 3).
+/// The charter's colours (docs/charter.md, § 3).
 enum Palette {
     static let charbon = NSColor(srgbRed: 0x0E / 255, green: 0x0C / 255, blue: 0x0A / 255, alpha: 1)
     static let braise = Color(red: 0xFF / 255, green: 0xC9 / 255, blue: 0x78 / 255)

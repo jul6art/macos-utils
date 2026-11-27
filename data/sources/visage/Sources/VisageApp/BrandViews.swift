@@ -2,7 +2,7 @@ import AppKit
 import Shared
 import SwiftUI
 
-/// The mark, alive (docs/charte.md, § 2): every ten seconds the whole face comes apart into the logo's
+/// The mark, alive (docs/charter.md, § 2): every ten seconds the whole face comes apart into the logo's
 /// dust, then gathers again; the dots on the right leave first and come back last. The very timing of
 /// `brand/mark-animated.svg`, from the same geometry. Still when the Mac asks for less motion.
 struct AnimatedMark: View {
