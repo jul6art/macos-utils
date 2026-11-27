@@ -99,6 +99,18 @@ final class AppModel {
     @ObservationIgnored let microphoneLevel = MicrophoneLevel()
     @ObservationIgnored private var microphoneClosing: Task<Void, Never>?
 
+    /// Whether Siri is among the AIs of « Connect my AI » (spec, § 4.5): off at first, as Siri speaks only
+    /// once its voice responses are on. Turned off while connected to Siri, it disconnects.
+    var siri: Bool {
+        didSet {
+            defaults.set(siri, forKey: Key.siri)
+            if !siri, connection.app?.kind == .siri { disconnect() }
+        }
+    }
+
+    /// The AIs « Connect my AI » offers.
+    var apps: [AIApp] { AIApp.known.filter { siri || $0.kind != .siri } }
+
     /// Whether the face is on screen: the next launch puts it back as it was left.
     var faceShown: Bool {
         didSet { defaults.set(faceShown, forKey: Key.faceShown) }
@@ -140,6 +152,7 @@ final class AppModel {
         static let glitches = "glitches"
         static let camera = "camera"
         static let microphone = "microphone"
+        static let siri = "siri"
     }
 
     init() {
@@ -163,6 +176,7 @@ final class AppModel {
         glitches = defaults.bool(forKey: Key.glitches)
         camera = defaults.bool(forKey: Key.camera)
         microphone = defaults.bool(forKey: Key.microphone)
+        siri = defaults.bool(forKey: Key.siri)
         faceScale = min(max(defaults.double(forKey: Key.faceScale), 0.5), 2)
         connection = Connection(delayMilliseconds: defaults.integer(forKey: Key.delay))
         connection.onListeningChange = { [weak self] listening in self?.followListening(listening) }
@@ -289,7 +303,7 @@ final class AppModel {
 
     private var savedApp: AIApp? {
         guard let saved = defaults.string(forKey: Key.app) else { return nil }
-        if let known = AIApp.known.first(where: { $0.id == saved }) { return known }
+        if let known = AIApp.known.first(where: { $0.id == saved }) { return apps.contains(known) ? known : nil }
         return AIApp.other(saved, name: saved)
     }
 }

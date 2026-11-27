@@ -3,8 +3,8 @@
 > **Status**: written on 2026-11-26, the app built from it the same day. The questions it started from are
 > settled (§ 0); the pilot lifted the risks that could stop it (§ 12).
 > **In one sentence**: a free Mac app that gives a hologram face, moving to the rhythm of its voice, to the
-> AI you already talk to (Claude, ChatGPT, or Claude Code, given a voice), for nothing more than your
-> subscription.
+> AI you already talk to (Claude, ChatGPT, Siri, or Claude Code, given a voice), for nothing more than
+> your subscription.
 > The app is given away as open source, in `macos-utils`.
 
 ---
@@ -19,6 +19,7 @@
 | Q4 | Which repository? | **Public, under the MIT licence**: a gift. Visage joins **`macos-utils`** (public, MIT), in `data/sources/visage/` (§ 10.1). |
 | Q5 | A browser mode? | **No**: the official app only. |
 | Q6 | Which identity? | **C4 "Poussière"** (dust): a face of dots that comes apart into dust, in ember light. Charter in `docs/charter.md`, files in `brand/`. |
+| Q8 | Siri? (2026-11-27) | **Yes, a card shown from the settings** ("Siri among the AIs", off at first): Siri speaks only once its voice responses are on. Its voice plays as it is, neither muted nor played back (§ 4.5). |
 | Q7 | Talking with Claude Code, which acts on the Mac? (2026-11-27) | **Yes, through a plugin**: Claude Code listens (`/voice`) but never speaks. Visage's plugin has the Mac's voice read a sentence written for the ear at the end of each reply, and Visage taps that voice like an app's (§ 4.4). Visage does not drive Claude Code itself (§ 4.4). |
 
 ## 1. The goal
@@ -106,6 +107,7 @@ restarts.
 |---|---|---|
 | **Claude Desktop** (the main source) | Yes, in beta, on every plan | Languages other than English are in beta. Voice counts in the subscription's usage limits. Not every model is available in voice mode. |
 | **ChatGPT** (Mac app) | Yes | Both bundle IDs are recognised, the current app's and the former one's. |
+| **Siri** (shown from the settings) | Yes, once its voice responses are on (System Settings, Siri) | Its voice plays as it is: the face follows it live, without the lead (§ 4.5). |
 | **Claude Code** (the terminal, the native installer or Homebrew) | No: it listens (`/voice`), Visage's plugin has the Mac's voice answer | It acts on the Mac, with its own permissions; § 4.4. |
 | **Another app** | Depends on the app | Any app that plays sound: same mechanism, no guarantee. |
 
@@ -155,6 +157,22 @@ Visage gives it a voice, then a face:
   documentation), and an API key is paid (§ 2, "Free to run"). The plugin leaves Claude Code as it is,
   permissions included: nothing runs on the Mac without the user's approval in the terminal.
 
+### 4.5 Siri (2026-11-27)
+
+- **Its voice** comes from `com.apple.sirittsd`, Siri's speech service, a launch agent started on demand:
+  the same process carried two answers twenty seconds apart (seen on macOS 27). With the keyboard, or its
+  voice responses off, Siri only writes: nothing to give a face to. "Siri among the AIs", in the
+  conversation's settings, shows its card; off at first.
+- **Visage waits for its first answer**, then taps it by its bundle ID: a tap by bundle ID made before the
+  service exists blocked (seen with Claude Code's voice, § 4.4).
+- **Passed through, not played back**: Siri lowers every other sound while it speaks, Visage's playback
+  with it. Muted then played back 150 ms later, its voice was not heard at all; the face moved alone. Its
+  voice therefore plays as it is, unmuted (`CATapDescription` `.unmuted`), and Visage plays nothing: the
+  face follows the last frame analysed, without the lead that the delay D gives (§ 3), a few tens of
+  milliseconds late. Tried on 2026-11-27: the voice heard as usual, the lips with it.
+- **Listening**: no process of Siri's opens the microphone when it listens, only `corespeechd`, which
+  listens all the time for "Hey Siri": the face does not know when Siri listens.
+
 ## 5. Capturing and playing back the sound
 
 - **API**: Core Audio's per-process "taps" (macOS 14.2 and later). A `CATapDescription` on the AI app's
@@ -168,7 +186,7 @@ Visage gives it a voice, then a face:
   given to the tap: a helper born after connecting (Claude's audio service, which carries its voice and its
   microphone) makes the tap be redone.
 - **Mute without loss**: while the tap is active, the AI app's sound no longer reaches the speakers, and
-  Visage plays it back.
+  Visage plays it back. Siri alone passes through, unmuted and not played back (§ 4.5).
 - **Buffer**: a lock-free ring buffer (one producer: the `IOProc`; one consumer: the playback). The delay
   **D is 150 ms by default, adjustable from 80 to 300 ms**. No allocation and no lock on the real-time
   thread.
@@ -512,8 +530,8 @@ menu bar or the settings.
 - **The settings**, in their own window in the charter's colours, the animated logo at the top: on the
   left, the preview of the face at rest, as the choices make it; on the right, in cards, the face (grid,
   realism gauge, size from 50 to 200 %), the hologram (colour, halo, scanlines, plinth and beam, flicker and
-  glitches), the conversation (is the AI listening? the microphone option), the camera, the window (the two
-  modes, explained), the sync (delay, anticipation, lip offset).
+  glitches), the conversation (is the AI listening? the microphone option, Siri among the AIs), the camera,
+  the window (the two modes, explained), the sync (delay, anticipation, lip offset).
 
 ## 10. Technical architecture
 
@@ -700,6 +718,7 @@ the same gate.
   lifted for Claude).
 - **Lot 7** under way: `data/doc/VISAGE.md` and the README, the release archive (`data/sources/release.sh visage`).
 - **Claude Code** (2026-11-27): its plugin, its voice and its card (§ 4.4).
+- **Siri** (2026-11-27): its card, shown from the settings, its voice passed through (§ 4.5).
 
 ## 14. Out of scope
 

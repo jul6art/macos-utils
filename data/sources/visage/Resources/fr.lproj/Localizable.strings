@@ -103,3 +103,7 @@
 "Copy" = "Copier";
 "Connected to Claude Code. Turn on its dictation with /voice, and talk: it answers aloud." = "Connecté à Claude Code. Activez sa dictée avec /voice, et parlez : il répond à voix haute.";
 "Claude Code is waiting for your answer, in the terminal." = "Claude Code attend votre réponse, dans le terminal.";
+"Ask Siri something: Visage connects at its first spoken answer." = "Posez une question à Siri : Visage se connecte à sa première réponse parlée.";
+"Connected to Siri. Ask it something: it answers aloud when its voice responses are on, in System Settings, under Siri." = "Connecté à Siri. Posez-lui une question : il répond à voix haute si ses réponses vocales sont activées, dans Réglages Système, sous Siri.";
+"Siri among the AIs" = "Siri parmi les IA";
+"Siri gets its card in « Connect my AI ». It must answer aloud: System Settings, Siri, voice responses. Its voice plays as it is, and the face follows it without reading ahead." = "Siri a sa carte dans « Se connecter à mon IA ». Il doit répondre à voix haute : Réglages Système, Siri, réponses vocales. Sa voix sort telle quelle, et le visage la suit sans lire en avance.";

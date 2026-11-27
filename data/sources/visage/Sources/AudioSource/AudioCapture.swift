@@ -9,10 +9,13 @@ public struct CaptureTarget: Sendable, Equatable {
     public var processObjects: [AudioObjectID]
     /// macOS 26: the bundle IDs to tap; Core Audio finds the app again when it restarts.
     public var bundleIDs: [String]
+    /// The sound plays as is, neither muted nor played back: only analysed (Siri, spec § 4.5).
+    public var passThrough: Bool
 
-    public init(processObjects: [AudioObjectID] = [], bundleIDs: [String] = []) {
+    public init(processObjects: [AudioObjectID] = [], bundleIDs: [String] = [], passThrough: Bool = false) {
         self.processObjects = processObjects
         self.bundleIDs = bundleIDs
+        self.passThrough = passThrough
     }
 }
 
@@ -37,6 +40,8 @@ public final class AudioCapture: @unchecked Sendable {
     private static let ringSeconds = 2.0
     private var ring: FrameRing?
     private var hopFrames = 480
+    /// Set before the IO starts, read on the real-time thread.
+    private var passThrough = false
     private let levelSlots = 4096
     private let levels: UnsafeMutablePointer<Float>
     private var hopSum: Float = 0
@@ -69,6 +74,7 @@ public final class AudioCapture: @unchecked Sendable {
     /// system audio recording, this blocks (90 s seen in the pilot): never call it on the main thread.
     public func start(target: CaptureTarget, delayMilliseconds: Int) throws {
         do {
+            passThrough = target.passThrough
             try createTap(target: target)
             try createAggregateDevice()
             setDelay(milliseconds: delayMilliseconds)
@@ -121,7 +127,7 @@ public final class AudioCapture: @unchecked Sendable {
         }
         description.name = ProcessTaps.name
         description.uuid = UUID()
-        description.muteBehavior = .mutedWhenTapped
+        description.muteBehavior = target.passThrough ? .unmuted : .mutedWhenTapped
         description.isPrivate = true
 
         var tap = AudioObjectID(kAudioObjectUnknown)
@@ -260,15 +266,17 @@ public final class AudioCapture: @unchecked Sendable {
 
         if heard { heardCallbacks.wrappingAdd(1, ordering: .relaxed) }
 
-        // 2. Play back `delay` behind what was just captured.
-        let start = written - delayFrames.load(ordering: .relaxed)
+        // 2. Play back `delay` behind what was just captured; passing through, the sound is already heard as
+        // it is captured, and Visage plays nothing.
+        let start = passThrough ? written : written - delayFrames.load(ordering: .relaxed)
         for buffer in outputs {
             guard let data = buffer.mData?.assumingMemoryBound(to: Float.self) else { continue }
             let channels = Int(buffer.mNumberChannels)
             for index in 0..<frames {
                 let frame = start + index
                 for channel in 0..<channels {
-                    data[index * channels + channel] = channel & 1 == 0 ? ring.left(frame) : ring.right(frame)
+                    data[index * channels + channel] =
+                        passThrough ? 0 : channel & 1 == 0 ? ring.left(frame) : ring.right(frame)
                 }
             }
         }

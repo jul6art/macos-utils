@@ -133,8 +133,14 @@ public final class Connection {
         stopCapture()
         let processes = AudioProcesses.matching(bundleID, in: AudioProcesses.all())
         appProcesses = processes.map(\.objectID)
-        var target = CaptureTarget()
+        var target = CaptureTarget(passThrough: app?.passesThrough == true)
         if tapsByBundleID, bundleID.contains(".") {
+            // Siri's voice is a service born for each answer: Visage waits for the first one, then taps it by
+            // its bundle ID, which Core Audio follows to the next ones.
+            if app?.kind == .siri, processes.isEmpty {
+                state = .waitingForApp
+                return
+            }
             target.bundleIDs = Array(Set(processes.map(\.bundleID).filter { !$0.isEmpty } + [bundleID])).sorted()
             tappedBundleIDs = Set(target.bundleIDs)
         } else {

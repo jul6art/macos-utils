@@ -17,6 +17,7 @@ enum Snapshots {
         let apps = [
             AppCardInfo(app: .claude, isInstalled: true, isRunning: true),
             AppCardInfo(app: .chatGPT, isInstalled: false, isRunning: false),
+            AppCardInfo(app: .siri, isInstalled: true, isRunning: false),
             AppCardInfo(app: .claudeCode, isInstalled: true, isRunning: false),
         ]
         let others = [AIApp.other("com.example.voice", name: "Example Voice")]
@@ -33,7 +34,7 @@ enum Snapshots {
             let view = ConnectView(
                 state: state, connectedApp: app, apps: apps, otherApps: others, connect: { _ in },
                 showFace: {})
-            if !write(view, size: NSSize(width: 560, height: 400), to: directory.appending(path: "\(name).png")) {
+            if !write(view, size: NSSize(width: 560, height: 520), to: directory.appending(path: "\(name).png")) {
                 failures += 1
             }
         }

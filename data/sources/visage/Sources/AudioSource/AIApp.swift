@@ -8,6 +8,9 @@ public struct AIApp: Identifiable, Hashable, Sendable {
     public enum Kind: Hashable, Sendable {
         /// An app, which Visage opens on connecting if it is not running.
         case app
+        /// Siri: its voice comes from a system service born for each answer, `sirittsd`, which nothing needs
+        /// to open (spec, § 4.5).
+        case siri
         /// Claude Code: its replies are read aloud by Visage's helper, `visage-voice`, which its plugin runs
         /// (spec, § 4.4). Visage taps the helper; the `claude` process holds the microphone of its dictation.
         case claudeCode
@@ -45,10 +48,23 @@ public struct AIApp: Identifiable, Hashable, Sendable {
         id: ClaudeCodeVoice.sourceID, name: "Claude Code", bundleIDs: [ClaudeCodeVoice.bundleID],
         downloadURL: URL(string: "https://code.claude.com/docs/en/setup"), kind: .claudeCode)
 
-    public static let known: [AIApp] = [.claude, .chatGPT, .claudeCode]
+    /// Siri speaks through `sirittsd`, Siri's speech service, launched for each spoken answer and gone five
+    /// seconds after (its launch agent's exit timeout); seen on macOS 27 on 2026-11-27.
+    public static let siri = AIApp(
+        id: "siri", name: "Siri", bundleIDs: ["com.apple.sirittsd"], downloadURL: nil, kind: .siri)
+
+    /// Where Siri lives, on every Mac that has it.
+    static let siriApp = URL(fileURLWithPath: "/System/Library/CoreServices/Siri.app")
+
+    public static let known: [AIApp] = [.claude, .chatGPT, .siri, .claudeCode]
 
     /// Whether connecting opens the app when it is not running.
     public var opensOnConnect: Bool { kind == .app }
+
+    /// Whether its sound plays as is, only analysed: Siri lowers every other sound while it speaks, and
+    /// Visage's playback with it, so that nothing was heard when Visage muted it to play it back (seen on
+    /// 2026-11-27). The face then follows the voice live, without the lead the delay gives (spec, § 4.5).
+    public var passesThrough: Bool { kind == .siri }
 
     /// Where Claude Code's installers put `claude`: the native installer, Homebrew (Apple silicon, Intel),
     /// the former local install.
@@ -60,6 +76,9 @@ public struct AIApp: Identifiable, Hashable, Sendable {
     /// `claude` is installed.
     @MainActor
     public var installation: (bundleID: String, url: URL)? {
+        if kind == .siri {
+            return FileManager.default.fileExists(atPath: Self.siriApp.path) ? (bundleIDs[0], Self.siriApp) : nil
+        }
         if kind == .claudeCode {
             let helper = Bundle.main.bundleURL.appending(path: ClaudeCodeVoice.helperPath)
             let claude = Self.claudeCodeLocations.contains {

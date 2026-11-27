@@ -15,7 +15,7 @@ struct ConnectScreen: View {
             connectedApp: model.connection.app,
             listening: model.connection.appListening,
             claudeCodePluginSeen: model.claudeCodePluginSeen,
-            apps: AIApp.known.map { AppCardInfo(app: $0) },
+            apps: model.apps.map { AppCardInfo(app: $0) },
             otherApps: model.otherApps(),
             connect: { model.connect(to: $0, showingFace: !welcoming) },
             showFace: { model.showFace() },
@@ -74,7 +74,11 @@ struct ConnectView: View {
                 }
             }
 
-            HStack(spacing: 12) {
+            // Three in a row; four, Siri shown, in two rows.
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: apps.count == 4 ? 2 : apps.count),
+                spacing: 12
+            ) {
                 ForEach(apps) { info in
                     AppCard(info: info, isConnected: connectedApp?.id == info.app.id, connect: connect)
                 }
@@ -130,7 +134,7 @@ private struct AppCard: View {
             }
         }
         .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
         .background(RoundedRectangle(cornerRadius: 10).fill(Color(nsColor: .controlBackgroundColor)))
         .overlay(
             RoundedRectangle(cornerRadius: 10).strokeBorder(
@@ -197,6 +201,8 @@ private struct StatusLine: View {
                         NSWorkspace.shared.open(url)
                     }
                 }
+            case .waitingForApp where app?.kind == .siri:
+                Text("Ask Siri something: Visage connects at its first spoken answer.")
             case .waitingForApp where app?.kind == .claudeCode:
                 Text("Talk to Claude Code: Visage connects with your next request.")
             case .waitingForApp:
@@ -204,6 +210,11 @@ private struct StatusLine: View {
             case .connected:
                 if listening {
                     Text("Connected to \(name), which is listening: talk to it.")
+                } else if app?.kind == .siri {
+                    Text(
+                        "Connected to Siri. Ask it something: it answers aloud when its voice responses are on, in System Settings, under Siri."
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
                 } else if app?.kind == .claudeCode, !pluginSeen {
                     Text("Connected to Claude Code. Install Visage's plugin in it, once:")
                         .fixedSize(horizontal: false, vertical: true)
