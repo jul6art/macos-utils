@@ -1,132 +1,125 @@
-# Visage — pilote (lot 0)
+# Visage — pilot (lot 0)
 
-> **Statut au 2026-11-26, au soir** : les cinq mesures sont faites, avec l'utilisateur, son allumé et
-> Claude Desktop installé (§ 4). **Verdict : go** (§ 5). Visage capte la voix de Claude, la relit
-> retardée sans dégât, et la bouche la suit ; l'app elle-même a parlé avec la voix de Claude le soir même.
+> **Status**: done on 2026-11-26. Five measurements, with the sound on and Claude Desktop installed (§ 4).
+> **Verdict: go** (§ 5). Visage captures Claude's voice, plays it back delayed without damage, and the mouth
+> follows it.
 
-## 1. Ce que contient le pilote
+The pilot answered one question before any of the app was written: can a Mac app capture another app's
+sound, play it back a little later, and drive a mouth from what it has not played yet?
 
-| Fichier | Rôle |
+## 1. What the pilot holds
+
+| File | Role |
 |---|---|
-| `pilot/TapSession.swift` | Le tap Core Audio coupé à la sortie, l'agrégat qui le joint à la sortie par défaut, et une seule `IOProc` : capture dans un tampon circulaire, relecture avec le retard D, niveau toutes les 10 ms. |
-| `pilot/PilotModel.swift`, `PilotApp.swift` | La fenêtre : cible, mode (processus ou identifiants), retard, anticipation, une bouche sommaire qui suit le niveau du son qui sera entendu. |
-| `pilot/ProcessCatalog.swift` | Les processus audio du système, les taps publics, et leur destruction. |
-| `pilot/MicProbe.swift` | L'oreille du pilote : le niveau du micro, pour savoir si une voix sort des haut-parleurs. |
-| `pilot/standin/` | Une voix de remplacement avec un vrai identifiant de bundle, qu'on quitte et relance. |
-| `pilot/run-tests.sh` | Les mesures, d'un seul coup (§ 4). |
+| `pilot/TapSession.swift` | The Core Audio tap, muted at the output; the aggregate device that joins it to the default output; a single `IOProc`: capture into a ring buffer, playback delayed by D, a level every 10 ms. |
+| `pilot/PilotModel.swift`, `PilotApp.swift` | The window: target, mode (processes or bundle IDs), delay, anticipation, and a rough mouth that follows the level of the sound about to be heard. |
+| `pilot/ProcessCatalog.swift` | The system's audio processes, its public taps, and their destruction. |
+| `pilot/MicProbe.swift` | The pilot's ear: the microphone's level, to tell whether a voice comes out of the speakers. |
+| `pilot/standin/` | A stand-in voice with a real bundle ID, to quit and relaunch. |
+| `pilot/run-tests.sh` | All the measurements, in one go (§ 4). |
 
-Construction : `sh pilot/build.sh`, Command Line Tools seulement. Journal : `~/Library/Logs/VisagePilot/`
-(`pilot.log`, `status.json`, heures en UTC).
+Build: `sh pilot/build.sh`, with the Command Line Tools only. Log: `~/Library/Logs/VisagePilot/`
+(`pilot.log`, `status.json`, times in UTC).
 
-## 2. Résultats
+## 2. First results
 
-### 2.1 Capture et relecture : ça marche
+### 2.1 Capture and playback work
 
-Premier essai, sur `afplay` qui lit une voix française de synthèse :
+First try, on `afplay` reading a synthetic French voice:
 
-| Mesure | Valeur |
+| Measurement | Value |
 |---|---|
-| Délai avant la première capture | 6 s, autorisation comprise |
-| Format du tap | 48 kHz, 2 canaux, float 32 bits entrelacé |
-| Agrégat (haut-parleurs du MacBook Pro) | 44,1 kHz, tampon de 512 trames, environ 82 cycles par seconde |
-| Latence de sortie annoncée | 743 trames, soit 16,8 ms |
-| Niveau capté | −22,8 dBFS pendant la voix |
-| Surcharges de l'`IOProc` | 0 |
+| Time to the first capture | 6 s, permission included |
+| Tap format | 48 kHz, 2 channels, interleaved 32-bit float |
+| Aggregate (built-in speakers) | 44.1 kHz, 512-frame buffer, about 82 cycles a second |
+| Reported output latency | 743 frames, 16.8 ms |
+| Captured level | −22.8 dBFS during the voice |
+| `IOProc` overloads | 0 |
 
-Le tap à 48 kHz et la sortie à 44,1 kHz cohabitent dans l'agrégat (compensation de dérive). Le décompte
-des écarts de taille entre entrée et sortie, ajouté depuis, sera lu par le test 1 du § 4.
+The 48 kHz tap and the 44.1 kHz output live together in the aggregate (drift compensation).
 
-### 2.2 Plantage (R3) : un tap public survit à son processus
+### 2.2 Crash (R3): a public tap outlives its process
 
-Tué par `kill -9`, le pilote laisse son tap **public** derrière lui : toujours listé par le système plus
-d'une minute après. Un autre processus peut le détruire (`VisagePilot --destroy-tap <UID>`, fait).
+Killed by `kill -9`, the pilot leaves its **public** tap behind: still listed by the system more than a
+minute later. Another process can destroy it (`VisagePilot --destroy-tap <UID>`).
 
-Le son de la cible revient-il pour autant ? La documentation de `CATapMutedWhenTapped` ne coupe le son
-que pendant qu'un client lit le tap ; or l'agrégat et son `IOProc` meurent avec le processus. Le son
-devrait donc revenir, mais ce n'est pas encore mesuré : la sortie du Mac était coupée pendant le pilote.
-Les tests 2 et 3 du § 4 le mesurent au micro, pour un tap privé et pour un tap public.
+Does the target's sound come back? `CATapMutedWhenTapped` mutes only while a client reads the tap, and the
+aggregate and its `IOProc` die with the process: tests 2 and 3 of § 4 measure it at the microphone, for a
+private tap and for a public one.
 
-### 2.3 L'autorisation bloque le démarrage
+### 2.3 The permission blocks the start
 
-Un nouveau build signé ad hoc est une nouvelle app pour macOS : il redemande l'autorisation d'enregistrer
-l'audio du système. Tant qu'elle n'est pas donnée, `AudioDeviceStart` reste bloqué (90 s observées), puis
-rend la main sans qu'aucun cycle audio ne tourne jamais : pas de silence, rien.
+Until the permission to record system audio is given, `AudioDeviceStart` stays blocked (90 s observed),
+then returns without a single audio cycle ever running: no silence, nothing.
 
-### 2.4 Le dessin SwiftUI coûte cher
+### 2.4 Drawing in SwiftUI is expensive
 
-La fenêtre du pilote, avec un `Canvas` redessiné à chaque image, prend 10 à 14 % d'un cœur à elle seule,
-l'audio arrêté. Le rendu du lot 3 passe par Metal, avec un nombre d'images par seconde plafonné au repos
-(spécification, § 7.2).
+The pilot's window, with a `Canvas` redrawn every frame, takes 10 to 14 % of a core on its own, audio
+stopped. The app renders with Metal, at a frame rate capped at rest (specification, § 7.2).
 
-### 2.5 Sans Xcode, pas de macros SwiftUI
+### 2.5 No SwiftUI macros without Xcode
 
-`@State` est, dans ce SDK, une macro dont le greffon n'existe que dans Xcode : la compilation échoue avec
-les seules Command Line Tools. `@Observable` (Observation) compile. Le pilote tient son modèle par une simple
-référence.
+`@State` is, in this SDK, a macro whose plugin ships with Xcode only: compiling fails with the Command
+Line Tools alone. `@Observable` (Observation) compiles. The pilot holds its model by a plain reference.
 
-### 2.6 macOS 26 sait taper une app par son identifiant
+### 2.6 macOS 26 can tap an app by its bundle ID
 
-Le SDK de macOS 26 ajoute à `CATapDescription` `bundleIDs` (taper une app par son identifiant) et
-`processRestoreEnabled` (retrouver l'app quand elle redémarre). Si le test 4 le confirme, Visage n'a plus
-à suivre les processus d'une app Electron à la main (R2).
+The macOS 26 SDK adds `bundleIDs` (tap an app by its identifier) and `processRestoreEnabled` (find the app
+again when it restarts) to `CATapDescription`. Test 4 confirms them: Visage no longer has to follow the
+processes of an Electron app by hand on macOS 26 (R2).
 
-## 3. Ce qui change dans la conception
+## 3. What changed in the design
 
-1. **Tap privé**, toujours. Au lancement, Visage détruit tout tap public nommé « Visage » laissé par une
-   version qui aurait planté.
-2. **La capture démarre hors du fil principal**, et l'interface dit « en attente de ton autorisation ».
-3. **Une autorisation manquante se détecte**, mais pas comme on le croyait : l'app joue depuis six secondes
-   et rien de non nul n'en est venu depuis le branchement (§ 4). Trois secondes sans cycle audio ne
-   prouvaient rien : sur macOS 26, une capture par identifiant ne tourne pas tant que l'app se tait.
-4. **Si l'autorisation devient inerte** (§ 4) : `tccutil reset AudioCapture <identifiant>` puis une
-   nouvelle demande, avec l'accord de l'utilisateur. On a d'abord cru qu'il fallait une signature stable
-   (`VISAGE_SIGN_IDENTITY`, spécification § 10.2), sinon chaque build perdrait l'autorisation ; Visage,
-   signé en ad hoc et recompilé à plusieurs reprises le même soir, l'a gardée.
-5. **Pas de macros SwiftUI** qui exigent Xcode (`@State`, `#Preview`) : un modèle `@Observable` tenu par
-   référence.
-6. **macOS 15 minimum** : le test 4 confirme `bundleIDs` et `processRestoreEnabled` sur macOS 26, que Visage
-   prend quand il les trouve ; sur macOS 15, il suit les processus lui-même. Exiger macOS 26 écarterait
-   presque tous les Mac Intel (quatre modèles seulement le reçoivent), dont celui de l'utilisateur.
+1. **A private tap**, always. At launch, Visage destroys any public tap named "Visage" left by a version
+   that crashed.
+2. **The capture starts off the main thread**, and the interface says it is waiting for the permission.
+3. **A missing permission is detected**, though not as first thought: the app has been playing for six
+   seconds and nothing non-zero came from it since connecting (§ 4). Three seconds without an audio cycle
+   proved nothing: on macOS 26, a capture by bundle ID does not run while the app is silent.
+4. **If the permission goes inert** (§ 4): `tccutil reset AudioCapture <bundle ID>`, then a new request.
+   A stable signature first looked necessary (`VISAGE_SIGN_IDENTITY`, specification § 10.2), lest every
+   build lose the permission; Visage, signed ad hoc and rebuilt several times, kept it.
+5. **No SwiftUI macros** that need Xcode (`@State`, `#Preview`): an `@Observable` model held by reference.
+6. **macOS 15 minimum**: test 4 confirms `bundleIDs` and `processRestoreEnabled` on macOS 26, which Visage
+   takes when it finds them; on macOS 15 it follows the processes itself. Requiring macOS 26 would leave
+   out nearly every Intel Mac: only four models get it.
 
-## 4. Les mesures du 2026-11-26, au soir
+## 4. The measurements
 
-Avec l'utilisateur, haut-parleurs du MacBook Pro à 56 %, micro intégré comme oreille.
+Built-in speakers, the built-in microphone as the ear.
 
-| Test | Mesure | Résultat |
+| Test | Measurement | Result |
 |---|---|---|
-| 1 · capture par processus | voix captée −17 dB ; à travers le pilote, la voix sort à −30,7 dB, autant qu'en direct (−29 dB) ; avance 175 ms ; 0 écart de trame, 0 surcharge | **réussi** |
-| 2 · plantage, tap privé | après `kill -9`, la voix revient aussitôt (−31,9 dB) | **réussi** |
-| 3 · plantage, tap public | la voix revient (−30,7 dB) ; le tap orphelin reste listé, et se détruit | **réussi** |
-| 4 · par identifiant, puis redémarrage | captée (−27,5 dB), puis retrouvée seule après le redémarrage de l'app (une seule connexion au journal) | **réussi** |
-| 5 · Claude Desktop | la lecture à voix haute sort de « Claude Helper » (`com.anthropic.claudefordesktop.helper`) ; captée de −17 à −24 dB, des creux à −70/−80 dB entre les phrases ; avance 174 à 184 ms ; à l'œil, la bouche part avec le son ; à l'oreille, la voix relue est normale | **réussi** |
+| 1 · capture by process | voice captured at −17 dB; through the pilot, the voice comes out at −30.7 dB, as loud as direct (−29 dB); lead 175 ms; 0 frame mismatch, 0 overload | **passed** |
+| 2 · crash, private tap | after `kill -9`, the voice comes back at once (−31.9 dB) | **passed** |
+| 3 · crash, public tap | the voice comes back (−30.7 dB); the orphan tap stays listed, and can be destroyed | **passed** |
+| 4 · by bundle ID, then restart | captured (−27.5 dB), then found again on its own after the app restarted (a single connection in the log) | **passed** |
+| 5 · Claude Desktop | reading aloud comes out of "Claude Helper" (`com.anthropic.claudefordesktop.helper`); captured from −17 to −24 dB, dips to −70/−80 dB between sentences; lead 174 to 184 ms; to the eye, the mouth starts with the sound; to the ear, the replayed voice is normal | **passed** |
 
-Ce que les mesures ont appris :
+What the measurements taught:
 
-- **Claude Desktop (6.28899.6) ne tient pas de conversation parlée sur Mac** : on lui dicte (maintenir pour
-  parler), il répond en texte, et « Lire à voix haute » lit la réponse, avec la voix et la vitesse choisies.
-  Le visage parle donc quand Claude lit. R1, l'écho, ne se pose pas avec lui : il n'écoute pas pendant qu'il
-  lit. Il reste à mesurer avec le mode vocal de ChatGPT.
-  *Rectificatif du même soir* : selon la documentation d'Anthropic, Claude Desktop a bien un mode vocal
-  mains libres, ouvert par le bouton en forme d'onde sonore, en bas à droite de la fenêtre ; ce qu'on a
-  pris pour lui est la dictée. Le mode vocal reste à essayer avec Visage, et R1 avec lui.
-- **R2, les identifiants** : l'app `com.anthropic.claudefordesktop`, sa voix dans un auxiliaire
-  `….helper`. Le branchement par préfixe d'identifiant prend les deux.
-- **Une fois, l'autorisation du pilote est devenue inerte, sans un mot** : macOS gardait la coche dans
-  Réglages Système, mais le tap ne coupait plus l'app et ne livrait que des zéros. Il a fallu
-  `tccutil reset AudioCapture com.devinthehood.visage.pilot` et une nouvelle demande. La cause n'est pas
-  établie : on l'a d'abord mise sur la recompilation, mais Visage a gardé son autorisation à chaque
-  recompilation du même soir.
-- **La fausse alerte d'autorisation** : l'app Visage disait « autorisation manquante » tant que Claude se
-  taisait (§ 3, point 3), corrigé le soir même.
-- **Les mesures se gênent** : une copie du pilote restée d'une série précédente coupait la voix de test ;
-  la voix de test (19 s) finissait parfois avant la dernière mesure, retardée par la demande d'autorisation.
-  `run-tests.sh` devra fermer les copies restantes avant de commencer, et jouer la voix en boucle.
-- **Une fois, l'état du pilote s'est figé** cinq secondes après son branchement, sans plantage ni rapport ;
-  pas reproduit. À surveiller dans Visage.
-- **Le pilote prend environ 20 % de processeur**, fenêtre SwiftUI comprise ; Visage se mesurera à part.
+- **Dictation is not the voice mode.** Test 5 used Claude Desktop's dictation (the microphone button, which
+  fills the text field) and "Read aloud" on the answer: the face speaks when Claude reads. Claude Desktop's
+  hands-free voice mode opens with the sound-wave button at the bottom right of its window. Tried later
+  with Visage, on speakers and with the 150 ms delay, it showed no echo: Claude does not hear itself (R1
+  lifted for Claude). It remains to be checked with ChatGPT's voice mode.
+- **R2, the bundle IDs**: the app is `com.anthropic.claudefordesktop`, its voice comes from a `….helper`.
+  Connecting by bundle ID prefix takes both.
+- **Once, the pilot's permission went inert, silently**: macOS kept the checkbox ticked in System
+  Settings, but the tap no longer muted the app and delivered only zeros. It took
+  `tccutil reset AudioCapture com.devinthehood.visage.pilot` and a new request. The cause is not
+  established: rebuilding was suspected first, but Visage kept its permission across every rebuild.
+- **The false missing-permission alert**: the Visage app said the permission was missing for as long as
+  Claude stayed silent (§ 3, point 3); fixed since.
+- **The measurements got in each other's way**: a copy of the pilot left from an earlier run muted the test
+  voice, and the 19 s test voice sometimes ended before the last measurement, delayed by the permission
+  request. `run-tests.sh` now closes leftover copies first and loops the voice.
+- **Once, the pilot's state froze** five seconds after connecting, with no crash and no report; not
+  reproduced. To watch for in Visage.
+- **The pilot takes about 20 % of the processor**, SwiftUI window included; Visage is measured on its own.
 
-## 5. Verdict : go
+## 5. Verdict: go
 
-La capture, la relecture retardée et la synchro tiennent sur la vraie voix de Claude, sans dégât audible ;
-un plantage rend la voix. Le pilote n'a plus d'autre rôle que de rejouer ces mesures. La suite se fait
-dans l'app (spécification, § 13).
+Capture, delayed playback and sync hold on Claude's real voice, with no audible damage; a crash gives the
+voice back. The pilot has no other role now than replaying these measurements. The rest happens in the app
+(specification, § 13).
