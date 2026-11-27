@@ -17,9 +17,11 @@ Visage
 </p>
 
 Visage gives a face to the voice of the AI you already talk to. Talk to Claude
-in its voice mode, or to ChatGPT, and a hologram face floats on your desktop
-and speaks with that voice: lips in sync, alive between sentences. It listens
-while you speak, thinks once you have finished, then answers.
+in its voice mode, to ChatGPT or to Siri, and a hologram face floats on your
+desktop and speaks with that voice: lips in sync, alive between sentences. It
+listens while you speak, thinks once you have finished, then answers. Claude
+Code, which acts on your Mac but has no voice, gets one too, through Visage's
+plugin.
 
 It costs nothing on top of the subscription you already have: no API key, no
 server, no account. Visage never talks to the AI app. It only hears the sound
@@ -37,6 +39,9 @@ Requirements
   [voice mode](https://support.claude.com/en/articles/11101966-use-voice-mode).
   The **ChatGPT** app works too, and so does any app that plays a voice, with
   no guarantee.
+* Optional: **Claude Code**, with Visage's plugin, to talk to it (see
+  *Or talk to Claude Code*); **Siri**, with its voice responses on (see
+  *Or talk to Siri*).
 * **Command Line Tools** (`xcode-select --install`) to build it. Xcode is
   optional, and neither is needed for the download.
 
@@ -53,7 +58,10 @@ file.
 | [Sources/VoiceAnalysis/](/data/sources/visage/Sources/VoiceAnalysis/) | Energy, pitch, formants, fricatives and closures, 100 times a second, with Accelerate |
 | [Sources/FaceAnimation/](/data/sources/visage/Sources/FaceAnimation/) | The 52 ARKit face weights, the head and the gaze, frame by frame: speaking, listening, thinking |
 | [Sources/HoloRenderer/](/data/sources/visage/Sources/HoloRenderer/) | The faces' glTF reader and the hologram, in Metal |
-| [Sources/Shared/](/data/sources/visage/Sources/Shared/) | The host clock everything is timed on, the brand's geometry |
+| [Sources/Shared/](/data/sources/visage/Sources/Shared/) | The host clock everything is timed on, the brand's geometry, what Visage shares with Claude Code's voice |
+| [Sources/SpokenReply/](/data/sources/visage/Sources/SpokenReply/) | Claude Code's voice: the 🔊 line of its answers, its hooks' input, the choice of a voice |
+| [Sources/VisageVoice/](/data/sources/visage/Sources/VisageVoice/) | `visage-voice`, the voice that reads Claude Code's answers, inside Visage.app |
+| [claude-code/](/data/sources/visage/claude-code/) | The Claude Code plugin: its hooks hand each answer's 🔊 line to that voice |
 | [Sources/VisageApp/](/data/sources/visage/Sources/VisageApp/) | The app: menu bar, welcome, *Connect my AI*, settings, the face's window |
 | [Resources/](/data/sources/visage/Resources/) | The ten faces, and the interface's English and French strings |
 | [Tests/](/data/sources/visage/Tests/) | Swift Testing, one folder per module |
@@ -155,7 +163,7 @@ page in your browser. **ChatGPT** works the same way, and *Another app* lists
 every app currently playing sound.
 
 <p align="center">
-    <img src="/data/doc/images/visage/connect.webp" alt="Connect my AI, with the Claude and ChatGPT cards" width="560">
+    <img src="/data/doc/images/visage/connect.webp" alt="Connect my AI, with the Claude, ChatGPT, Siri and Claude Code cards" width="560">
 </p>
 
 ### 3. Allow system audio
@@ -194,7 +202,61 @@ Visage remembers all of it. On the next launches it shows nothing more: it
 reconnects to the same app, even after that app restarts, and puts the face
 back as you left it.
 
-### 5. The settings
+### 5. Or talk to Claude Code
+
+[Claude Code](https://code.claude.com/docs/en/overview) acts on your Mac: it
+reads and edits files, runs commands, opens apps, and asks before anything
+that needs your approval. It listens, with its dictation, but never speaks.
+Visage gives it a voice, then a face:
+
+1. In Claude Code, install Visage's plugin, once:
+
+   ```
+   /plugin install visage --marketplace jul6art/macos-utils
+   ```
+
+2. In Visage, connect to **Claude Code**. Its card says whether Claude Code is
+   installed; until the plugin has run, Visage shows the command above.
+3. In Claude Code, turn on its dictation with `/voice` (`/voice tap` sends
+   what you say on its own), and talk.
+
+Claude Code works as usual, then closes each answer with a line that starts
+with 🔊: one or two sentences written to be heard, never code or paths. The
+Mac's voice reads that line, and the face speaks it. Your next request hushes
+it, and when Claude Code waits for your approval, the voice says so.
+
+<p align="center">
+    <img src="/data/doc/images/visage/claude-code.webp" alt="Visage connected to Claude Code, with the command that installs its plugin" width="560">
+</p>
+
+* **The voice** is the best one installed for the answer's language, a
+  woman's for a woman's face. Premium and enhanced voices sound far better:
+  **System Settings** → **Accessibility** → **Spoken Content** → **System
+  voice** → **Manage Voices**.
+* **Visage still reads no text.** The plugin hands each 🔊 line to Visage's
+  own voice, `visage-voice`, inside Visage.app, and Visage hears its sound as
+  it hears an app's. Without Visage connected to Claude Code, the plugin does
+  nothing.
+* **Claude Code's dictation** sends your voice to Anthropic to be transcribed,
+  and needs a claude.ai account
+  ([Voice dictation](https://code.claude.com/docs/en/voice-dictation)).
+* **Why a plugin**, rather than Visage driving Claude Code: Anthropic does not
+  let a third-party app use a claude.ai subscription, and an API key is paid.
+  With the plugin, Claude Code stays as it is, its permissions included.
+
+### 6. Or talk to Siri
+
+Turn on **Siri among the AIs** in the settings' *Conversation* card: Siri gets
+its card in *Connect my AI*. Siri must answer aloud: turn on its voice
+responses in **System Settings** → **Siri**. Connect to Siri, then ask it
+something, *"Hey Siri…"*: Visage connects at its first spoken answer.
+
+Siri lowers every other sound while it speaks, so Visage cannot mute its voice
+and play it back later. The voice plays as it is, and the face follows it live,
+a few hundredths of a second behind rather than ahead. Siri does not tell when
+it listens, so the face only speaks.
+
+### 7. The settings
 
 Visage lives in the menu bar, top right of the screen, under its sign. Its menu
 says whether it is connected, shows or hides the face, switches the face and
@@ -215,6 +277,7 @@ opens with a right click on the face.
 | | **Plinth and beam**, **Flicker and glitches** | the projector under the face; the hologram's small accidents |
 | **Conversation** | | whether your AI is listening to you right now |
 | | **Hear me through the microphone** | off by default. While your AI listens to you, Visage reads how loud your voice is, and nothing else. The face then nods at your pauses and thinks once your sentence ends |
+| | **Siri among the AIs** | off by default: shows Siri's card in *Connect my AI* (see *Or talk to Siri*) |
 | **Camera** | **Follow me with the camera** | off by default. The gaze rests on you and follows you, and the head turns a little as you move |
 | **Window** | **Floating** | the default: transparent, above every window, on every desktop |
 | | **Classic** | a plain window with a title bar and a dark background, to share or record your screen |
@@ -283,7 +346,7 @@ How it works
 ------------
 
 ```
- AI app (Claude Desktop or ChatGPT), voice mode
+ AI app (Claude Desktop, ChatGPT), or Claude Code's voice
         │ that app's sound only, muted at the output while Visage taps it
         ▼
  ┌──────────────────────── Visage ─────────────────────────┐
@@ -324,6 +387,10 @@ you stop it thinks: the gaze lifts, the lips press together.
 open, without any permission and without hearing it. Visage reads that four
 times a second, so it knows when your AI listens to you.
 
+**Claude Code and Siri.** Claude Code's voice is one process, woken by your
+request, so that Visage has found it before the answer comes. Siri's voice
+passes through: Visage analyses it without muting it.
+
 **Safe to quit.** The tap is private: if Visage quits or crashes, the AI app's
 sound comes back on its own.
 
@@ -341,6 +408,9 @@ Privacy
 * **It hears one app.** Only the AI app you chose, never your other apps.
   Visage cannot see the conversation: it never reads a text, an account or a
   token.
+* **Claude Code's plugin** hands Visage's voice one sentence per answer, the
+  🔊 line, through a socket in your own temporary folder. It is spoken, then
+  dropped.
 * **The microphone option** reads your voice's level and nothing else, only
   while your AI has its own microphone open. It closes three seconds after your
   AI's.
@@ -358,6 +428,7 @@ What it touches on the machine
 | The app | `/Applications/Visage.app`, with `--install` |
 | Settings | preference domain `com.devinthehood.visage`: the AI app, the face and every setting above |
 | Permissions | *System Audio Recording*, and *Microphone* or *Camera* if you turn those options on |
+| Claude Code's voice | a socket and a lock in your temporary folder, while it runs; the plugin, in Claude Code |
 
 No login item, no `LaunchAgents` entry, nothing else written. **Quit Visage**,
 in its menu, stops everything and gives the AI app its sound back.
@@ -369,6 +440,7 @@ Removing it
 rm -rf /Applications/Visage.app
 defaults delete com.devinthehood.visage
 tccutil reset All com.devinthehood.visage    # forget the permissions
+claude plugin uninstall visage               # the Claude Code plugin, if installed
 ```
 
 The icon
@@ -402,6 +474,9 @@ Troubleshooting
 | *"Connected to Claude"*, but the face never speaks | Claude is not speaking yet: start its **voice mode**, the sound-wave button at the bottom right of its window |
 | The face speaks only when Claude reads an answer aloud | that is dictation, the microphone button: use the voice mode for a conversation |
 | An echo, or the AI interrupts itself | none was observed with Claude's voice mode, on speakers and with the 150 ms delay. If it happens with another app, use headphones, or lower **Delay** |
+| *"Connected to Claude Code"*, but it never speaks | install the plugin (*Or talk to Claude Code*), then send Claude Code a request: Visage finds its voice at the first one |
+| Claude Code's voice sounds robotic | install a premium voice for your language: **System Settings** → **Accessibility** → **Spoken Content** |
+| Siri answers in writing, and the face stays still | turn on Siri's voice responses in **System Settings** → **Siri**; asked with the keyboard, Siri may still only write |
 | The lips are late, with Bluetooth headphones | raise **Lip offset** |
 | The face is gone | the menu bar sign → **Show the face** |
 | No sign in the menu bar | the menu bar is full: quit another item, or check that Visage runs with `pgrep Visage` |

@@ -34,7 +34,9 @@ enum Snapshots {
             let view = ConnectView(
                 state: state, connectedApp: app, apps: apps, otherApps: others, connect: { _ in },
                 showFace: {})
-            if !write(view, size: NSSize(width: 560, height: 520), to: directory.appending(path: "\(name).png")) {
+            // As high as its content, like the window, which takes its content's size.
+            let height = NSHostingView(rootView: view).fittingSize.height
+            if !write(view, size: NSSize(width: 560, height: height), to: directory.appending(path: "\(name).png")) {
                 failures += 1
             }
         }

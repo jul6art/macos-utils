@@ -19,7 +19,7 @@ Requirements
 * **macOS** (13+ for Awake and Siphon, 15+ for Visage)
 * **Command Line Tools** for the compiled utilities — `xcode-select --install`
 * **yt-dlp** and **ffmpeg** for Siphon — `brew install yt-dlp ffmpeg`
-* **Claude Desktop** or the **ChatGPT** app for Visage — it gives a face to their voice mode
+* **Claude Desktop**, the **ChatGPT** app, **Siri** or **Claude Code** for Visage — it gives a face to their voice
 
 Installation
 ------------
@@ -61,7 +61,7 @@ Utilities
 | **Custom macOS App** | Wraps any shell script into a real `.app` — the fix for GUI apps that miss your shell environment (e.g. SourceTree failing on the wrong PHP version) | [APPIFY.md](/data/doc/APPIFY.md) |
 | **Awake** | Native menu bar app that keeps the Mac and its screen awake, with durations and launch-at-login | [AWAKE.md](/data/doc/AWAKE.md) |
 | **Siphon** | Native window on top of yt-dlp: paste a link, get an MP3, M4A or MP4 — whole or just a passage — with its cover art and tags | [SIPHON.md](/data/doc/SIPHON.md) |
-| **Visage** | A hologram face for the voice of Claude or ChatGPT: lips in sync, alive between sentences, and nothing leaves the Mac | [VISAGE.md](/data/doc/VISAGE.md) |
+| **Visage** | A hologram face for the voice of Claude, ChatGPT or Siri, and a voice and a face for Claude Code: lips in sync, alive between sentences, and nothing leaves the Mac | [VISAGE.md](/data/doc/VISAGE.md) |
 
 ### Custom macOS App
 
@@ -98,6 +98,11 @@ sh data/sources/visage/build.sh --install
 ```
 
 Then open Visage, pick Claude, allow system audio, and start Claude's voice mode.
+To talk to Claude Code instead, install Visage's plugin in it:
+
+```shell
+/plugin install visage --marketplace jul6art/macos-utils
+```
 
 → [full documentation](data/doc/VISAGE.md)
 
