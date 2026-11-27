@@ -67,6 +67,12 @@ enum Snapshots {
         // The settings, their thumbnails already made (the window makes them the first time it opens).
         let model = AppModel()
         model.thumbnails = FaceLibrary.makeThumbnails(FaceLibrary.choices.map(\.id))
+        // The live preview is Metal, which an offscreen window leaves blank: a still of the same face instead.
+        if let renderer = HoloRenderer() {
+            model.previewStill = FaceLibrary.portrait(
+                FaceLibrary.model(id: model.faceID), renderer: renderer, width: 520, height: 650, seed: 1,
+                realism: Float(model.realism))
+        }
         if !write(
             SettingsView(model: model), size: NSSize(width: 860, height: 720),
             to: directory.appending(path: "settings.png"), dark: true)

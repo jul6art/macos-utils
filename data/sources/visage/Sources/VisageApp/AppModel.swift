@@ -105,6 +105,9 @@ final class AppModel {
 
     /// The settings' thumbnails, per face, made the first time they are shown.
     var thumbnails: [String: CGImage] = [:]
+    /// A still of the face in place of the live preview: for the snapshots, as an offscreen window does not
+    /// draw Metal.
+    var previewStill: CGImage?
 
     @ObservationIgnored private let defaults = UserDefaults.standard
     @ObservationIgnored private lazy var faceWindow = FaceWindowController(model: self) { [weak self] in
