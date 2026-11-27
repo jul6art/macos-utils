@@ -129,11 +129,17 @@ struct FacePreview: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            HoloView(driver: model.previewDriver)
-                .frame(width: width, height: width * 1.25)
-                .background(Color(nsColor: Palette.charbon))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Palette.brou))
+            Group {
+                if let still = model.previewStill {
+                    Image(decorative: still, scale: 1).resizable().scaledToFill()
+                } else {
+                    HoloView(driver: model.previewDriver)
+                }
+            }
+            .frame(width: width, height: width * 1.25)
+            .background(Color(nsColor: Palette.charbon))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Palette.brou))
             Text("Preview").font(.caption).foregroundStyle(Palette.cendreClaire)
         }
     }
