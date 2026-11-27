@@ -6,7 +6,8 @@ hologram (§ 8.3).
 Run by tools/faces/build.sh, inside Blender, without its interface:
     blender -b --factory-startup --python build_faces.py -- presets.json <output directory> [<face id>…]
 
-Needs Blender's MPFB extension and MakeHuman's CC0 packs: system assets and faceunits01.
+Needs Blender's MPFB extension and MakeHuman's packs: system assets, faceunits01, skins01, skins02,
+system_eye_materials01, system_hair_materials01 and 02 (CC0), and hair02 (CC-BY).
 """
 
 import json

@@ -12,12 +12,12 @@
   "weight": 0.45,
   "muscle": 0.45,
   "proportions": 0.9,
-  "hair": "long01",
+  "hair": "elvs_ashley_may_hair",
   "hairColour": "#3a2416",
   "eyebrows": "eyebrow005",
   "browColour": "#3a2618",
   "eyelashes": "eyelashes02",
-  "eyes": "bluegreen",
+  "eyes": "bobby_03_diffuse_sea_breeze_eyes",
   "features": {
    "eyes/l-eye-scale-incr": 0.12,
    "eyes/r-eye-scale-incr": 0.12,
@@ -31,7 +31,8 @@
    "chin/chin-width-decr": 0.25,
    "head/head-oval": 0.4,
    "eyebrows/eyebrows-trans-down": 0.15
-  }
+  },
+  "skin": "toigo_light_skin_female_freckles"
  },
  {
   "id": "amara",
@@ -85,7 +86,7 @@
   "eyebrows": "eyebrow012",
   "browColour": "#1c1614",
   "eyelashes": "eyelashes02",
-  "eyes": "brown",
+  "eyes": "mindfront_brown_eye_02",
   "features": {
    "eyes/l-eye-scale-incr": 0.08,
    "eyes/r-eye-scale-incr": 0.08,
@@ -99,7 +100,9 @@
    "chin/chin-width-decr": 0.25,
    "head/head-oval": 0.4,
    "eyebrows/eyebrows-trans-down": 0.15
-  }
+  },
+  "skin": "cutoff3d_indian_female_skin",
+  "hairMaterial": "toigo_long_01_black"
  },
  {
   "id": "ines",
@@ -114,12 +117,12 @@
   "weight": 0.5,
   "muscle": 0.5,
   "proportions": 0.9,
-  "hair": "ponytail01",
+  "hair": "elvs_hazel_hair",
   "hairColour": "#2b1b12",
   "eyebrows": "eyebrow008",
   "browColour": "#2e2018",
   "eyelashes": "eyelashes02",
-  "eyes": "brownlight",
+  "eyes": "bobby_03_diffuse_hazel_eyes",
   "features": {
    "eyes/l-eye-scale-incr": 0.12,
    "eyes/r-eye-scale-incr": 0.12,
@@ -133,7 +136,8 @@
    "chin/chin-width-decr": 0.25,
    "head/head-oval": 0.4,
    "eyebrows/eyebrows-trans-down": 0.15
-  }
+  },
+  "skin": "callharvey3d_midtoned_female"
  },
  {
   "id": "helene",
@@ -153,7 +157,7 @@
   "eyebrows": "eyebrow001",
   "browColour": "#8a8079",
   "eyelashes": "eyelashes01",
-  "eyes": "blue",
+  "eyes": "bobby_03_diffuse_grey_eyes",
   "features": {
    "eyes/l-eye-scale-incr": 0.12,
    "eyes/r-eye-scale-incr": 0.12,
@@ -167,7 +171,9 @@
    "chin/chin-width-decr": 0.25,
    "head/head-oval": 0.4,
    "eyebrows/eyebrows-trans-down": 0.15
-  }
+  },
+  "skin": "onlytheghosts_old_eurasian_female",
+  "hairMaterial": "bogdan666_short_02_gray"
  },
  {
   "id": "hugo",
@@ -182,12 +188,11 @@
   "weight": 0.45,
   "muscle": 0.55,
   "proportions": 0.9,
-  "hair": "short02",
-  "hairColour": "#5e4430",
+  "hair": "short01",
   "eyebrows": "eyebrow004",
   "browColour": "#4a3526",
   "eyelashes": "eyelashes01",
-  "eyes": "green",
+  "eyes": "bobby_03_diffuse_blue_eyes",
   "features": {
    "chin/chin-prominent-incr": 0.3,
    "cheek/l-cheek-bones-incr": 0.25,
@@ -198,7 +203,9 @@
    "mouth/mouth-lowerlip-volume-incr": 0.1,
    "eyebrows/eyebrows-trans-down": 0.25,
    "head/head-scale-horiz-decr": 0.12
-  }
+  },
+  "skin": "toigo_light_skin_male_freckles",
+  "hairMaterial": "jartur69_short01_brown"
  },
  {
   "id": "kofi",
@@ -218,7 +225,7 @@
   "eyebrows": "eyebrow009",
   "browColour": "#1a1210",
   "eyelashes": "eyelashes01",
-  "eyes": "brown",
+  "eyes": "mindfront_brown_eye_02",
   "features": {
    "chin/chin-prominent-incr": 0.3,
    "cheek/l-cheek-bones-incr": 0.25,
@@ -246,12 +253,12 @@
   "weight": 0.45,
   "muscle": 0.5,
   "proportions": 0.9,
-  "hair": "short04",
-  "hairColour": "#141114",
+  "hair": "short01",
+  "hairColour": "#161113",
   "eyebrows": "eyebrow012",
   "browColour": "#1a1514",
   "eyelashes": "eyelashes01",
-  "eyes": "brown",
+  "eyes": "mindfront_brown_eye_02",
   "features": {
    "chin/chin-prominent-incr": 0.3,
    "cheek/l-cheek-bones-incr": 0.25,
@@ -262,7 +269,8 @@
    "mouth/mouth-lowerlip-volume-incr": 0.1,
    "eyebrows/eyebrows-trans-down": 0.25,
    "head/head-scale-horiz-decr": 0.12
-  }
+  },
+  "hairMaterial": "jartur69_short01_brown"
  },
  {
   "id": "malik",
@@ -278,11 +286,11 @@
   "muscle": 0.55,
   "proportions": 0.9,
   "hair": "short04",
-  "hairColour": "#38322e",
+  "hairColour": "#1d1510",
   "eyebrows": "eyebrow009",
   "browColour": "#2a221e",
   "eyelashes": "eyelashes01",
-  "eyes": "brownlight",
+  "eyes": "bobby_03_diffuse_amber_eyes",
   "features": {
    "chin/chin-prominent-incr": 0.3,
    "cheek/l-cheek-bones-incr": 0.25,
@@ -293,7 +301,8 @@
    "mouth/mouth-lowerlip-volume-incr": 0.1,
    "eyebrows/eyebrows-trans-down": 0.25,
    "head/head-scale-horiz-decr": 0.12
-  }
+  },
+  "hairMaterial": "toigo_short_04_brown"
  },
  {
   "id": "bernard",
@@ -313,7 +322,7 @@
   "eyebrows": "eyebrow001",
   "browColour": "#8d857e",
   "eyelashes": "eyelashes01",
-  "eyes": "grey",
+  "eyes": "bobby_03_diffuse_grey_eyes",
   "features": {
    "chin/chin-prominent-incr": 0.3,
    "cheek/l-cheek-bones-incr": 0.25,
@@ -324,6 +333,7 @@
    "mouth/mouth-lowerlip-volume-incr": 0.1,
    "eyebrows/eyebrows-trans-down": 0.25,
    "head/head-scale-horiz-decr": 0.12
-  }
+  },
+  "hairMaterial": "jartur69_short01_brown"
  }
 ]

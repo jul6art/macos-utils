@@ -286,7 +286,7 @@ random intervals), so that nothing repeats.
 
 | | **MakeHuman (MPFB2)** | MetaHuman (Epic) | Rocketbox (Microsoft) |
 |---|---|---|---|
-| Licence | **CC0**: free redistribution, no attribution | Unreal Engine's licence. Usable outside Unreal since 2025, but the files stay under Epic's licence: they cannot be put under MIT, and redistributing them raw in a public repository is not clearly allowed. A moving licence: an AI clause added in June 2025, lifted in October 2026. | MIT |
+| Licence | **CC0**: free redistribution, no attribution; the community's packs add CC0 skins, irises and hair materials, and hairstyles under CC-BY (attribution) | Unreal Engine's licence. Usable outside Unreal since 2025, but the files stay under Epic's licence: they cannot be put under MIT, and redistributing them raw in a public repository is not clearly allowed. A moving licence: an AI clause added in June 2025, lifted in October 2026. | MIT |
 | Community | active: official Blender extension, MPFB 2.0.16 in June 2026 | huge | repository archived on 2026-10-02 |
 | Realism | good for shapes, average for skin | the best | low (2010s, few polygons) |
 | 52 ARKit shapes | **native** (faceunits01 pack) | to bake from the ARKit mapping pose, in Unreal | yes (added in 2022) |
@@ -304,11 +304,19 @@ live, with a fade, even while it speaks.
 
 **What pushes the realism**:
 - separate eyes that turn with the gaze; eyelashes and brows, laid softly over the skin;
-- hair (CC0 assets), rendered as hologram strands;
+- skins, irises and hair from the community's packs: MakeHuman's own skins are smooth and pale at the lips,
+  its irises flat, its hair a helmet with a hard edge on the forehead. Freckled or warmer skins (`skins01`,
+  `skins02`), finer irises (`system_eye_materials01`), finer materials for MakeHuman's short and long
+  styles (`system_hair_materials01` and `02`), all CC0; and two styles by Elvaerwyn that fall naturally,
+  Léa's and Inès's (`hair02`, CC-BY, credited in `data/doc/VISAGE.md`). Other styles of the pack were
+  tried and left: a fringe of separate strands that falls over the eyes goes whole when the hair is tidied, and the
+  forehead is left bare;
+- hair rendered as hologram strands;
 - teeth and a tongue that follow the jaw: each faceunits01 shape is refitted on them and saved as a shape of
   their own, so they move like the head;
-- per-face settings in `presets.json`: MakeHuman's weighted targets (`features`), `proportions`, and the
-  colours of the hair, the brows and the skin;
+- per-face settings in `presets.json`: MakeHuman's weighted targets (`features`), `proportions`, the
+  `skin`, the irises (`eyes`), the hair and its material (`hair`, `hairMaterial`), and the colours of the
+  hair and the brows;
 - at rest, relaxed eyelids and a hint of a smile.
 
 Not done yet, to be judged on the blind test (R6) first: subdivision at export, a normal map taken from a
@@ -320,7 +328,8 @@ CC0 skin, the cornea and its wet reflection. The pack's textures serve the reali
 ```
 tools/faces/
   presets.json         the 10 faces: MakeHuman settings (gender, age, origins, weight, muscle),
-                       weighted targets, proportions, hair, brows, lashes, colours
+                       weighted targets, proportions, skin, irises, hair and its material, brows,
+                       lashes, colours
   build_faces.py       Blender with no interface (blender -b -P): creates each face with MPFB2, bakes its
                        morphology, adds eyes, brows, lashes, teeth, tongue and hair, loads the 52 shapes,
                        saves them on each object, keeps the head and the neck (25 cm), removes the hidden
@@ -413,7 +422,7 @@ A "Realism" slider in the settings, under the grid of faces: from 0 %, the holog
 face as real as MakeHuman allows.
 
 - **The surface**: the triangles of each part, textured (skin, iris, hair, brows, lashes, teeth, tongue:
-  the pack's CC0 textures, reduced; the skin, a whole-body texture, cropped to the head), lit by a key light
+  the packs' textures, reduced; the skin, a whole-body texture, cropped to the head), lit by a key light
   at the top left, a fill light on the right and a rim. The skin is a little warm in the shadows, the eye
   has a sharp highlight. Hair, brows and lashes are cut out where their texture is transparent.
 - **The blend**: the surface rises with the gauge, first tinted with the hologram's colour, then in its true
@@ -630,7 +639,7 @@ the same gate.
   the face in the menu and the settings, sheet of the faces (`Visage --snapshot`) and silent videos
   (`--face <id> --mute`), depth pre-pass, tidied hair, thumbnail grid and fade on changing faces, realism
   gauge (§ 8.3); then the faces reworked: eyes, hair, teeth, features, soft brows and lashes, a relaxed face
-  at rest. The blind test (R6) remains.
+  at rest; then dressed from the community's packs (skins, irises, hair). The blind test (R6) remains.
 - **Lot 6** done but for the measurements of § 11.3: windows in front, two modes, welcome and settings in
   the charter with the animated logo and the preview, face size, back to the state left, false permission
   alert fixed; robustness (restart after sleep or when the capture freezes, a helper born after

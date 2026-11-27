@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #
 # Builds Visage's ten faces into Resources/Faces (spec, § 8.1). Needs Blender, its MPFB extension, and
-# MakeHuman's CC0 packs (system assets, faceunits01) — only to rebuild the faces: the app never needs them.
+# MakeHuman's packs: system assets, faceunits01, skins01, skins02, system_eye_materials01,
+# system_hair_materials01 and 02 (CC0), and hair02 (CC-BY) — only to rebuild the faces: the app never needs
+# them.
 #
 #   sh tools/faces/build.sh            # the ten faces
 #   sh tools/faces/build.sh lea hugo   # only these
