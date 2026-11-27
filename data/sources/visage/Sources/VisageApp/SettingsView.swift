@@ -41,25 +41,7 @@ struct SettingsView: View {
                             WindowModeChoice(model: model)
                         }
                         BrandCard(title: String(localized: "Sync")) {
-                            MillisecondsSlider(
-                                title: String(localized: "Delay"), value: model.delayMilliseconds, range: 80...300,
-                                help: String(
-                                    localized:
-                                        "How long the voice waits for the face to read ahead. Unnoticeable in a conversation."
-                                )
-                            ) { model.delayMilliseconds = $0 }
-                            MillisecondsSlider(
-                                title: String(localized: "Anticipation"), value: model.anticipationMilliseconds,
-                                range: 0...120,
-                                help: String(localized: "How early the lips move before the sound, as in a real face.")
-                            ) { model.anticipationMilliseconds = $0 }
-                            MillisecondsSlider(
-                                title: String(localized: "Lip offset"), value: model.extraLatencyMilliseconds,
-                                range: -100...300,
-                                help: String(
-                                    localized: "For Bluetooth headphones, which play the sound later than the speakers."
-                                )
-                            ) { model.extraLatencyMilliseconds = $0 }
+                            SyncSettings(model: model)
                         }
                     }
                     .padding(.bottom, 24)
@@ -77,6 +59,27 @@ struct SettingsView: View {
         guard let app = model.connection.app else { return String(localized: "Not connected") }
         return model.connection.state == .connected
             ? String(localized: "Connected to \(app.name)") : String(localized: "Waiting for \(app.name)")
+    }
+}
+
+/// The sync: how long the voice waits, how early the lips move, and the offset for Bluetooth headphones.
+struct SyncSettings: View {
+    let model: AppModel
+
+    var body: some View {
+        MillisecondsSlider(
+            title: String(localized: "Delay"), value: model.delayMilliseconds, range: 80...300,
+            help: String(
+                localized: "How long the voice waits for the face to read ahead. Unnoticeable in a conversation.")
+        ) { model.delayMilliseconds = $0 }
+        MillisecondsSlider(
+            title: String(localized: "Anticipation"), value: model.anticipationMilliseconds, range: 0...120,
+            help: String(localized: "How early the lips move before the sound, as in a real face.")
+        ) { model.anticipationMilliseconds = $0 }
+        MillisecondsSlider(
+            title: String(localized: "Lip offset"), value: model.extraLatencyMilliseconds, range: -100...300,
+            help: String(localized: "For Bluetooth headphones, which play the sound later than the speakers.")
+        ) { model.extraLatencyMilliseconds = $0 }
     }
 }
 
