@@ -20,6 +20,7 @@ final class LiveVoice: @unchecked Sendable {
     private let lock = NSLock()
     private var store = [VoiceFrame?](repeating: nil, count: 1024)
     private var sharedHopFrames = 480
+    private var sharedLatestHop = -1
 
     /// Frames the analysis may still rewrite after first publishing them (closures, lips): republished.
     private static let settling = 24
@@ -33,6 +34,7 @@ final class LiveVoice: @unchecked Sendable {
             self.lock.withLock {
                 self.store = [VoiceFrame?](repeating: nil, count: self.store.count)
                 self.sharedHopFrames = self.analyzer?.hopFrames ?? 480
+                self.sharedLatestHop = -1
             }
             if capture == nil {
                 self.timer?.cancel()
@@ -46,6 +48,9 @@ final class LiveVoice: @unchecked Sendable {
             }
         }
     }
+
+    /// The last hop analysed; -1 before the first.
+    var latestHop: Int { lock.withLock { sharedLatestHop } }
 
     /// The frame of hop `hop`, if analysed and still kept.
     func frame(atHop hop: Int) -> VoiceFrame? {
@@ -82,6 +87,7 @@ final class LiveVoice: @unchecked Sendable {
         }
         lock.withLock {
             for frame in fresh { store[frame.hop % store.count] = frame }
+            sharedLatestHop = latest
         }
     }
 }

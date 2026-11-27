@@ -60,7 +60,8 @@ final class FaceDriver: NSObject, MTKViewDelegate {
             let extraLatency = Double(model.extraLatencyMilliseconds) / 1000
             if let heard = capture.heardFrame(at: displayed, extraLatency: extraLatency) {
                 let ahead = heard + Double(model.anticipationMilliseconds) / 1000 * capture.sampleRate
-                frame = voice.frame(atHop: Int(ahead) / voice.hopFrames)
+                // Never past the analysis: a sound passed through (Siri) gives it no lead to read ahead in.
+                frame = voice.frame(atHop: min(Int(ahead) / voice.hopFrames, voice.latestHop))
             }
         }
         let heard = preview || !model.microphone ? nil : model.microphoneLevel.personVoiced

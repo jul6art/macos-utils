@@ -41,7 +41,7 @@ struct MatchingTests {
 
     @Test("The known apps and their download pages")
     func knownApps() {
-        #expect(AIApp.known.map(\.id) == ["claude", "chatgpt", "claudecode"])
+        #expect(AIApp.known.map(\.id) == ["claude", "chatgpt", "siri", "claudecode"])
         #expect(AIApp.claude.downloadURL?.host == "claude.ai")
         #expect(AIApp.other("com.example.voice", name: "Example").id == "other:com.example.voice")
     }
@@ -57,6 +57,15 @@ struct MatchingTests {
         #expect(
             AudioProcesses.matching(AIApp.claudeCode.bundleIDs[0], in: [helper, process("com.devinthehood.visage")])
                 == [helper])
+    }
+
+    @Test("Siri is its speech service, which connecting never opens")
+    func siri() {
+        #expect(AIApp.siri.bundleIDs == ["com.apple.sirittsd"])
+        #expect(!AIApp.siri.opensOnConnect)
+        let service = process(
+            "com.apple.sirittsd", executable: "/System/Library/PrivateFrameworks/SiriTTSService.framework/sirittsd")
+        #expect(AudioProcesses.matching("com.apple.sirittsd", in: [service, process("com.apple.Siri")]) == [service])
     }
 
     @Test("Claude Code's dictation listens through the claude process, whatever installed it")

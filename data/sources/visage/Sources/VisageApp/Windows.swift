@@ -88,7 +88,10 @@ final class ConnectWindowController {
             contentRect: NSRect(x: 0, y: 0, width: 560, height: 420),
             styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = String(localized: "Connect my AI")
-        window.contentView = NSHostingView(rootView: ConnectScreen(model: model))
+        // The window takes the screen's height: four cards, and a status line that may grow to two lines.
+        let controller = NSHostingController(rootView: ConnectScreen(model: model))
+        controller.sizingOptions = [.preferredContentSize]
+        window.contentViewController = controller
         window.isReleasedWhenClosed = false
         BrandWindow.style(window)
         window.center()

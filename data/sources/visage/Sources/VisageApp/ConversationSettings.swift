@@ -36,6 +36,14 @@ struct ConversationSettings: View {
             default:
                 EmptyView()
             }
+            Divider()
+            Toggle("Siri among the AIs", isOn: Binding(get: { model.siri }, set: { model.siri = $0 }))
+                .toggleStyle(.switch)
+            Text(
+                "Siri gets its card in « Connect my AI ». It must answer aloud: System Settings, Siri, voice responses. Its voice plays as it is, and the face follows it without reading ahead."
+            )
+            .font(.caption).foregroundStyle(Palette.cendreClaire)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
