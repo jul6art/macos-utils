@@ -124,7 +124,7 @@ def recolour_iris(image, hue, keep):
 def skin_folder(preset):
     """MakeHuman's skins come by age, origin and gender: the nearest to the preset."""
     age = "young" if preset["age"] < 35 else "middleage" if preset["age"] < 55 else "old"
-    origin = ["asian", "caucasian", "african"][max(range(3), key=lambda index: preset["race"][index])]
+    origin = ["asian", "caucasian", "african"][max(range(3), key=lambda index: preset["origins"][index])]
     return os.path.join("skins", f"{age}_{origin}_{'female' if preset['gender'] < 0.5 else 'male'}")
 
 
@@ -216,7 +216,9 @@ def phenotype(preset):
     macro["muscle"] = preset["muscle"]
     # MakeHuman's « proportions »: 0.5 is the average body, 1 the idealised one.
     macro["proportions"] = preset.get("proportions", 0.5)
-    asian, caucasian, african = preset["race"]
+    # A preset's « origins » are MakeHuman's three ethnic morphologies, mixed in these shares (asian,
+    # caucasian, african); MakeHuman's own name for that setting is « race ».
+    asian, caucasian, african = preset["origins"]
     macro["race"] = {"asian": asian, "caucasian": caucasian, "african": african}
     return macro
 
