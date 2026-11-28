@@ -21,6 +21,8 @@ enum HoloShaders {
             float halo;
             float scanlines;
             float4 background;
+            float backdrop;
+            float4 screen;
         };
 
         // 1. The points: round, larger and brighter towards the rim (the Fresnel light, § 8.2).
@@ -133,6 +135,47 @@ enum HoloShaders {
         }
 
         static float hash(float n) { return fract(sin(n) * 43758.5453); }
+        static float hash2(float2 p) { return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453); }
+
+        // The night behind the face (§ 9.4): its own, in the spirit of a rainy city seen from high up, never a
+        // picture of one. Dark enough for the hologram to stand out: a deep petrol blue, an amber haze low down,
+        // far lights blurred by distance, a fine rain. Drawn in the screen's coordinates (q, in screen heights,
+        // y up): two faces side by side share one night.
+        static float3 night(float2 q, float aspectOfScreen, float time) {
+            float3 colour = mix(float3(0.05, 0.1, 0.13), float3(0.01, 0.014, 0.024), saturate(q.y));
+            // The haze, warm where the city glows, cooler above.
+            colour += float3(0.62, 0.27, 0.07) * 0.26 * exp(-pow((q.y - 0.1) / 0.24, 2.0));
+            colour += float3(0.06, 0.22, 0.27) * 0.1 * exp(-pow((q.y - 0.55) / 0.3, 2.0));
+            // Far lights: three depths of soft discs, denser towards the city below.
+            for (int layer = 0; layer < 3; layer++) {
+                float cells = 9.0 + 7.0 * float(layer);
+                float2 g = q * cells + float2(float(layer) * 17.3, 0.0);
+                float2 cell = floor(g);
+                float pick = hash2(cell + float(layer) * 31.7);
+                float lowness = saturate(1.0 - q.y * 1.4);
+                if (pick < 0.16 + 0.34 * lowness) {
+                    float2 centre = cell + 0.25 + 0.5 * float2(hash2(cell + 3.1), hash2(cell + 7.7));
+                    float d = length(g - centre);
+                    float size = 0.08 + 0.2 * hash2(cell + 11.0) * (1.0 - 0.25 * float(layer));
+                    float glow = exp(-pow(d / size, 2.0)) * (0.35 + 0.65 * hash2(cell + 5.0));
+                    float hue = hash2(cell + 13.0);
+                    float3 tint = hue < 0.55 ? float3(1.0, 0.62, 0.28) : (hue < 0.85 ? float3(0.35, 0.85, 0.95)
+                        : float3(0.95, 0.4, 0.62));
+                    float twinkle = 0.85 + 0.15 * sin(time * (0.6 + hue) + pick * 40.0);
+                    colour += tint * glow * twinkle * (0.16 + 0.14 * lowness) / (1.0 + 0.6 * float(layer));
+                }
+            }
+            // Rain: fine streaks falling slowly, barely there.
+            float column = floor(q.x * 260.0);
+            float speed = 0.35 + 0.4 * hash(column);
+            float drop = fract(q.y * 1.6 + time * speed + hash(column * 3.7));
+            float streak = smoothstep(0.0, 0.02, drop) * smoothstep(0.12, 0.02, drop) * step(0.82, hash(column * 9.1));
+            colour += float3(0.4, 0.55, 0.62) * streak * 0.06;
+            // Darker towards the screen's corners.
+            float2 c = (q - float2(aspectOfScreen * 0.5, 0.5)) / float2(aspectOfScreen, 1.0);
+            colour *= 1.0 - 0.55 * dot(c, c);
+            return colour;
+        }
 
         fragment float4 compositeFragment(FullOut in [[stage_in]], texture2d<float> scene [[texture(0)]],
                                           constant Uniforms& u [[buffer(1)]]) {
@@ -174,6 +217,11 @@ enum HoloShaders {
                 col.a = max(col.a, (plinth + beam) * hologram);
             }
             float alpha = saturate(max(col.a, max(col.r, max(col.g, col.b))));
+            if (u.backdrop > 0.5) {
+                float2 local = float2(in.position.x, u.viewport.y - in.position.y);
+                float2 q = (u.screen.xy + local) / u.screen.w;
+                return float4(col.rgb + night(q, u.screen.z / u.screen.w, u.time) * (1.0 - alpha), 1.0);
+            }
             float3 rgb = col.rgb + u.background.rgb * u.background.a * (1.0 - alpha);
             return float4(rgb, alpha + u.background.a * (1.0 - alpha));
         }

@@ -92,6 +92,16 @@ final class FaceDriver: NSObject, MTKViewDelegate {
         settings.projector = face.projector
         settings.glitches = face.glitches
         settings.viewer = viewer
+        settings.backdrop = face.backdrop
+        // The night is drawn in the screen's coordinates: two faces side by side share one.
+        if face.backdrop, let window = view.window, let screen = window.screen {
+            let scale = Float(screen.backingScaleFactor)
+            let frame = window.convertToScreen(view.convert(view.bounds, to: nil))
+            settings.screenOrigin =
+                SIMD2(
+                    Float(frame.minX - screen.frame.minX), Float(frame.minY - screen.frame.minY)) * scale
+            settings.screenSize = SIMD2(Float(screen.frame.width), Float(screen.frame.height)) * scale
+        }
         renderer.encode(
             pose: pose, time: now - start, settings: settings, into: drawable.texture, commandBuffer: commandBuffer)
         commandBuffer.present(drawable)

@@ -20,9 +20,15 @@ public struct HoloSettings: Sendable {
     public var halo: Float = 1
     public var scanlines: Float = 1
     public var glitches = true
-    /// Where the viewer stands, seen from the screen (x right, y up, −1 to 1): the head turns as an object
-    /// behind the glass would, showing the side they move to (§ 8.2, point 7, the parallax).
+    /// Where the viewer stands, seen from the screen (x right, y up, −1 to 1): the head turns towards them
+    /// (§ 8.2, point 7, the parallax).
     public var viewer = SIMD2<Float>.zero
+    /// A night behind the face (§ 9.4): a hologram's fine light is lost on a pale or busy desktop.
+    public var backdrop = false
+    /// Where the drawing sits on its screen, in pixels from the screen's bottom left, and the screen's size:
+    /// the night is drawn in the screen's coordinates, so that two faces side by side share one.
+    public var screenOrigin = SIMD2<Float>.zero
+    public var screenSize = SIMD2<Float>.zero
 
     public init() {}
 
@@ -139,6 +145,9 @@ public final class HoloRenderer: @unchecked Sendable {
         var halo: Float
         var scanlines: Float
         var background: SIMD4<Float>
+        var backdrop: Float
+        /// The drawing's origin on its screen (x, y, pixels, from the bottom left), and the screen's size.
+        var screen: SIMD4<Float>
     }
 
     public init?(model: HeadModel = PointHeadModel(), pixelFormat: MTLPixelFormat = .bgra8Unorm) {
@@ -373,7 +382,11 @@ public final class HoloRenderer: @unchecked Sendable {
             pointScale: Float(height) * 0.0062 * model.pointScale,
             glitch: settings.glitches ? (elapsed < 0.1 ? 1 : Self.glitch(time)) : 0,
             projector: settings.projector ? 1 : 0, realism: model.surfaces.isEmpty ? 0 : settings.realism,
-            halo: settings.halo, scanlines: settings.scanlines, background: settings.background)
+            halo: settings.halo, scanlines: settings.scanlines, background: settings.background,
+            backdrop: settings.backdrop ? 1 : 0,
+            screen: settings.screenSize.y > 0
+                ? SIMD4(lowHalf: settings.screenOrigin, highHalf: settings.screenSize)
+                : SIMD4(0, 0, Float(width), Float(height)))
 
         let light = MTLRenderPassDescriptor()
         light.colorAttachments[0].texture = scene
@@ -483,12 +496,17 @@ public final class HoloRenderer: @unchecked Sendable {
 
     // MARK: - Camera and light
 
-    /// A slightly long lens, looking at the face from the front; head and neck fill the frame.
-    private static func viewProjection(aspect: Float) -> simd_float4x4 {
+    /// The face's own window, 420 by 520: narrower, the head is fitted to the width.
+    static let frameAspect: Float = 420.0 / 520.0
+
+    /// A slightly long lens, looking at the face from the front; head and neck fill the frame's height, or
+    /// its width when it is narrower than the face's own window: the head stays whole and centred, however
+    /// the window is shaped (half a screen, a whole one, a thin column).
+    static func viewProjection(aspect: Float) -> simd_float4x4 {
         let fovY: Float = 28 * .pi / 180
         let distance: Float = 6.4
         let centreY: Float = -0.35
-        let scaleY = 1 / tan(fovY / 2)
+        let scaleY = 1 / tan(fovY / 2) * min(1, aspect / frameAspect)
         let scaleX = scaleY / aspect
         let near: Float = 1
         let far: Float = 20

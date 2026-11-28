@@ -59,6 +59,11 @@ final class FaceSlot: Identifiable {
             window.apply(windowMode)
         }
     }
+    /// A night behind the face, in either window mode (spec, § 9.4): on a pale or busy desktop, the
+    /// hologram's fine light was lost.
+    var backdrop: Bool {
+        didSet { changed() }
+    }
     /// Whether the face is on screen: the next launch puts it back as it was left.
     var faceShown: Bool {
         didSet { changed() }
@@ -88,6 +93,7 @@ final class FaceSlot: Identifiable {
         static let glitches = "glitches"
         static let windowMode = "windowMode"
         static let faceShown = "faceShown"
+        static let backdrop = "backdrop"
     }
 
     /// A face from its saved settings: an entry of `faces`, or the settings Visage kept before there could
@@ -107,6 +113,7 @@ final class FaceSlot: Identifiable {
         glitches = settings[Key.glitches] as? Bool ?? true
         windowMode = WindowMode(rawValue: settings[Key.windowMode] as? String ?? "") ?? .floating
         faceShown = settings[Key.faceShown] as? Bool ?? true
+        backdrop = settings[Key.backdrop] as? Bool ?? false
     }
 
     /// What is saved of it, in `faces`; Claude Code's voice reads `source` and `face` there.
@@ -115,6 +122,7 @@ final class FaceSlot: Identifiable {
             Key.id: id, Key.face: faceID, Key.realism: realism, Key.faceScale: faceScale,
             Key.holoColour: holoColour.rawValue, Key.halo: halo, Key.scanlines: scanlines, Key.projector: projector,
             Key.glitches: glitches, Key.windowMode: windowMode.rawValue, Key.faceShown: faceShown,
+            Key.backdrop: backdrop,
         ]
         if let source { settings[Key.source] = source }
         return settings

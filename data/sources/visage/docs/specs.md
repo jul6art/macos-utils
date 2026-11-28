@@ -563,6 +563,19 @@ menu bar or the settings.
   sound comes through (`log show --predicate 'subsystem == "com.devinthehood.visage"' --info`). On the
   first try with two faces, Siri's stayed still, and nothing could tell which capture failed.
 
+### 9.4 A night behind the face (2026-11-28)
+
+- **Why**: on a pale desktop, or a busy wallpaper, the hologram's fine light was lost; the floating mode, the
+  best one, became useless there.
+- **What**: an option per face, "A night behind the face", in either window mode: a dark city night in the
+  spirit of a rainy metropolis seen from high up, drawn by the shader and never copied from a picture: a deep
+  petrol blue, an amber haze low down, far lights blurred by distance that barely twinkle, a fine rain, darker
+  towards the screen's corners.
+- **One night for two faces**: it is drawn in the screen's coordinates, not the window's. Two faces side by
+  side, each on half the screen (Rectangle's shortcuts, or by hand), share one continuous night.
+- **The head stays whole and centred**: it fills the window's height, or its width when the window is
+  narrower than the face's own (420 by 520); a whole screen, half of one or a thin column frame it alike.
+
 ## 10. Technical architecture
 
 ### 10.1 In `macos-utils`
