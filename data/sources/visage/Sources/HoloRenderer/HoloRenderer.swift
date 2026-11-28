@@ -84,6 +84,10 @@ public final class HoloRenderer: @unchecked Sendable {
         /// How much the contact shadows darken it: fully the skin, a third of the hair (full, they put out the
         /// curls of an afro).
         var shade: Float = 1
+        /// How dark its deepest shadows go, where no lamp reaches: the inside of the mouth.
+        var cavity: Float = 0
+        /// How much its pale, unsaturated texels go ivory: the teeth, painted grey.
+        var whiten: Float = 0
     }
     /// The head drawn: the charter's point head, or a MakeHuman face. Set, it shows at once; `fade(to:)`
     /// changes it gently.
@@ -246,16 +250,23 @@ public final class HoloRenderer: @unchecked Sendable {
             let look: SurfaceLook =
                 switch surface.material {
                 case .skin:
-                    SurfaceLook(shine: 0.06, sharpness: 24, warmth: 0.5, opacity: 1, rim: 0.12, tone: 1, soft: 0)
+                    SurfaceLook(
+                        shine: 0.06, sharpness: 24, warmth: 0.5, opacity: 1, rim: 0.12, tone: 1, soft: 0, cavity: 0.85)
                 case .eye: SurfaceLook(shine: 0.9, sharpness: 300, warmth: 0, opacity: 1, rim: 0, tone: 1, soft: 0)
                 // A broad, faint sheen: a sharp one made a plastic helmet of the darkest hair, in grey bands.
                 case .hair:
                     SurfaceLook(
                         shine: 0.012, sharpness: 6, warmth: 0.15, opacity: 1, rim: 0.02, tone: 1, soft: 0, shade: 0.3)
+                // The tongue, in the mouth's shade: darker than its texture, a moist glint.
                 case .matte:
-                    SurfaceLook(shine: 0.02, sharpness: 10, warmth: 0.2, opacity: 1, rim: 0.04, tone: 1, soft: 0)
+                    SurfaceLook(
+                        shine: 0.05, sharpness: 30, warmth: 0.3, opacity: 1, rim: 0, tone: 0.62, soft: 0, cavity: 1)
+                // Enamel: pale, a small gloss, only half darkened by the contact shadows, which baked with the
+                // whole face had made them grey, nearly black.
                 case .teeth:
-                    SurfaceLook(shine: 0.08, sharpness: 40, warmth: 0.1, opacity: 1, rim: 0, tone: 0.78, soft: 0)
+                    SurfaceLook(
+                        shine: 0.07, sharpness: 50, warmth: 0.1, opacity: 1, rim: 0, tone: 0.97, soft: 0, shade: 0.4,
+                        cavity: 0.5, whiten: 1)
                 case .fine: SurfaceLook(shine: 0.01, sharpness: 8, warmth: 0.1, opacity: 1, rim: 0, tone: 1, soft: 1)
                 }
             let cull: MTLCullMode = surface.material == .skin || surface.material == .eye ? .back : .none
