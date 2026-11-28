@@ -64,20 +64,35 @@ public struct HookInput: Decodable, Sendable {
     public var lastAssistantMessage: String?
     /// The kind of a notification (Notification): `permission_prompt` when Claude Code waits for a yes.
     public var notificationType: String?
+    /// The conversation the hook runs for: every hook receives it.
+    public var sessionID: String?
 
     enum CodingKeys: String, CodingKey {
         case lastAssistantMessage = "last_assistant_message"
         case notificationType = "notification_type"
+        case sessionID = "session_id"
     }
 
-    public init(lastAssistantMessage: String? = nil, notificationType: String? = nil) {
+    public init(lastAssistantMessage: String? = nil, notificationType: String? = nil, sessionID: String? = nil) {
         self.lastAssistantMessage = lastAssistantMessage
         self.notificationType = notificationType
+        self.sessionID = sessionID
     }
 
     /// Reads it leniently: a field missing or of another shape is nil, never an error.
     public static func read(_ data: Data) -> HookInput {
         (try? JSONDecoder().decode(HookInput.self, from: data)) ?? HookInput()
+    }
+}
+
+/// Which conversation speaks: the last one the user talked to. Every session of Claude Code on the Mac runs
+/// the plugin; another one, finishing its own work, spoke over the conversation, and the user's dictation
+/// took its sentence down (2026-11-28).
+public enum VoiceTurn {
+    /// A session speaks when it is the last one prompted; with nothing known on either side, as before.
+    public static func speaks(session: String?, lastPrompted: String?) -> Bool {
+        guard let session, let lastPrompted, !lastPrompted.isEmpty else { return true }
+        return session == lastPrompted
     }
 }
 

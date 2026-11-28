@@ -142,6 +142,10 @@ Visage gives it a voice, then a face:
   Visage taps it like an app and never sees the text. It speaks with the best voice installed for the
   sentence's language, of the face's gender when one is installed, premium before enhanced. A new prompt
   hushes it; a permission prompt has it say that Claude Code waits for an answer in the terminal.
+- **One conversation speaks**: every session of Claude Code on the Mac runs the plugin. On 2026-11-28,
+  another one, finishing its own work, spoke over the conversation, and the user's dictation took its
+  sentence down. The prompt hook notes its session (`session_id`, in the temporary folder): only the
+  session last prompted speaks, the one the user talks to.
 - **One process, alive while Visage listens**: a helper born with each reply was caught late, as a tap by
   bundle ID missed it, then stayed blocked once it was gone (2026-11-27). The prompt therefore wakes the
   voice, which opens the sound output once, so that Core Audio lists it, and waits 2.5 seconds before its

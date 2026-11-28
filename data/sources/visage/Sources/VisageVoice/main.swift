@@ -51,6 +51,12 @@ enum VoiceLink {
     }()
     static let socketPath = (folder as NSString).appendingPathComponent(ClaudeCodeVoice.bundleID + ".socket")
     static let lockPath = (folder as NSString).appendingPathComponent(ClaudeCodeVoice.bundleID + ".lock")
+    /// The session last prompted: the only one that speaks (`VoiceTurn`).
+    static let sessionPath = (folder as NSString).appendingPathComponent(ClaudeCodeVoice.bundleID + ".session")
+
+    static var lastPrompted: String? {
+        (try? String(contentsOfFile: sessionPath, encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     static func address() -> sockaddr_un? {
         var address = sockaddr_un()
@@ -261,7 +267,9 @@ switch arguments.first {
 case "serve":
     Voice().run()
 case "prompt":
-    _ = readInput()
+    if let session = readInput().sessionID {
+        try? session.write(toFile: VoiceLink.sessionPath, atomically: true, encoding: .utf8)
+    }
     visage?.set(Date().timeIntervalSince1970, forKey: ClaudeCodeVoice.pluginSeenKey)
     visage?.synchronize()
     if visageListens() {
@@ -272,11 +280,15 @@ case "prompt":
         _ = VoiceLink.send(.hushing)
     }
 case "stop":
-    let reply = readInput().lastAssistantMessage
-    if visageListens(), let text = reply.flatMap(SpokenLine.speech(for:)) { VoiceLink.deliver(.saying(text)) }
+    let input = readInput()
+    if visageListens(), VoiceTurn.speaks(session: input.sessionID, lastPrompted: VoiceLink.lastPrompted),
+        let text = input.lastAssistantMessage.flatMap(SpokenLine.speech(for:))
+    {
+        VoiceLink.deliver(.saying(text))
+    }
 case "notify":
-    _ = readInput()
-    if visageListens() {
+    let input = readInput()
+    if visageListens(), VoiceTurn.speaks(session: input.sessionID, lastPrompted: VoiceLink.lastPrompted) {
         let key = "Claude Code is waiting for your answer, in the terminal."
         VoiceLink.deliver(.saying(visageBundle?.localizedString(forKey: key, value: key, table: nil) ?? key))
     }
