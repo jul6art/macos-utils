@@ -66,4 +66,15 @@ struct SpokenLineTests {
         #expect(VoiceMessage.read(VoiceMessage.hushing.data)?.hush == true)
         #expect(VoiceMessage.read(Data("nonsense".utf8)) == nil)
     }
+
+    @Test("only the conversation last prompted speaks")
+    func turn() {
+        #expect(VoiceTurn.speaks(session: "a", lastPrompted: "a"))
+        #expect(!VoiceTurn.speaks(session: "b", lastPrompted: "a"))
+        // Nothing known: as before, it speaks.
+        #expect(VoiceTurn.speaks(session: "b", lastPrompted: nil))
+        #expect(VoiceTurn.speaks(session: "b", lastPrompted: ""))
+        #expect(VoiceTurn.speaks(session: nil, lastPrompted: "a"))
+        #expect(HookInput.read(Data(#"{"session_id":"abc"}"#.utf8)).sessionID == "abc")
+    }
 }
