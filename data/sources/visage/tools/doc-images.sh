@@ -27,7 +27,7 @@ mkdir -p "${OUT}";
 visage() {
 	"${APP}" "$@" -AppleLanguages '(en)' -AppleLocale en_US -face lea -realism 0 -faceScale 1 \
 		-windowMode floating -holoColour braise -halo 1 -scanlines 1 -projector YES -glitches YES \
-		-camera NO -microphone NO -siri NO;
+		-camera NO -microphone NO -siri NO -faces '()';
 }
 
 echo "==> Screens";

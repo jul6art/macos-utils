@@ -9,19 +9,30 @@ final class FaceWindowController: NSObject, NSWindowDelegate {
     /// Told when the window closes by its own button (the classic mode's).
     private let closed: () -> Void
 
-    init(model: AppModel, closed: @escaping () -> Void) {
+    init(model: AppModel, slot: FaceSlot, closed: @escaping () -> Void) {
         window = FaceWindow(
             contentRect: NSRect(x: 0, y: 0, width: 420, height: 520),
             styleMask: [.borderless, .resizable], backing: .buffered, defer: false)
         self.closed = closed
         super.init()
-        window.contentView = NSHostingView(rootView: FaceView(model: model))
+        window.contentView = NSHostingView(rootView: FaceView(model: model, slot: slot))
         window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 200, height: 240)
         window.title = "Visage"
-        window.setFrameAutosaveName("VisageFace")
-        if !window.setFrameUsingName("VisageFace") { window.center() }
+        window.setFrameAutosaveName(slot.windowName)
+        if !window.setFrameUsingName(slot.windowName) { window.center() }
         window.delegate = self
+    }
+
+    /// A new face's place: beside another's, on the same screen.
+    func placeBeside(_ other: FaceWindowController) {
+        let anchor = other.window.frame
+        let screen = other.window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? anchor
+        var origin = NSPoint(x: anchor.maxX + 24, y: anchor.minY)
+        if origin.x + window.frame.width > screen.maxX {
+            origin.x = max(screen.minX, anchor.minX - window.frame.width - 24)
+        }
+        window.setFrameOrigin(origin)
     }
 
     var isVisible: Bool { window.isVisible }

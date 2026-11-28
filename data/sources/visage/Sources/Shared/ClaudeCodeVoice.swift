@@ -8,10 +8,12 @@ public enum ClaudeCodeVoice {
     public static let helperPath = "Contents/Helpers/visage-voice"
     /// Visage's settings domain.
     public static let visageDomain = "com.devinthehood.visage"
-    /// The saved source, and Claude Code's value there: the helper speaks only while Visage listens to it.
+    /// The faces (spec, § 9.3): one entry each, an AI and a head among their settings.
+    public static let facesKey = "faces"
+    /// A face's AI, and Claude Code's value there: the helper speaks only while a face listens to it.
     public static let sourceKey = "app"
     public static let sourceID = "claudecode"
-    /// The face shown: the helper picks a voice that suits it.
+    /// A face's head: the helper picks a voice that suits the head listening to Claude Code.
     public static let faceKey = "face"
     /// When the plugin last ran, in seconds since 1970: Visage then knows it is installed.
     public static let pluginSeenKey = "claudeCodePluginSeen"

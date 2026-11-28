@@ -26,11 +26,18 @@ let visageBundle = Bundle.main.executableURL.flatMap {
             .deletingLastPathComponent())
 }
 
-/// Visage runs, connected to Claude Code. Read afresh: the voice lives long, and Visage changes it.
-func visageListens() -> Bool {
+/// The face that listens to Claude Code, among Visage's faces (spec, § 9.3), as Visage saved them. Read
+/// afresh: the voice lives long, and Visage changes them.
+func claudeCodeFace() -> [String: Any]? {
     CFPreferencesAppSynchronize(ClaudeCodeVoice.visageDomain as CFString)
-    return !NSRunningApplication.runningApplications(withBundleIdentifier: ClaudeCodeVoice.visageDomain).isEmpty
-        && visage?.string(forKey: ClaudeCodeVoice.sourceKey) == ClaudeCodeVoice.sourceID
+    let faces = visage?.array(forKey: ClaudeCodeVoice.facesKey) as? [[String: Any]] ?? []
+    return faces.first { $0[ClaudeCodeVoice.sourceKey] as? String == ClaudeCodeVoice.sourceID }
+}
+
+/// Visage runs, and one of its faces listens to Claude Code.
+func visageListens() -> Bool {
+    !NSRunningApplication.runningApplications(withBundleIdentifier: ClaudeCodeVoice.visageDomain).isEmpty
+        && claudeCodeFace() != nil
 }
 
 /// The hook's input; read whole even when unused, so that Claude Code never writes into a closed pipe.
@@ -135,7 +142,8 @@ enum VoiceLink {
 
 // MARK: - The voice
 
-/// The face's gender, from faces.json: a woman's face gets a woman's voice when one is installed.
+/// The gender of the head listening to Claude Code, from faces.json: a woman's face gets a woman's voice
+/// when one is installed.
 func faceGender() -> VoiceInfo.Gender {
     struct Face: Decodable {
         let id: String
@@ -144,7 +152,7 @@ func faceGender() -> VoiceInfo.Gender {
     guard let url = visageBundle?.resourceURL?.appending(path: "Faces/faces.json"),
         let data = try? Data(contentsOf: url), let faces = try? JSONDecoder().decode([Face].self, from: data)
     else { return .unspecified }
-    let id = visage?.string(forKey: ClaudeCodeVoice.faceKey) ?? faces.first?.id
+    let id = claudeCodeFace()?[ClaudeCodeVoice.faceKey] as? String ?? faces.first?.id
     return VoiceChoice.gender(fromFaceValue: faces.first { $0.id == id }?.gender)
 }
 

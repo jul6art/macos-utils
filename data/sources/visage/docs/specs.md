@@ -545,6 +545,24 @@ menu bar or the settings.
   glitches), the conversation (is the AI listening? the microphone option, Siri among the AIs), the camera,
   the window (the two modes, explained), the sync (delay, anticipation, lip offset).
 
+### 9.3 Several faces (2026-11-28)
+
+- **A face each**: several faces can float at once, each with its AI, its head, its realism, its size, its
+  hologram and its window (`FaceSlot`): Claude Desktop in one, Siri in another. The sync, the camera, the
+  microphone and "Siri among the AIs" are shared.
+- **One AI, one face**: two faces on the same app would mute it and play its voice twice. Connecting a face
+  to an AI another face listens to takes it from that face; « Connect my AI » says "With another face" on
+  its card.
+- **The menu** lists one menu per face, named after its head and its AI, then "Add a face"; with a single
+  face, its items as before. A face's right click opens its own. **The settings** gain a tab per face, "Add a
+  face" and "Remove this face"; their cards show the selected face, but for the shared ones.
+- **Saved** as `faces`, an entry per face; the first one's window keeps its place. The settings Visage kept
+  before, each under its own name, become the first face. Claude Code's voice reads `faces` to know whether
+  a face listens to Claude Code, and which head.
+- **A log**, at last: each connection writes its states, its taps and, while its app plays, whether its
+  sound comes through (`log show --predicate 'subsystem == "com.devinthehood.visage"' --info`). On the
+  first try with two faces, Siri's stayed still, and nothing could tell which capture failed.
+
 ## 10. Technical architecture
 
 ### 10.1 In `macos-utils`

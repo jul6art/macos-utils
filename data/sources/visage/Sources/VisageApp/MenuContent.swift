@@ -3,39 +3,61 @@ import AudioSource
 import Shared
 import SwiftUI
 
-/// The menu bar menu (and the face's context menu).
+/// The menu bar menu, and a face's context menu. With one face, its items directly; with several, a menu
+/// each, named after its head and its AI (spec, § 9.3).
 struct MenuContent: View {
     let model: AppModel
+    /// A face's own menu (a right click on it); the menu bar's shows them all.
+    var slot: FaceSlot?
 
     var body: some View {
-        Text(status)
-        Divider()
-        if model.connection.app != nil {
-            Button("Disconnect") { model.disconnect() }
-        }
-        Button("Connect my AI…") { model.showConnectWindow() }
-        if model.faceShown {
-            Button("Hide the face") { model.hideFace() }
+        if let slot {
+            FaceMenu(model: model, slot: slot)
+        } else if model.slots.count == 1 {
+            FaceMenu(model: model, slot: model.slots[0])
         } else {
-            Button("Show the face") { model.showFace() }
+            ForEach(model.slots) { slot in
+                Menu(slot.title) { FaceMenu(model: model, slot: slot) }
+            }
         }
-        Picker(
-            "Window",
-            selection: Binding(get: { model.windowMode }, set: { model.windowMode = $0 })
-        ) {
-            ForEach(WindowMode.allCases) { Text($0.title).tag($0) }
-        }
-        FacePicker(model: model)
         Divider()
+        Button("Add a face") { model.addFace() }
         Button("Settings…") { model.showSettings() }
             .keyboardShortcut(",")
         Button("Quit Visage") { NSApp.terminate(nil) }
             .keyboardShortcut("q")
     }
+}
+
+/// What a face's menu holds: its state, its AI, whether it shows, its window and its head.
+private struct FaceMenu: View {
+    let model: AppModel
+    let slot: FaceSlot
+
+    var body: some View {
+        Text(status)
+        Divider()
+        if slot.connection.app != nil {
+            Button("Disconnect") { model.disconnect(slot) }
+        }
+        Button("Connect my AI…") { model.showConnectWindow(for: slot) }
+        if slot.faceShown {
+            Button("Hide the face") { slot.hide() }
+        } else {
+            Button("Show the face") { slot.show() }
+        }
+        Picker("Window", selection: Binding(get: { slot.windowMode }, set: { slot.windowMode = $0 })) {
+            ForEach(WindowMode.allCases) { Text($0.title).tag($0) }
+        }
+        FacePicker(slot: slot)
+        if model.slots.count > 1 {
+            Button("Remove this face") { model.removeFace(slot) }
+        }
+    }
 
     private var status: String {
-        let name = model.connection.app?.name ?? ""
-        switch model.connection.state {
+        let name = slot.connection.app?.name ?? ""
+        switch slot.connection.state {
         case .connected: return String(localized: "Connected to \(name)")
         case .starting: return String(localized: "Connecting…")
         case .waitingForPermission, .permissionMissing: return String(localized: "Waiting for permission")

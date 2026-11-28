@@ -2,15 +2,16 @@ import AudioSource
 import Shared
 import SwiftUI
 
-/// The face's window content: the hologram, and the connection's state beneath it until it speaks. Without
+/// A face's window content: the hologram, and the connection's state beneath it until it speaks. Without
 /// Metal, the charter's mark stands in.
 struct FaceView: View {
     let model: AppModel
+    let slot: FaceSlot
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            if model.faceDriver.renderer != nil {
-                HoloView(driver: model.faceDriver)
+            if slot.driver.renderer != nil {
+                HoloView(driver: slot.driver)
             } else {
                 Canvas { context, size in
                     MarkDrawing.draw(in: &context, size: size, glow: true)
@@ -18,7 +19,7 @@ struct FaceView: View {
                 .aspectRatio(1, contentMode: .fit)
                 .padding(24)
             }
-            if model.connection.state != .connected {
+            if slot.connection.state != .connected {
                 Text(caption)
                     .font(.callout)
                     .foregroundStyle(Palette.orPale.opacity(0.85))
@@ -28,13 +29,13 @@ struct FaceView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contextMenu {
-            MenuContent(model: model)
+            MenuContent(model: model, slot: slot)
         }
     }
 
     private var caption: String {
-        let name = model.connection.app?.name ?? ""
-        switch model.connection.state {
+        let name = slot.connection.app?.name ?? ""
+        switch slot.connection.state {
         case .connected: return String(localized: "Listening to \(name)")
         case .starting, .waitingForPermission: return String(localized: "Connecting…")
         case .permissionMissing: return String(localized: "Waiting for permission")

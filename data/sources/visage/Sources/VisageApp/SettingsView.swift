@@ -19,6 +19,9 @@ struct SettingsView: View {
             .padding(.top, 28)
             .padding(.horizontal, 24)
 
+            FaceTabs(model: model)
+                .padding(.horizontal, 24)
+
             HStack(alignment: .top, spacing: 20) {
                 FacePreview(model: model)
                 ScrollView {
@@ -59,6 +62,30 @@ struct SettingsView: View {
         guard let app = model.connection.app else { return String(localized: "Not connected") }
         return model.connection.state == .connected
             ? String(localized: "Connected to \(app.name)") : String(localized: "Waiting for \(app.name)")
+    }
+}
+
+/// The faces, one tab each, to set them one by one; and a face to add, or the selected one to remove
+/// (spec, § 9.3). The cards below show the selected face, but for the shared ones: the camera, the sync.
+struct FaceTabs: View {
+    let model: AppModel
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if model.slots.count > 1 {
+                Picker("Face", selection: Binding(get: { model.selectedID }, set: { model.selectedID = $0 })) {
+                    ForEach(model.slots) { Text($0.title).tag($0.id) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+            }
+            Button("Add a face") { model.addFace() }
+            if model.slots.count > 1 {
+                Button("Remove this face") { model.removeFace(model.selected) }
+            }
+            Spacer()
+        }
     }
 }
 

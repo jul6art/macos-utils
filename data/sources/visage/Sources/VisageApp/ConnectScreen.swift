@@ -15,7 +15,7 @@ struct ConnectScreen: View {
             connectedApp: model.connection.app,
             listening: model.connection.appListening,
             claudeCodePluginSeen: model.claudeCodePluginSeen,
-            apps: model.apps.map { AppCardInfo(app: $0) },
+            apps: model.apps.map { AppCardInfo(app: $0, elsewhere: model.appsElsewhere.contains($0.id)) },
             otherApps: model.otherApps(),
             connect: { model.connect(to: $0, showingFace: !welcoming) },
             showFace: { model.showFace() },
@@ -28,12 +28,15 @@ struct AppCardInfo: Identifiable {
     let app: AIApp
     let isInstalled: Bool
     let isRunning: Bool
+    /// Another face listens to it: connecting here takes it from that face.
+    var elsewhere = false
 
     var id: String { app.id }
 
     @MainActor
-    init(app: AIApp) {
+    init(app: AIApp, elsewhere: Bool = false) {
         self.app = app
+        self.elsewhere = elsewhere
         isInstalled = app.installation != nil
         isRunning = app.isRunning
     }
@@ -143,6 +146,7 @@ private struct AppCard: View {
 
     private var status: String {
         if isConnected { return String(localized: "Connected") }
+        if info.elsewhere { return String(localized: "With another face") }
         if info.isRunning { return String(localized: "Open") }
         return info.isInstalled ? String(localized: "Installed") : String(localized: "Not installed")
     }
