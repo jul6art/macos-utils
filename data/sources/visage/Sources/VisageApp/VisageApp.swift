@@ -8,7 +8,7 @@ import SwiftUI
 ///   display (and without the screen recording permission);
 /// - `Visage --analyse <audio file> <frames.json>` runs the voice analysis on a file;
 /// - `Visage --render <audio file> <video.mov> [<frames directory>]` films the face speaking the file
-///   (`--face <id>`, `--realism <0-100>` or a range such as `0-100`, `--mute`).
+///   (`--face <id>`, `--realism <0-100>` or a range such as `0-100`, `--mute`, `--backdrop`).
 @main
 enum VisageMain {
     @MainActor
@@ -33,7 +33,8 @@ enum VisageMain {
                     input: URL(fileURLWithPath: arguments[index + 1]),
                     output: URL(fileURLWithPath: arguments[index + 2]), frames: frames,
                     face: face ?? FaceLibrary.faces.first?.id ?? FaceLibrary.points,
-                    realism: realism, mute: arguments.contains("--mute")))
+                    realism: realism, mute: arguments.contains("--mute"),
+                    backdrop: arguments.contains("--backdrop")))
         }
         if let index = arguments.firstIndex(of: "--analyse"), index + 2 < arguments.count {
             exit(

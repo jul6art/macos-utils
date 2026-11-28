@@ -19,7 +19,8 @@ enum VideoRender {
     static let anticipation = 0.06
 
     static func run(
-        input: URL, output: URL, frames directory: URL?, face: String, realism: ClosedRange<Float>, mute: Bool
+        input: URL, output: URL, frames directory: URL?, face: String, realism: ClosedRange<Float>, mute: Bool,
+        backdrop: Bool = false
     )
         -> Int32
     {
@@ -30,7 +31,9 @@ enum VideoRender {
             }
             let silent = output.deletingLastPathComponent().appending(path: ".\(UUID().uuidString).mov")
             defer { try? FileManager.default.removeItem(at: silent) }
-            try writeVideo(analysis: analysis, renderer: renderer, realism: realism, to: silent, frames: directory)
+            try writeVideo(
+                analysis: analysis, renderer: renderer, realism: realism, backdrop: backdrop, to: silent,
+                frames: directory)
             if mute {
                 try? FileManager.default.removeItem(at: output)
                 try FileManager.default.copyItem(at: silent, to: output)
@@ -46,8 +49,8 @@ enum VideoRender {
     }
 
     private static func writeVideo(
-        analysis: AudioFileAnalysis.Result, renderer: HoloRenderer, realism: ClosedRange<Float>, to url: URL,
-        frames directory: URL?
+        analysis: AudioFileAnalysis.Result, renderer: HoloRenderer, realism: ClosedRange<Float>, backdrop: Bool,
+        to url: URL, frames directory: URL?
     ) throws {
         let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
         let input = AVAssetWriterInput(
@@ -68,6 +71,7 @@ enum VideoRender {
 
         var settings = HoloSettings()
         settings.background = HoloSettings.charbon
+        settings.backdrop = backdrop
         let animator = FaceAnimator(seed: 1)
         let frameCount = Int(analysis.duration * Double(fps)) + fps / 2
         for index in 0..<frameCount {

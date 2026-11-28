@@ -118,6 +118,15 @@ struct WindowModeChoice: View {
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(model.windowMode == mode ? .isSelected : [])
             }
+            Toggle(
+                "A night behind the face", isOn: Binding(get: { model.backdrop }, set: { model.backdrop = $0 })
+            )
+            .toggleStyle(.switch)
+            Text(
+                "A dark city night, rain and far lights, behind the hologram: its light shows on any desktop. Two faces side by side share one night."
+            )
+            .font(.caption).foregroundStyle(Palette.cendreClaire)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

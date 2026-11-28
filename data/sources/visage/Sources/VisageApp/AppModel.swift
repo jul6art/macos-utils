@@ -66,6 +66,10 @@ final class AppModel {
         set { selected.windowMode = newValue }
     }
     var faceShown: Bool { selected.faceShown }
+    var backdrop: Bool {
+        get { selected.backdrop }
+        set { selected.backdrop = newValue }
+    }
 
     // MARK: - The shared settings
 
