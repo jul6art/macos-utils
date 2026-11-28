@@ -40,8 +40,9 @@ public final class AudioCapture: @unchecked Sendable {
     private static let ringSeconds = 2.0
     private var ring: FrameRing?
     private var hopFrames = 480
-    /// Set before the IO starts, read on the real-time thread.
-    private var passThrough = false
+    /// Whether the sound passes through, neither muted nor played back. Set before the IO starts, read on
+    /// the real-time thread.
+    public private(set) var passThrough = false
     private let levelSlots = 4096
     private let levels: UnsafeMutablePointer<Float>
     private var hopSum: Float = 0
