@@ -144,8 +144,12 @@ public final class FaceAnimator: @unchecked Sendable {
                 max(0, voice.frontness - 0.5) * 1.2 * (1 - voice.rounding) * level)
             set(.mouthFunnel, voice.rounding * 0.7 * level)
             set(.mouthPucker, voice.rounding * (1 - voice.openness) * 0.6 * level)
-            both(.mouthLowerDownLeft, .mouthLowerDownRight, 0.3 * voice.openness * level)
-            both(.mouthUpperUpLeft, .mouthUpperUpRight, 0.15 * voice.frontness * level)
+            // A speaking mouth shows the upper teeth more than the lower: with the lower lip pulled down
+            // and the upper one still, only a comb of lower teeth showed.
+            both(.mouthLowerDownLeft, .mouthLowerDownRight, 0.18 * voice.openness * level)
+            both(
+                .mouthUpperUpLeft, .mouthUpperUpRight,
+                (0.2 + 0.35 * voice.openness + 0.15 * voice.frontness) * level)
         case .nasal:
             set(.jawOpen, 0.06)
             set(.mouthClose, voice.bilabial)

@@ -57,7 +57,7 @@ enum HoloShaders {
         // and the left, a fill from the right and a rim; tinted like the hologram while it is faint.
         // Invariant: the depth pass and the colour pass must land on exactly the same depth.
         struct SurfaceOut { float4 position [[position, invariant]]; float3 normal; float2 uv; float height; float occlusion; };
-        struct SurfaceLook { float shine; float sharpness; float warmth; float opacity; float rim; float tone; float soft; float shade; };
+        struct SurfaceLook { float shine; float sharpness; float warmth; float opacity; float rim; float tone; float soft; float shade; float cavity; float whiten; };
 
         vertex SurfaceOut surfaceVertex(uint id [[vertex_id]], const device GPUPoint* points [[buffer(0)]],
                                         constant Uniforms& u [[buffer(1)]], const device float2* uvs [[buffer(2)]],
@@ -81,6 +81,13 @@ enum HoloShaders {
             float3 key = normalize(float3(-0.45, 0.5, 0.75));
             float3 fill = normalize(float3(0.7, 0.05, 0.45));
             float3 albedoLinear = texel.rgb * texel.rgb * look.tone * look.tone;
+            // Enamel: MakeHuman's teeth are painted grey, their crevices dark. Their pale, unsaturated texels go
+            // ivory, as bright as they were light; the gums, red, keep their colour.
+            float top = max(albedoLinear.r, max(albedoLinear.g, albedoLinear.b));
+            float saturation = (top - min(albedoLinear.r, min(albedoLinear.g, albedoLinear.b))) / max(top, 1e-3);
+            float enamel = look.whiten * (1.0 - smoothstep(0.15, 0.35, saturation));
+            float luma = dot(albedoLinear, float3(0.299, 0.587, 0.114));
+            albedoLinear = mix(albedoLinear, float3(0.84, 0.8, 0.72) * saturate(0.62 + 0.7 * sqrt(luma)), enamel);
             float wrapped = saturate((dot(n, key) + look.warmth) / (1.0 + look.warmth));
             // Contact shadows (tools/faces bakes them): the soft light from all around, the fill and the
             // shine fall into them; the key, a lamp, only partly.
@@ -90,6 +97,9 @@ enum HoloShaders {
             lit += albedoLinear * float3(0.5, 0.12, 0.05) * look.warmth * wrapped * (1.0 - wrapped);
             lit += pow(saturate(dot(n, normalize(key + float3(0.0, 0.0, 1.0)))), look.sharpness) * look.shine * ao;
             lit += pow(1.0 - saturate(n.z), 3.0) * look.rim * ao;
+            // Deep in the contact shadows, inside the mouth above all, no lamp reaches: the tongue and the
+            // inner lips, lit as the cheeks, made a pale pink hole behind the teeth.
+            lit *= mix(1.0, smoothstep(0.05, 0.55, in.occlusion), look.cavity);
             // Highlights roll off instead of clipping: lit past white, pale skins went flat, a chalk mask.
             // Below the knee nothing changes (dark skins kept their modelling).
             float knee = 0.55;
