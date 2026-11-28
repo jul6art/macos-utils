@@ -66,12 +66,12 @@ enum FaceLibrary {
     }
 }
 
-/// Which face, in the menu: a list of names.
+/// Which head, in a face's menu: a list of names.
 struct FacePicker: View {
-    let model: AppModel
+    let slot: FaceSlot
 
     var body: some View {
-        Picker("Face", selection: Binding(get: { model.faceID }, set: { model.faceID = $0 })) {
+        Picker("Face", selection: Binding(get: { slot.faceID }, set: { slot.faceID = $0 })) {
             ForEach(FaceLibrary.choices) { Text($0.name).tag($0.id) }
         }
     }

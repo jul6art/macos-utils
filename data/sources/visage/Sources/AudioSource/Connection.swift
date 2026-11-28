@@ -3,6 +3,12 @@ import CoreAudio
 import Foundation
 import Observation
 import Shared
+import os
+
+/// What the connections do, for `log show --predicate 'subsystem == "com.devinthehood.visage"' --info`: their
+/// states, the taps they make, and, while their app plays, whether its sound comes through. With several
+/// faces, nothing else tells their captures apart.
+private let log = Logger(subsystem: "com.devinthehood.visage", category: "connection")
 
 /// « Connect my AI »: finds the app, taps its sound, and keeps the tap alive — when the app restarts, when
 /// the output changes (headphones), when its audio processes change. The capture starts off the main
@@ -25,7 +31,14 @@ public final class Connection {
         case failed(String)
     }
 
-    public private(set) var state: State = .idle
+    public private(set) var state: State = .idle {
+        didSet {
+            if state != oldValue {
+                log.notice(
+                    "\(self.app?.id ?? "-", privacy: .public): \(String(describing: self.state), privacy: .public)")
+            }
+        }
+    }
     public private(set) var app: AIApp?
     public private(set) var capture: AudioCapture?
     /// Whether the app has its microphone open: its voice mode, or its dictation, listens (spec, § 7.2).
@@ -163,6 +176,9 @@ public final class Connection {
             target.processObjects = processes.map(\.objectID)
         }
         tappedProcesses = Set(processes.map(\.objectID))
+        log.notice(
+            "\(self.app?.id ?? "-", privacy: .public): tap \(target.bundleIDs.isEmpty ? "processes \(processes.map(\.pid))" : "bundles \(target.bundleIDs)", privacy: .public), pass-through \(target.passThrough, privacy: .public)"
+        )
 
         generation += 1
         let attempt = generation
@@ -292,6 +308,11 @@ public final class Connection {
                 break
             }
             playingSeconds = playing ? playingSeconds + 1 : 0
+            if playing {
+                log.info(
+                    "\(app.id, privacy: .public) plays: \(callbacks, privacy: .public) callbacks, \(capture.heardCallbacks.load(ordering: .relaxed), privacy: .public) heard"
+                )
+            }
             let missing = Self.permissionLooksMissing(
                 heardSomething: capture.heardCallbacks.load(ordering: .relaxed) > 0, playingFor: playingSeconds)
             if missing != (state == .permissionMissing) { state = missing ? .permissionMissing : .connected }

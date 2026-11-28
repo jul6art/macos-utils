@@ -7,13 +7,16 @@ import Shared
 import SwiftUI
 import VoiceAnalysis
 
-/// Drives the face on screen: at each displayed frame, which sound will be heard at that instant, the voice
+/// Drives a face on screen: at each displayed frame, which sound will be heard at that instant, the voice
 /// read `anticipation` ahead of it, the animation, the hologram (spec, § 7.1, point 9). As a `preview`
-/// (the settings', the welcome's), it hears nothing: the face at rest, on charbon, as the settings make it.
+/// (the settings', the welcome's), it hears nothing: the selected face at rest, on charbon, as the settings
+/// make it.
 @MainActor
 final class FaceDriver: NSObject, MTKViewDelegate {
     let renderer: HoloRenderer?
     private let model: AppModel
+    /// The face it drives; the preview follows the selected one.
+    private let slot: FaceSlot?
     private let preview: Bool
     private let voice = LiveVoice()
     private let animator = FaceAnimator(seed: UInt32(truncatingIfNeeded: Int(Date().timeIntervalSince1970)))
@@ -25,10 +28,11 @@ final class FaceDriver: NSObject, MTKViewDelegate {
     private var conversation = ConversationTracker()
     private let start = CACurrentMediaTime()
 
-    init(model: AppModel, preview: Bool = false) {
+    init(model: AppModel, slot: FaceSlot? = nil, preview: Bool = false) {
         self.model = model
+        self.slot = slot
         self.preview = preview
-        renderer = HoloRenderer(model: FaceLibrary.model(id: model.faceID))
+        renderer = HoloRenderer(model: FaceLibrary.model(id: slot?.faceID ?? model.faceID))
     }
 
     nonisolated func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
@@ -46,14 +50,15 @@ final class FaceDriver: NSObject, MTKViewDelegate {
         let dt = lastDraw == 0 ? 1.0 / 60 : min(now - lastDraw, 0.1)
         lastDraw = now
 
-        let capture = preview ? nil : model.connection.capture
+        let face = slot ?? model.selected
+        let capture = preview ? nil : face.connection.capture
         if capture !== attached {
             attached = capture
             voice.attach(capture)
         }
 
         var frame: VoiceFrame?
-        if let capture, model.connection.state == .connected {
+        if let capture, face.connection.state == .connected {
             // The instant this frame will be on screen, and the sound heard then.
             let displayed =
                 HostClock.now + HostClock.hostTime(seconds: 1 / Double(max(view.preferredFramesPerSecond, 1)))
@@ -70,7 +75,7 @@ final class FaceDriver: NSObject, MTKViewDelegate {
             ? ConversationMoment.waiting
             : conversation.update(
                 dt: dt, aiVoiced: frame.map { $0.sound != .silence } == true,
-                appListening: model.connection.appListening, personVoiced: heard)
+                appListening: face.connection.appListening, personVoiced: heard)
         let seen = model.camera ? model.cameraTracker.position : nil
         animator.lookAt = seen
         viewer += ((seen ?? .zero) - viewer) * Float(min(1, dt / 0.25))
@@ -79,13 +84,13 @@ final class FaceDriver: NSObject, MTKViewDelegate {
         view.preferredFramesPerSecond = moment == .speaking ? 60 : 30
 
         var settings = HoloSettings()
-        if model.windowMode == .classic || preview { settings.background = HoloSettings.charbon }
-        settings.realism = Float(model.realism)
-        settings.colour = model.holoColour.rgb
-        settings.halo = Float(model.halo)
-        settings.scanlines = Float(model.scanlines)
-        settings.projector = model.projector
-        settings.glitches = model.glitches
+        if face.windowMode == .classic || preview { settings.background = HoloSettings.charbon }
+        settings.realism = Float(face.realism)
+        settings.colour = face.holoColour.rgb
+        settings.halo = Float(face.halo)
+        settings.scanlines = Float(face.scanlines)
+        settings.projector = face.projector
+        settings.glitches = face.glitches
         settings.viewer = viewer
         renderer.encode(
             pose: pose, time: now - start, settings: settings, into: drawable.texture, commandBuffer: commandBuffer)

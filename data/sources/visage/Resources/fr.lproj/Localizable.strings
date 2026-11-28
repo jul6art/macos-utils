@@ -107,3 +107,6 @@
 "Connected to Siri. Ask it something: it answers aloud when its voice responses are on, in System Settings, under Siri." = "Connecté à Siri. Posez-lui une question : il répond à voix haute si ses réponses vocales sont activées, dans Réglages Système, sous Siri.";
 "Siri among the AIs" = "Siri parmi les IA";
 "Siri gets its card in « Connect my AI ». It must answer aloud: System Settings, Siri, voice responses. Its voice plays as it is, and the face follows it without reading ahead." = "Siri a sa carte dans « Se connecter à mon IA ». Il doit répondre à voix haute : Réglages Système, Siri, réponses vocales. Sa voix sort telle quelle, et le visage la suit sans lire en avance.";
+"Add a face" = "Ajouter un visage";
+"Remove this face" = "Retirer ce visage";
+"With another face" = "Avec un autre visage";
