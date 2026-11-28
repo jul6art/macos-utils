@@ -43,7 +43,7 @@ archive each, for Apple silicon and Intel:
 | --- | --- | --- |
 | **Awake** | [Awake 1.0.0](https://github.com/jul6art/macos-utils/releases/tag/awake-v1.0.0) | `sh data/sources/awake/build.sh --install` |
 | **Siphon** | [Siphon 1.0.0](https://github.com/jul6art/macos-utils/releases/tag/siphon-v1.0.0) | `sh data/sources/siphon/build.sh --install` |
-| **Visage** | [Visage 0.1.0](https://github.com/jul6art/macos-utils/releases/tag/visage-v0.1.0) | `sh data/sources/visage/build.sh --install` |
+| **Visage** | [Visage 0.2.0](https://github.com/jul6art/macos-utils/releases/tag/visage-v0.2.0) | `sh data/sources/visage/build.sh --install` |
 
 The ready-made builds are made from the same source, signed ad hoc and **not
 notarized**: macOS blocks each one the first time you open it. Allow it once in
