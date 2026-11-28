@@ -56,6 +56,15 @@ public final class Connection {
         UserDefaults.standard.bool(forKey: "forceProcessMode")
     }
 
+    /// The app's sound passes through, as Siri's always does (spec, § 4.5), while it listens: a voice mode
+    /// runs macOS's voice processing, which lowers every other sound, Visage's playback with it. With Claude
+    /// Desktop's voice mode, the face spoke and nothing was heard (2026-11-28).
+    @ObservationIgnored private var passingThrough = false
+    @ObservationIgnored private var playbackReturn: Task<Void, Never>?
+    /// A voice mode may close its microphone between turns: the playback comes back only once the microphone
+    /// has stayed closed this long.
+    nonisolated public static let playbackReturnDelay = 10.0
+
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var tappedProcesses: Set<AudioObjectID> = []
     /// Bundle mode: the bundle IDs given to Core Audio, which follows exactly those.
@@ -115,6 +124,9 @@ public final class Connection {
         listeningWatch = nil
         appProcesses = []
         setListening(false)
+        playbackReturn?.cancel()
+        playbackReturn = nil
+        passingThrough = false
         if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }
         wakeObserver = nil
         unwatchOutputDevice()
@@ -133,7 +145,7 @@ public final class Connection {
         stopCapture()
         let processes = AudioProcesses.matching(bundleID, in: AudioProcesses.all())
         appProcesses = processes.map(\.objectID)
-        var target = CaptureTarget(passThrough: app?.passesThrough == true)
+        var target = CaptureTarget(passThrough: passesThrough)
         if tapsByBundleID, bundleID.contains(".") {
             // Siri's voice is a service born for each answer: Visage waits for the first one, then taps it by
             // its bundle ID, which Core Audio follows to the next ones.
@@ -179,6 +191,8 @@ public final class Connection {
             return
         }
         self.capture = capture
+        // The app began or stopped listening while the capture started.
+        if capture.passThrough != passesThrough { restart() }
         playingSeconds = 0
         lastCallbacks = 0
         stalledSeconds = 0
@@ -299,6 +313,32 @@ public final class Connection {
         guard listening != appListening else { return }
         appListening = listening
         onListeningChange?(listening)
+        followVoiceProcessing(listening)
+    }
+
+    /// Whether the sound passes through now: Siri's always, an app's while it listens.
+    private var passesThrough: Bool {
+        app?.passesThrough == true || passingThrough
+    }
+
+    /// An app that opens its microphone passes through at once; it is played back again once its microphone
+    /// has stayed closed `playbackReturnDelay` seconds. Each switch remakes the tap, a fraction of a second.
+    private func followVoiceProcessing(_ listening: Bool) {
+        guard app?.kind == .app else { return }
+        playbackReturn?.cancel()
+        playbackReturn = nil
+        if listening {
+            guard !passingThrough else { return }
+            passingThrough = true
+            restart()
+        } else if passingThrough {
+            playbackReturn = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(Self.playbackReturnDelay))
+                guard !Task.isCancelled, !self.appListening else { return }
+                self.passingThrough = false
+                self.restart()
+            }
+        }
     }
 
     private func watchOutputDevice() {
