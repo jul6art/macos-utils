@@ -4,7 +4,7 @@
 
 <p align="center">
     <a href="https://opensource.org/licenses/MIT" target="_blank"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License"></a>
-    <a href="https://github.com/jul6art/macos-utils/releases/tag/visage-v0.1.0"><img src="https://img.shields.io/static/v1?label=version&message=v0.1.0&color=orange" alt="Version"></a>
+    <a href="https://github.com/jul6art/macos-utils/releases/tag/visage-v0.2.0"><img src="https://img.shields.io/static/v1?label=version&message=v0.2.0&color=orange" alt="Version"></a>
 </p>
 
 MACOS-UTILS
@@ -117,7 +117,7 @@ The [Releases](https://github.com/jul6art/macos-utils/releases) page has
 1. Download it and its `.sha256`, then check it:
 
    ```shell
-   shasum -a 256 -c Visage-0.1.0.zip.sha256
+   shasum -a 256 -c Visage-0.2.0.zip.sha256
    ```
 
 2. Unzip it, and move **Visage** to **Applications**.
@@ -133,7 +133,7 @@ with the same Command Line Tools, building the tag yourself gives the same
 archive, byte for byte, and the same checksum.
 
 ```shell
-git checkout visage-v0.1.0
+git checkout visage-v0.2.0
 sh data/sources/release.sh visage    # prints the SHA-256 to compare
 ```
 
