@@ -186,7 +186,14 @@ Visage gives it a voice, then a face:
   given to the tap: a helper born after connecting (Claude's audio service, which carries its voice and its
   microphone) makes the tap be redone.
 - **Mute without loss**: while the tap is active, the AI app's sound no longer reaches the speakers, and
-  Visage plays it back. Siri alone passes through, unmuted and not played back (§ 4.5).
+  Visage plays it back.
+- **Passing through while the app listens**: a voice mode runs macOS's voice processing (a
+  `CADefaultDeviceAggregate` on the speakers), which lowers every other sound, Visage's playback with it.
+  With Claude Desktop's voice mode, on 2026-11-28, the face spoke and nothing was heard. As soon as the app
+  opens its microphone, Visage remakes its tap unmuted and plays nothing: the voice plays as it is, and the
+  face follows it live, without the lead (as Siri's, always, § 4.5). The playback comes back once the
+  microphone has stayed closed ten seconds, a voice mode closing its own between turns. "Read aloud",
+  without the microphone, keeps the lead.
 - **Buffer**: a lock-free ring buffer (one producer: the `IOProc`; one consumer: the playback). The delay
   **D is 150 ms by default, adjustable from 80 to 300 ms**. No allocation and no lock on the real-time
   thread.
@@ -674,7 +681,7 @@ the same gate.
 
 | # | Risk | Answer |
 |---|---|---|
-| R1 | **Echo**: played back 150 ms later, the sound may fool the AI app's echo cancellation, which would hear itself and stop. | With headphones, no problem. On speakers, measure, then lower D or advise headphones. Does not arise with "Read aloud" (pilot, § 4). **Lifted for Claude on 2026-11-26**: in hands-free voice mode, on speakers, with the 150 ms delay, Claude does not hear itself. ChatGPT remains. |
+| R1 | **Echo**: played back 150 ms later, the sound may fool the AI app's echo cancellation, which would hear itself and stop. Since 2026-11-28 the sound passes through while the app listens (§ 5): the question no longer arises in a voice mode. | With headphones, no problem. On speakers, measure, then lower D or advise headphones. Does not arise with "Read aloud" (pilot, § 4). **Lifted for Claude on 2026-11-26**: in hands-free voice mode, on speakers, with the 150 ms delay, Claude does not hear itself. ChatGPT remains. |
 | R2 | **Audio processes**: find the one playing the voice (Claude Desktop is an Electron app) and follow it when the app restarts. | macOS 26 taps an app by its bundle ID and finds it again when it restarts (pilot, tests 4 and 5); otherwise, filter by prefix and responsible PID. |
 | R3 | **Safe muting**: the AI's sound must come back if Visage stops. | Criterion 6, blocking. Private tap; measured at the microphone by the pilot (tests 2 and 3). |
 | R4 | **Analysis without a model** not good enough in French. | V2 in Core ML (§ 6.2). |
