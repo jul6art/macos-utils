@@ -11,8 +11,8 @@ final class CameraTracker: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
         case noCamera
     }
 
-    /// Where the face is, seen from the screen (x to the right, y up, each from −1 to 1); nil while none is
-    /// seen, after a second and a half.
+    /// Where the person is, seen from the screen (`position(of:)`); nil while none is seen, after a second and
+    /// a half.
     var position: SIMD2<Float>? { lock.withLock { latest } }
 
     private let lock = NSLock()
@@ -36,6 +36,12 @@ final class CameraTracker: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
             session.sessionPreset = .low
             if session.canAddInput(input) { session.addInput(input) }
             if session.canAddOutput(output) { session.addOutput(output) }
+            // The image as the camera sees it, never mirrored: macOS mirrored the built-in camera's frames on
+            // its own, and the face looked away from the person, to the other side (2026-11-28).
+            if let connection = output.connection(with: .video), connection.isVideoMirroringSupported {
+                connection.automaticallyAdjustsVideoMirroring = false
+                connection.isVideoMirrored = false
+            }
             session.commitConfiguration()
             session.startRunning()
         }
@@ -72,8 +78,9 @@ final class CameraTracker: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
         }
     }
 
-    /// A face's box in the camera's image (Vision's: from 0 to 1, origin at the bottom left) to where the
-    /// person stands, seen from the screen. The camera faces them: their right is the image's left.
+    /// A face's box in the camera's image (Vision's: from 0 to 1, origin at the bottom left, never mirrored)
+    /// to where the person stands, seen from the screen: x to the screen's right, y up, each from −1 to 1.
+    /// The camera faces them: their right is the image's left.
     static func position(of box: CGRect) -> SIMD2<Float> {
         SIMD2(Float(0.5 - box.midX) * 2, Float(box.midY - 0.5) * 2)
     }

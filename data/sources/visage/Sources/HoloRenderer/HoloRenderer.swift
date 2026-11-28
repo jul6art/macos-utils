@@ -492,11 +492,12 @@ public final class HoloRenderer: @unchecked Sendable {
     /// The head's rotation, about the top of the neck.
     private static func model(head: SIMD3<Float>, viewer: SIMD2<Float> = .zero) -> simd_float4x4 {
         let pivot = SIMD3<Float>(0, -0.4, 0)
-        // A viewer moving to the right sees more of the head's side on that side, as with a real head
-        // behind the glass: the head turns, by up to 13° sideways and 7° up or down.
+        // The head turns towards the viewer, by up to 13° sideways and 7° up or down, as a face that follows
+        // you. It first turned the other way, as an object behind glass shows its side to who moves: the
+        // face seemed to look away from the person, on both axes (2026-11-28).
         let parallax =
-            simd_quatf(angle: viewer.y * 0.12, axis: SIMD3(1, 0, 0))
-            * simd_quatf(angle: -viewer.x * 0.22, axis: SIMD3(0, 1, 0))
+            simd_quatf(angle: -viewer.y * 0.12, axis: SIMD3(1, 0, 0))
+            * simd_quatf(angle: viewer.x * 0.22, axis: SIMD3(0, 1, 0))
         let rotation =
             parallax * simd_quatf(angle: head.z, axis: SIMD3(0, 0, 1)) * simd_quatf(angle: head.y, axis: SIMD3(0, 1, 0))
             * simd_quatf(angle: -head.x, axis: SIMD3(1, 0, 0))
