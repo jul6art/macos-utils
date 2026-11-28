@@ -483,9 +483,10 @@ The effect is built in layers, each adjustable:
 5. **The appearance**: on connecting, a scan band sweeps down and builds the head line by line. On
    disconnecting, it dissolves.
 6. **The halo**: a two-pass bloom.
-7. **Parallax** (camera option): Vision follows where your head is, and the rendering camera moves with it
-   (off-axis projection). The head seems to have a real volume behind the screen: that is what makes a flat
-   screen pass for a hologram.
+7. **Parallax** (camera option): Vision follows where your head is, and the head turns towards you, by up
+   to 13° sideways and 7° up or down, with the gaze. Turned the other way, as an object behind glass shows
+   its side to who moves, it seemed to look away from the person (2026-11-28). The camera's frames are
+   taken unmirrored, whatever macOS would do with them.
 8. **The colour**: the charter's braise (`#FFC978`) by default, with a palette to choose from; a point cloud
    mode as an option, the mark's.
 
